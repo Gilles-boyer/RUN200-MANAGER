@@ -1,0 +1,59 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 5
+    paths:
+        - app
+    excludePaths:
+        - app/Console/Commands/MigrateEngagementValidations.php
+
+    # Treat PHPDoc types as uncertain to avoid false positives
+    treatPhpDocTypesAsCertain: false
+
+    # Report unmatched ignored errors
+    reportUnmatchedIgnoredErrors: false
+
+    # Ignore specific baseline errors
+    ignoreErrors:
+        # Livewire computed properties are dynamic and cannot be statically typed
+        - '#Access to an undefined property App\\Livewire\\.+::\$#'
+
+        # Unused trait - ProfileValidationRules might be used in views
+        - '#Trait App\\Concerns\\ProfileValidationRules is used zero times#'
+
+        # Unused constant in ResultsCsvImporter for documentation
+        - '#Constant App\\Infrastructure\\Import\\ResultsCsvImporter::EXPECTED_COLUMNS is unused#'
+
+        # Eloquent dynamic relations - PHPStan cannot infer these
+        - '#Access to an undefined property Illuminate\\Database\\Eloquent\\Model::\$#'
+
+        # Larastan relation issues with eager loaded relations
+        - '#Relation .+ is not found in App\\Models\\User model#'
+
+        # Strict comparison warnings due to enum casting
+        - '#Strict comparison using (===|!==) between .+ will always evaluate to (true|false)#'
+
+        # Nullsafe on non-nullable due to PHPDoc uncertainty
+        - '#Using nullsafe (property access|method call) on non-nullable type#'
+
+        # Using nullsafe on left side of ?? is unnecessary
+        - '#Using nullsafe .+ on left side of \?\? is unnecessary#'
+
+        # Result of && being always false due to enum comparisons
+        - '#Result of && is always false#'
+
+        # Dead code from enum comparisons
+        - '#Unreachable statement - code above always terminates#'
+
+        # Method calls on HasMany (ordered scope)
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany::ordered#'
+
+        # Format on date that might be string
+        - '#Cannot call method format\(\) on string#'
+
+        # Unused property that is injected for future use
+        - '#Property App\\Application\\Payments\\UseCases\\HandleStripeWebhook::\$stripeService is never read#'
+
+        # abort_unless false positive
+        - '#Call to function abort_unless\(\) with arguments .+ will always evaluate to true#'
