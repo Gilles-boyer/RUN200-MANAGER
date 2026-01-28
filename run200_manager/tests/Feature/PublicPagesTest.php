@@ -268,7 +268,7 @@ describe('Public Routes Navigation', function () {
         $this->get(route('public.calendar'))
             ->assertOk()
             ->assertSee('Connexion')
-            ->assertSee("S'inscrire", false); // false to disable HTML encoding check
+            ->assertSee('Inscription'); // Le bouton utilise "Inscription"
     });
 
     it('shows dashboard link for authenticated users', function () {
@@ -277,6 +277,6 @@ describe('Public Routes Navigation', function () {
         $this->actingAs($user)
             ->get(route('public.calendar'))
             ->assertOk()
-            ->assertSee('Mon espace');
+            ->assertSee('Mon Espace'); // Avec majuscule sur Espace
     });
 });

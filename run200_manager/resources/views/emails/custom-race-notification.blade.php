@@ -15,27 +15,29 @@
     };
 @endphp
 
-<h2 style="color: #333; margin-top: 0;">{{ $icon }} {{ $notification->subject }}</h2>
+<h2>{{ $icon }} {{ $notification->subject }}</h2>
 
-<p>Bonjour {{ $pilotName }},</p>
+<p>Bonjour <strong>{{ $pilotName }}</strong>,</p>
 
 <div class="{{ $boxClass }}">
     <div style="white-space: pre-wrap;">{{ $notification->message }}</div>
 </div>
 
-<div class="info-box">
-    <h3 style="margin-top: 0; color: #2196F3;">📋 Informations sur la course</h3>
-    <div class="detail-line">
-        <span class="detail-label">Course :</span>
-        <span>{{ $notification->race->name }}</span>
+<div class="racing-card">
+    <div class="racing-card-header">
+        <h3 class="racing-card-title">📋 Informations sur la course</h3>
     </div>
     <div class="detail-line">
-        <span class="detail-label">Date :</span>
-        <span>{{ $notification->race->race_date->format('d/m/Y') }}</span>
+        <span class="detail-label">Course</span>
+        <span class="detail-value">{{ $notification->race->name }}</span>
     </div>
     <div class="detail-line">
-        <span class="detail-label">Lieu :</span>
-        <span>{{ $notification->race->location }}</span>
+        <span class="detail-label">Date</span>
+        <span class="detail-value">{{ $notification->race->race_date->format('d/m/Y') }}</span>
+    </div>
+    <div class="detail-line">
+        <span class="detail-label">Lieu</span>
+        <span class="detail-value">{{ $notification->race->location }}</span>
     </div>
 </div>
 
@@ -45,8 +47,8 @@
     </a>
 </div>
 
-<p style="margin-top: 30px;">
-    Sportivement,<br>
-    <strong>L'équipe Run200</strong>
-</p>
+<div class="signature">
+    <p>Sportivement,</p>
+    <p><strong>L'équipe Run200</strong></p>
+</div>
 @endsection

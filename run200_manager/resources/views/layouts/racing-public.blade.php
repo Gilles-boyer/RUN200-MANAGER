@@ -233,9 +233,14 @@
 
                 {{-- Links --}}
                 <div class="flex items-center gap-6 text-sm text-carbon-500 dark:text-carbon-400">
-                    <a href="#" class="hover:text-carbon-900 dark:hover:text-white transition-colors">Mentions légales</a>
-                    <a href="#" class="hover:text-carbon-900 dark:hover:text-white transition-colors">Confidentialité</a>
-                    <a href="#" class="hover:text-carbon-900 dark:hover:text-white transition-colors">Contact</a>
+                    <a href="{{ route('legal') }}" class="hover:text-carbon-900 dark:hover:text-white transition-colors">Mentions légales</a>
+                    <a href="{{ route('privacy') }}" class="hover:text-carbon-900 dark:hover:text-white transition-colors">Confidentialité</a>
+                    <a href="https://cfg.re/#contactCfg" target="_blank" rel="noopener" class="hover:text-carbon-900 dark:hover:text-white transition-colors inline-flex items-center gap-1">
+                        Contact
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                        </svg>
+                    </a>
                 </div>
 
                 {{-- Copyright --}}

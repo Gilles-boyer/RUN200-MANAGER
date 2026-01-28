@@ -6,7 +6,6 @@ namespace App\Livewire\Admin\PaddockSpots;
 
 use App\Models\PaddockSpot;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\On;
 use Livewire\Component;
 
 #[Layout('layouts.app')]
@@ -14,9 +13,10 @@ class PaddockMap extends Component
 {
     public string $mapImage = '';
 
-    public int $mapWidth = 1200;
+    // Dimensions de la carte (suffisamment grandes pour une carte circulaire)
+    public int $mapWidth = 2000;
 
-    public int $mapHeight = 800;
+    public int $mapHeight = 2000;
 
     public ?int $selectedSpotId = null;
 
@@ -28,13 +28,17 @@ class PaddockMap extends Component
         $this->mapImage = asset('images/paddock-map.svg');
     }
 
-    #[On('spot-moved')]
+    /**
+     * Met à jour la position d'un emplacement sur la carte.
+     * Positionnement libre sans contraintes (sauf minimum 0).
+     */
     public function updateSpotPosition(int $spotId, int $x, int $y): void
     {
         $spot = PaddockSpot::findOrFail($spotId);
         $spot->update([
-            'position_x' => max(0, min($x, $this->mapWidth)),
-            'position_y' => max(0, min($y, $this->mapHeight)),
+            // Position libre - on garde juste un minimum de 0
+            'position_x' => max(0, $x),
+            'position_y' => max(0, $y),
         ]);
 
         $this->dispatch('spot-updated', spotId: $spotId);

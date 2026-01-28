@@ -193,33 +193,46 @@
             @else
                 {{-- Create new pilot form --}}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <x-racing.form.input wire:model="newPilotFirstName" label="Prénom *" :error="$errors->first('newPilotFirstName')" />
-                    <x-racing.form.input wire:model="newPilotLastName" label="Nom *" :error="$errors->first('newPilotLastName')" />
-                    <x-racing.form.input type="email" wire:model="newPilotEmail" label="Email *" :error="$errors->first('newPilotEmail')" />
-                    <x-racing.form.input wire:model="newPilotLicense" label="N° de licence *" :error="$errors->first('newPilotLicense')" />
-                    <x-racing.form.input type="date" wire:model="newPilotBirthDate" label="Date de naissance *" :error="$errors->first('newPilotBirthDate')" />
-                    <x-racing.form.input wire:model="newPilotBirthPlace" label="Lieu de naissance *" :error="$errors->first('newPilotBirthPlace')" />
-                    <x-racing.form.input type="tel" wire:model="newPilotPhone" label="Téléphone *" :error="$errors->first('newPilotPhone')" />
+                    <x-racing.form.input name="newPilotFirstName" wire:model="newPilotFirstName" label="Prénom *" />
+                    <x-racing.form.input name="newPilotLastName" wire:model="newPilotLastName" label="Nom *" />
+                    <x-racing.form.input name="newPilotEmail" type="email" wire:model="newPilotEmail" label="Email *" />
+                    <x-racing.form.input name="newPilotLicense" wire:model="newPilotLicense" label="N° de licence *" />
+                    <x-racing.form.input name="newPilotBirthDate" type="date" wire:model="newPilotBirthDate" label="Date de naissance *" />
+                    <x-racing.form.input name="newPilotBirthPlace" wire:model="newPilotBirthPlace" label="Lieu de naissance *" />
+                    <x-racing.form.input name="newPilotPhone" type="tel" wire:model="newPilotPhone" label="Téléphone *" />
+                    <x-racing.form.input name="newPilotPermitNumber" wire:model="newPilotPermitNumber" label="N° de permis" placeholder="Ex: 12AB34567" />
+                    <x-racing.form.input name="newPilotPermitDate" type="date" wire:model="newPilotPermitDate" label="Date du permis" />
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Photo (optionnel)</label>
                         <input type="file" wire:model="newPilotPhoto" accept="image/*"
                             class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-racing-red-600 file:text-white hover:file:bg-racing-red-700 transition-all">
                     </div>
                     <div class="md:col-span-2">
-                        <x-racing.form.textarea wire:model="newPilotAddress" label="Adresse *" rows="2" :error="$errors->first('newPilotAddress')" />
+                        <x-racing.form.textarea name="newPilotAddress" wire:model="newPilotAddress" label="Adresse *" rows="2" />
                     </div>
-                    <div class="md:col-span-2">
+                    <x-racing.form.input name="newPilotCity" wire:model="newPilotCity" label="Ville" placeholder="Ex: Paris" />
+                    <x-racing.form.input name="newPilotPostalCode" wire:model="newPilotPostalCode" label="Code postal" placeholder="Ex: 75001" />
+
+                    {{-- Emergency contact section --}}
+                    <div class="md:col-span-2 mt-4 pt-4 border-t border-carbon-700">
+                        <h4 class="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                            <span>🚨</span> Contact d'urgence
+                        </h4>
+                    </div>
+                    <x-racing.form.input name="newPilotEmergencyContactName" wire:model="newPilotEmergencyContactName" label="Nom du contact d'urgence" placeholder="Ex: Jean Dupont" />
+                    <x-racing.form.input name="newPilotEmergencyContactPhone" type="tel" wire:model="newPilotEmergencyContactPhone" label="Téléphone d'urgence" placeholder="Ex: 06 12 34 56 78" />
+
+                    <div class="md:col-span-2 mt-4 pt-4 border-t border-carbon-700">
                         <label class="flex items-center cursor-pointer group">
                             <input type="checkbox" wire:model.live="newPilotIsMinor" class="rounded border-carbon-600 bg-carbon-700 text-racing-red-600 focus:ring-racing-red-500">
                             <span class="ml-2 text-sm text-gray-300 group-hover:text-white transition-colors">Le pilote est mineur</span>
                         </label>
                     </div>
                     @if($newPilotIsMinor)
-                        <x-racing.form.input wire:model="newPilotGuardianFirstName" label="Prénom du tuteur" />
-                        <x-racing.form.input wire:model="newPilotGuardianLastName" label="Nom du tuteur" />
-                        <div class="md:col-span-2">
-                            <x-racing.form.input wire:model="newPilotGuardianLicense" label="N° de licence du tuteur" />
-                        </div>
+                        <x-racing.form.input name="newPilotGuardianFirstName" wire:model="newPilotGuardianFirstName" label="Prénom du tuteur" />
+                        <x-racing.form.input name="newPilotGuardianLastName" wire:model="newPilotGuardianLastName" label="Nom du tuteur" />
+                        <x-racing.form.input name="newPilotGuardianLicense" wire:model="newPilotGuardianLicense" label="N° de licence du tuteur" />
+                        <x-racing.form.input name="newPilotGuardianPhone" wire:model="newPilotGuardianPhone" label="Téléphone du tuteur" placeholder="Ex: 06 12 34 56 78" />
                     @endif
                 </div>
             @endif
@@ -272,15 +285,24 @@
                 </div>
             @else
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <x-racing.form.input type="number" wire:model="newCarRaceNumber" label="Numéro de course *" min="0" max="999" :error="$errors->first('newCarRaceNumber')" />
-                    <x-racing.form.select wire:model="newCarCategoryId" label="Catégorie *" :error="$errors->first('newCarCategoryId')">
+                    <div>
+                        <x-racing.form.input name="newCarRaceNumber" type="number" wire:model="newCarRaceNumber" label="Numéro de course *" min="0" max="999" />
+                        <button type="button" wire:click="generateRandomRaceNumber"
+                            class="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-checkered-yellow-500 bg-checkered-yellow-500/10 hover:bg-checkered-yellow-500/20 rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Générer un numéro aléatoire
+                        </button>
+                    </div>
+                    <x-racing.form.select name="newCarCategoryId" wire:model="newCarCategoryId" label="Catégorie *">
                         <option value="">Sélectionner une catégorie</option>
                         @foreach($this->categories as $category)
                             <option value="{{ $category->id }}">{{ $category->name }}</option>
                         @endforeach
                     </x-racing.form.select>
-                    <x-racing.form.input wire:model="newCarMake" label="Marque *" :error="$errors->first('newCarMake')" />
-                    <x-racing.form.input wire:model="newCarModel" label="Modèle *" :error="$errors->first('newCarModel')" />
+                    <x-racing.form.input name="newCarMake" wire:model="newCarMake" label="Marque *" />
+                    <x-racing.form.input name="newCarModel" wire:model="newCarModel" label="Modèle *" />
                 </div>
             @endif
         </div>

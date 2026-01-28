@@ -42,6 +42,7 @@ class Pilot extends Model
         'guardian_first_name',
         'guardian_last_name',
         'guardian_license_number',
+        'guardian_phone',
         'emergency_contact_name',
         'emergency_contact_phone',
         'medical_certificate_date',

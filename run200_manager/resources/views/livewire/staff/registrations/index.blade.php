@@ -77,6 +77,7 @@
                         <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">Course</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">Voiture</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">Statut</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">Paiement</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">Étapes</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">Paddock</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold text-carbon-400 uppercase tracking-wider">Actions</th>
@@ -121,6 +122,58 @@
                                     <p class="mt-1 text-xs text-carbon-400 max-w-xs truncate" title="{{ $registration->reason }}">
                                         {{ $registration->reason }}
                                     </p>
+                                @endif
+                            </td>
+                            {{-- Colonne Paiement --}}
+                            <td class="px-4 py-4">
+                                @php
+                                    $latestPayment = $registration->payments->sortByDesc('created_at')->first();
+                                @endphp
+                                @if($latestPayment)
+                                    <div class="space-y-1">
+                                        {{-- Statut du paiement --}}
+                                        @if($latestPayment->isPaid())
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-status-success/20 text-status-success">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                                </svg>
+                                                Payé
+                                            </span>
+                                        @elseif($latestPayment->isPending())
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-status-warning/20 text-status-warning">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                                                </svg>
+                                                En attente
+                                            </span>
+                                        @elseif($latestPayment->isFailed())
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-status-danger/20 text-status-danger">
+                                                ✗ Échoué
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-carbon-700 text-carbon-400">
+                                                {{ $latestPayment->status_label }}
+                                            </span>
+                                        @endif
+                                        {{-- Méthode et montant --}}
+                                        <div class="text-xs text-carbon-400">
+                                            @php
+                                                $methodIcons = [
+                                                    'cash' => '💵',
+                                                    'stripe' => '💳',
+                                                    'bank_transfer' => '🏦',
+                                                    'card_onsite' => '💳',
+                                                    'manual' => '✋',
+                                                ];
+                                            @endphp
+                                            {{ $methodIcons[$latestPayment->method->value] ?? '❓' }}
+                                            {{ $latestPayment->formatted_amount }}
+                                        </div>
+                                    </div>
+                                @else
+                                    <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-carbon-700/50 text-carbon-500">
+                                        Aucun paiement
+                                    </span>
                                 @endif
                             </td>
                             <td class="px-4 py-4">
@@ -168,6 +221,17 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                                         </svg>
                                     </a>
+
+                                    {{-- Bouton gérer les paiements --}}
+                                    @can('payment.manage')
+                                        <a href="{{ route('staff.registrations.payments', $registration) }}"
+                                           class="p-2 rounded-lg text-status-warning hover:bg-status-warning/20 transition-colors"
+                                           title="Gérer les paiements">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                        </a>
+                                    @endcan
 
                                     @if($registration->isPending())
                                         <button wire:click="openValidationModal({{ $registration->id }}, 'accept')"
@@ -270,6 +334,33 @@
                             </div>
                         @endif
 
+                        {{-- Paiement (Mobile) --}}
+                        @php
+                            $latestPayment = $registration->payments->sortByDesc('created_at')->first();
+                        @endphp
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-carbon-400 uppercase tracking-wider">Paiement</span>
+                            @if($latestPayment)
+                                <div class="flex items-center gap-2">
+                                    @if($latestPayment->isPaid())
+                                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-status-success/20 text-status-success">
+                                            ✓ {{ $latestPayment->formatted_amount }}
+                                        </span>
+                                    @elseif($latestPayment->isPending())
+                                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-status-warning/20 text-status-warning">
+                                            ⏳ En attente
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-carbon-700 text-carbon-400">
+                                            {{ $latestPayment->status_label }}
+                                        </span>
+                                    @endif
+                                </div>
+                            @else
+                                <span class="text-xs text-carbon-500">Aucun</span>
+                            @endif
+                        </div>
+
                         {{-- Étapes --}}
                         @php
                             $passedCheckpoints = $registration->passages->pluck('checkpoint_id')->toArray();
@@ -301,6 +392,15 @@
                             </svg>
                             Étapes
                         </a>
+                        @can('payment.manage')
+                            <a href="{{ route('staff.registrations.payments', $registration) }}"
+                               class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-status-warning/20 text-status-warning text-sm font-medium hover:bg-status-warning/30 transition-colors tap-target">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Paiements
+                            </a>
+                        @endcan
                         <button wire:click="openStatusModal({{ $registration->id }})"
                                 class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-racing-red-500/20 text-racing-red-500 text-sm font-medium hover:bg-racing-red-500/30 transition-colors tap-target">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

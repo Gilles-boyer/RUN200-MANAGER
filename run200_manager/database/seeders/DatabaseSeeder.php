@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             CarCategoriesSeeder::class,
             CheckpointsSeeder::class,
+            DocumentCategoriesSeeder::class,
         ]);
 
         // Seed demo data

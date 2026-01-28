@@ -67,7 +67,9 @@
             <div class="space-y-4">
                 @foreach($registrations as $registration)
                     @php
-                        $paidPayment = $registration->payments->where('status', 'paid')->first();
+                        $paidPayment = $registration->payments->first(fn($p) => $p->isPaid());
+                        $pendingPayment = $registration->payments->first(fn($p) => $p->isPending());
+                        $latestPayment = $registration->payments->sortByDesc('created_at')->first();
                     @endphp
                     <x-racing.card class="hover:shadow-lg transition-shadow">
                         <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
@@ -79,11 +81,6 @@
                                         {{ $registration->race->name ?? 'Course inconnue' }}
                                     </h3>
                                     <x-racing.badge-status :status="$registration->status" />
-                                    @if($paidPayment)
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-status-success/10 text-status-success">
-                                            ✓ Payé
-                                        </span>
-                                    @endif
                                 </div>
 
                                 {{-- Détails --}}
@@ -113,6 +110,114 @@
                                         </svg>
                                         {{ $registration->created_at->format('d/m/Y') }}
                                     </span>
+                                </div>
+
+                                {{-- Section Paiement détaillée --}}
+                                <div class="mt-4 p-4 rounded-xl border {{ $paidPayment ? 'bg-status-success/5 border-status-success/20' : ($pendingPayment ? 'bg-status-warning/5 border-status-warning/20' : 'bg-carbon-700/30 border-carbon-700/50') }}">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="text-lg">💳</span>
+                                        <h4 class="font-medium {{ $paidPayment ? 'text-status-success' : ($pendingPayment ? 'text-status-warning' : 'text-carbon-400') }}">
+                                            @if($paidPayment)
+                                                Paiement effectué
+                                            @elseif($pendingPayment)
+                                                Paiement en attente
+                                            @else
+                                                Paiement requis
+                                            @endif
+                                        </h4>
+                                    </div>
+
+                                    @if($latestPayment)
+                                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                                            {{-- Montant --}}
+                                            <div>
+                                                <span class="text-carbon-500 dark:text-carbon-400 block text-xs">Montant</span>
+                                                <span class="font-bold text-white">{{ $latestPayment->formatted_amount }}</span>
+                                            </div>
+
+                                            {{-- Méthode --}}
+                                            <div>
+                                                <span class="text-carbon-500 dark:text-carbon-400 block text-xs">Méthode</span>
+                                                <span class="font-medium text-carbon-200">
+                                                    @php
+                                                        $methodIcons = [
+                                                            'cash' => '💵',
+                                                            'stripe' => '💳',
+                                                            'bank_transfer' => '🏦',
+                                                            'card_onsite' => '💳',
+                                                            'manual' => '✋',
+                                                        ];
+                                                        $methodLabels = [
+                                                            'cash' => 'Espèces',
+                                                            'stripe' => 'Carte en ligne',
+                                                            'bank_transfer' => 'Virement',
+                                                            'card_onsite' => 'CB sur place',
+                                                            'manual' => 'Manuel',
+                                                        ];
+                                                        $method = $latestPayment->method->value ?? 'unknown';
+                                                    @endphp
+                                                    {{ $methodIcons[$method] ?? '❓' }} {{ $methodLabels[$method] ?? $latestPayment->method_label }}
+                                                </span>
+                                            </div>
+
+                                            {{-- Statut --}}
+                                            <div>
+                                                <span class="text-carbon-500 dark:text-carbon-400 block text-xs">Statut</span>
+                                                @if($latestPayment->isPaid())
+                                                    <span class="inline-flex items-center gap-1 text-status-success font-medium">
+                                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                                        </svg>
+                                                        Payé
+                                                    </span>
+                                                @elseif($latestPayment->isPending())
+                                                    <span class="inline-flex items-center gap-1 text-status-warning font-medium">
+                                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                                                        </svg>
+                                                        En attente
+                                                    </span>
+                                                @elseif($latestPayment->isFailed())
+                                                    <span class="inline-flex items-center gap-1 text-status-danger font-medium">
+                                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                                        </svg>
+                                                        Échoué
+                                                    </span>
+                                                @elseif($latestPayment->isRefunded())
+                                                    <span class="inline-flex items-center gap-1 text-purple-400 font-medium">
+                                                        ↩️ Remboursé
+                                                    </span>
+                                                @else
+                                                    <span class="text-carbon-400">{{ $latestPayment->status_label }}</span>
+                                                @endif
+                                            </div>
+
+                                            {{-- Date --}}
+                                            <div>
+                                                <span class="text-carbon-500 dark:text-carbon-400 block text-xs">
+                                                    {{ $latestPayment->isPaid() ? 'Payé le' : 'Créé le' }}
+                                                </span>
+                                                <span class="text-carbon-200">
+                                                    {{ ($latestPayment->paid_at ?? $latestPayment->created_at)->format('d/m/Y H:i') }}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {{-- Notes de paiement si présentes --}}
+                                        @if($latestPayment->metadata && isset($latestPayment->metadata['notes']) && $latestPayment->metadata['notes'])
+                                            <div class="mt-3 pt-3 border-t border-carbon-700/30 text-sm text-carbon-400">
+                                                <span class="text-carbon-500">📝 Note :</span> {{ $latestPayment->metadata['notes'] }}
+                                            </div>
+                                        @endif
+                                    @else
+                                        <p class="text-sm text-carbon-400">
+                                            Aucun paiement enregistré.
+                                            @if($registration->race && $registration->race->entry_fee)
+                                                Montant dû : <span class="font-bold text-checkered-yellow-500">{{ number_format($registration->race->entry_fee, 2) }} €</span>
+                                            @endif
+                                        </p>
+                                    @endif
                                 </div>
 
                                 {{-- Paddock si assigné --}}

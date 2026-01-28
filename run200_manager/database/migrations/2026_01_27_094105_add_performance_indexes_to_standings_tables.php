@@ -30,10 +30,10 @@ return new class extends Migration
         if (Schema::hasTable('season_category_standings')) {
             Schema::table('season_category_standings', function (Blueprint $table) {
                 if (! $this->indexExists('season_category_standings', 'idx_cat_standings_ranking')) {
-                    $table->index(['season_id', 'category_id', 'total_points'], 'idx_cat_standings_ranking');
+                    $table->index(['season_id', 'car_category_id', 'total_points'], 'idx_cat_standings_ranking');
                 }
                 if (! $this->indexExists('season_category_standings', 'idx_cat_standings_rank')) {
-                    $table->index(['season_id', 'category_id', 'rank'], 'idx_cat_standings_rank');
+                    $table->index(['season_id', 'car_category_id', 'rank'], 'idx_cat_standings_rank');
                 }
             });
         }

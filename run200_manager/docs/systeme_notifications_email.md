@@ -45,7 +45,16 @@ Modifiez `.env` avec vos identifiants SMTP réels (Gmail, SendGrid, AWS SES, etc
 - Documents obligatoires à apporter
 - Prochaines étapes
 
-### 3. **Inscription acceptée** (`RegistrationAccepted`)
+### 3. **E-Carte d'accès** (`ECardMail`) ⭐ NOUVEAU
+**Quand** : Immédiatement après confirmation du paiement
+**Contenu** :
+- QR Code unique pour le pointage à l'arrivée
+- Informations de la course
+- Détails du pilote et véhicule
+- Instructions pour les vérifications VA/VT
+- Conseils pour conserver l'email
+
+### 4. **Inscription acceptée** (`RegistrationAccepted`)
 **Quand** : Après validation par l'équipe administrative
 **Contenu** :
 - Félicitations, inscription validée
@@ -54,7 +63,7 @@ Modifiez `.env` avec vos identifiants SMTP réels (Gmail, SendGrid, AWS SES, etc
 - Documents obligatoires (permis, carte grise, assurance, casque)
 - Déroulement des vérifications
 
-### 4. **Rappel vérifications techniques** (`TechInspectionReminder`)
+### 5. **Rappel vérifications techniques** (`TechInspectionReminder`)
 **Quand** : Envoyé automatiquement la veille du rendez-vous VA/VT
 **Contenu** :
 - Rappel du rendez-vous DEMAIN à 14h
@@ -63,7 +72,7 @@ Modifiez `.env` avec vos identifiants SMTP réels (Gmail, SendGrid, AWS SES, etc
 - Programme du week-end
 - **Email automatique via commande planifiée**
 
-### 5. **Contrôle technique terminé** (`TechInspectionCompleted`)
+### 6. **Contrôle technique terminé** (`TechInspectionCompleted`)
 **Quand** : Après le contrôle technique (réussi ou échoué)
 **Contenu** :
 - Résultat du contrôle (✅ validé ou ❌ refusé)
@@ -71,7 +80,7 @@ Modifiez `.env` avec vos identifiants SMTP réels (Gmail, SendGrid, AWS SES, etc
 - Si validé : félicitations + programme de la course
 - Si refusé : raisons + marche à suivre
 
-### 6. **Feuille d'engagement signée** (`EngagementFormSigned`)
+### 7. **Feuille d'engagement signée** (`EngagementFormSigned`)
 **Quand** : Après signature de la feuille d'engagement
 **Contenu** :
 - Confirmation de l'engagement
@@ -80,13 +89,62 @@ Modifiez `.env` avec vos identifiants SMTP réels (Gmail, SendGrid, AWS SES, etc
 - Programme de la course
 - Rappels importants
 
-### 7. **Inscription refusée** (`RegistrationRefused`)
+### 8. **Inscription refusée** (`RegistrationRefused`)
 **Quand** : Si l'inscription est refusée par l'administration
 **Contenu** :
 - Notification du refus
 - Raison du refus
 - Information sur le remboursement automatique
 - Lien vers les autres courses disponibles
+
+### 9. **Course ouverte aux inscriptions** (`RaceOpenedMail`) ⭐ NOUVEAU
+**Quand** : Lorsqu'une course passe en statut "OPEN"
+**Destinataires** : Tous les pilotes actifs avec email vérifié
+**Contenu** :
+- Annonce de l'ouverture des inscriptions
+- Détails de la course (date, lieu, frais)
+- Avantages de s'inscrire tôt
+- Documents requis
+- Bouton d'inscription direct
+
+### 10. **Rappel J-3 avant course** (`RaceReminderMail`) ⭐ NOUVEAU
+**Quand** : 3 jours avant la course (envoi automatique planifié)
+**Destinataires** : Pilotes avec inscription acceptée
+**Contenu** :
+- Rappel de la course dans 3 jours
+- Récapitulatif de l'inscription
+- Checklist de préparation
+- Rappel VA/VT du samedi
+- Documents et équipements requis
+
+### 11. **Course annulée** (`RaceCancelledMail`) ⭐ NOUVEAU
+**Quand** : Lorsqu'une course passe en statut "CANCELLED"
+**Destinataires** : Tous les pilotes inscrits (sauf annulés/refusés)
+**Contenu** :
+- Notification de l'annulation
+- Motif (si fourni par l'admin)
+- Informations sur le remboursement
+- Lien vers les autres courses
+
+### 12. **Résultats publiés** (`ResultsPublishedMail`) ⭐ NOUVEAU
+**Quand** : Lorsque les résultats d'une course sont publiés
+**Destinataires** : Tous les pilotes avec inscription acceptée
+**Contenu** :
+- Annonce de la publication des résultats
+- Position du pilote (générale et catégorie)
+- Meilleur temps au tour
+- Points gagnés pour le championnat
+- Félicitations spéciales pour le podium
+- Lien vers les résultats complets
+
+### 13. **Bienvenue pilote** (`WelcomePilotMail`) ⭐ NOUVEAU
+**Quand** : À la création du profil pilote (inscription)
+**Contenu** :
+- Message de bienvenue
+- Récapitulatif du profil créé
+- Prochaines étapes recommandées
+- Documents à préparer
+- Liens utiles (ajouter véhicule, voir courses)
 
 ## 🎯 Notifications Personnalisées par Course
 
@@ -122,17 +180,34 @@ Les administrateurs peuvent envoyer des notifications personnalisées aux pilote
 
 ## ⚙️ Commandes Artisan
 
-### Envoi des rappels VA/VT
+### Envoi des rappels VA/VT (J-1)
 ```bash
 php artisan send:tech-reminders
 ```
 **Action** : Envoie un rappel automatique à tous les pilotes ayant un rendez-vous VA/VT le lendemain
 
-**Planification recommandée** (dans `app/Console/Kernel.php`) :
-```php
-$schedule->command('send:tech-reminders')->dailyAt('10:00');
+### Envoi des rappels course (J-3) ⭐ NOUVEAU
+```bash
+php artisan send:race-reminders
+php artisan send:race-reminders --days=3   # Par défaut
+php artisan send:race-reminders --days=7   # Rappel J-7
 ```
-Cela enverra les rappels chaque jour à 10h pour les VA/VT du lendemain à 14h.
+**Action** : Envoie un rappel aux pilotes inscrits à une course dans X jours
+
+### Tâches planifiées
+Les commandes sont automatiquement planifiées dans `routes/console.php` :
+```php
+// Rappels J-3 chaque jour à 9h
+Schedule::command('send:race-reminders --days=3')->dailyAt('09:00');
+
+// Rappels VA/VT chaque jour à 10h
+Schedule::command('send:tech-reminders')->dailyAt('10:00');
+```
+
+**Configuration serveur** (crontab) :
+```bash
+* * * * * cd /path-to-project && php artisan schedule:run >> /dev/null 2>&1
+```
 
 ### Test d'envoi d'email
 ```bash
@@ -184,8 +259,13 @@ Features::twoFactorAuthentication([
 | `RegistrationAccepted` | `SendRegistrationAcceptedNotification` | `RegistrationAccepted` | Use Case `ValidateRegistration` |
 | `RegistrationRefused` | `SendRegistrationRefusedNotification` | `RegistrationRefused` | Use Case `ValidateRegistration` |
 | `PaymentConfirmed` | `SendPaymentConfirmation` | `PaymentConfirmed` | Use Cases `HandleStripeWebhook`, `RecordManualPayment` |
+| `PaymentConfirmed` | `SendECardAfterPayment` | `ECardMail` | Use Cases `HandleStripeWebhook`, `RecordManualPayment` |
 | `TechInspectionCompleted` | `SendTechInspectionNotification` | `TechInspectionCompleted` | Use Case `RecordTechInspection` |
 | `EngagementFormSigned` | `SendEngagementSignedNotification` | `EngagementFormSigned` | Model `EngagementForm::sign()` |
+| `RaceOpened` | `SendRaceOpenedNotification` | `RaceOpenedMail` | Livewire `Admin\Races\Index::updateStatus()` |
+| `RaceCancelled` | `SendRaceCancelledNotification` | `RaceCancelledMail` | Livewire `Admin\Races\Index::updateStatus()` |
+| `ResultsPublished` | `SendResultsPublishedNotification` | `ResultsPublishedMail` | Use Case `PublishRaceResults` |
+| `PilotRegistered` | `SendWelcomePilotNotification` | `WelcomePilotMail` | Action `CreateNewUser` |
 
 ### Queues
 Tous les Listeners implémentent `ShouldQueue` pour un traitement asynchrone optimal.

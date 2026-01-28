@@ -60,6 +60,23 @@ return [
             'report' => false,
         ],
 
+        /*
+        |----------------------------------------------------------------------
+        | Race Documents Disk (Tableau d'affichage)
+        |----------------------------------------------------------------------
+        |
+        | Stockage privé pour les documents officiels des courses.
+        | Les fichiers ne sont pas accessibles directement, uniquement via
+        | le contrôleur qui vérifie les permissions et le statut du document.
+        |
+        */
+        'race-documents' => [
+            'driver' => env('RACE_DOCUMENTS_DISK_DRIVER', 'local'),
+            'root' => storage_path('app/race-documents'),
+            'visibility' => 'private',
+            'throw' => true,
+        ],
+
     ],
 
     /*

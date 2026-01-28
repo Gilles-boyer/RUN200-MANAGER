@@ -32,7 +32,8 @@ Vous testez l'application ?
 
 ### 🚀 DevOps / SysAdmin
 Vous déployez l'application ?
-- **[📖 Documentation Complète](documentation_complete.md)** - Section Déploiement complète
+- **[� Déploiement o2switch](DEPLOYMENT_O2SWITCH.md)** - Guide complet déploiement production
+- **[📖 Documentation Complète](documentation_complete.md)** - Section Déploiement
 - **[🔧 Guide Technique Développeur](guide_technique_developpeur.md)** - Configuration environnement
 
 ---
@@ -60,6 +61,7 @@ Vous déployez l'application ?
 - **Coverage actuel** → [etat_et_plan_developpement.md](etat_et_plan_developpement.md#métriques-actuelles)
 
 ### 🚀 Déploiement
+- **Déploiement o2switch** → [DEPLOYMENT_O2SWITCH.md](DEPLOYMENT_O2SWITCH.md) ⭐ **NOUVEAU**
 - **Installation locale** → [guide_technique_developpeur.md](guide_technique_developpeur.md#configuration-environnement)
 - **Déploiement production** → [documentation_complete.md](documentation_complete.md#déploiement)
 - **Monitoring** → [documentation_complete.md](documentation_complete.md#monitoring--maintenance)
@@ -96,8 +98,10 @@ Vous déployez l'application ?
 3. Viser 90%+ coverage
 
 ### "Je dois déployer en production"
-1. Lire [documentation_complete.md](documentation_complete.md#déploiement)
-2. Vérifier prérequis serveur
+1. Lire **[DEPLOYMENT_O2SWITCH.md](DEPLOYMENT_O2SWITCH.md)** - Guide complet o2switch
+2. Vérifier la checklist de déploiement
+3. Configurer les variables d'environnement
+4. Tester après déploiement
 3. Suivre checklist déploiement
 4. Configurer monitoring
 
@@ -122,6 +126,7 @@ Vous déployez l'application ?
 | **[systeme_gestion_paddock.md](systeme_gestion_paddock.md)** | Gestion des emplacements paddock |
 | **[systeme_historique_controle_technique.md](systeme_historique_controle_technique.md)** | Historique contrôle technique |
 | **[systeme_notifications_email.md](systeme_notifications_email.md)** | Système de notifications email |
+| **[systeme_tableau_affichage_numerique.md](systeme_tableau_affichage_numerique.md)** | Tableau d'affichage numérique public |
 
 ### Archives
 - Rapports de sprint : [archives/](archives/)

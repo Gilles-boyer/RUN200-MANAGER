@@ -14,8 +14,8 @@ class PaddockMapView extends Component
         public Collection $spots,
         public ?int $selectedSpotId = null,
         public ?int $highlightSpotId = null,
-        public int $width = 1200,
-        public int $height = 800,
+        public int $width = 2000,
+        public int $height = 2000,
         public bool $interactive = true,
         public string $emptyMessage = 'Aucun emplacement positionné sur la carte',
     ) {}

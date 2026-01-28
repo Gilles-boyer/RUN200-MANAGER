@@ -81,6 +81,6 @@ class RaceCalendar extends Component
     public function render()
     {
         return view('livewire.public.race-calendar')
-            ->layout('layouts.guest', ['title' => 'Calendrier des courses']);
+            ->layout('components.layouts.racing-public', ['title' => 'Calendrier des courses - RUN200']);
     }
 }

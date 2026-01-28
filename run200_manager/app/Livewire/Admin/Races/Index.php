@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Admin\Races;
 
+use App\Events\RaceCancelled;
+use App\Events\RaceOpened;
 use App\Models\Race;
 use App\Models\Season;
 use Livewire\Component;
@@ -16,6 +18,8 @@ class Index extends Component
     public string $statusFilter = '';
 
     public ?int $seasonFilter = null;
+
+    public string $cancellationReason = '';
 
     protected $queryString = ['search', 'statusFilter', 'seasonFilter'];
 
@@ -43,9 +47,23 @@ class Index extends Component
     public function updateStatus(int $raceId, string $status)
     {
         $race = Race::findOrFail($raceId);
+        $previousStatus = $race->status;
+
         $race->update(['status' => $status]);
 
-        session()->flash('success', 'Statut de la course mis à jour.');
+        // Dispatch events based on status change
+        if ($status === 'OPEN' && $previousStatus !== 'OPEN') {
+            // Race is now open for registrations
+            RaceOpened::dispatch($race);
+            session()->flash('success', 'La course est maintenant ouverte aux inscriptions. Les pilotes ont été notifiés par email.');
+        } elseif ($status === 'CANCELLED' && $previousStatus !== 'CANCELLED') {
+            // Race is cancelled - notify registered pilots
+            RaceCancelled::dispatch($race, $this->cancellationReason ?: null);
+            $this->cancellationReason = '';
+            session()->flash('success', 'La course a été annulée. Les pilotes inscrits ont été notifiés par email.');
+        } else {
+            session()->flash('success', 'Statut de la course mis à jour.');
+        }
     }
 
     public function render()

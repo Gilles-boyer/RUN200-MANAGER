@@ -119,7 +119,7 @@
             <div class="flex items-start gap-2">
                 <input type="checkbox" name="terms" id="terms" required class="mt-1 rounded border-zinc-300 text-blue-600 shadow-sm focus:ring-blue-500">
                 <label for="terms" class="text-sm text-zinc-600 dark:text-zinc-400">
-                    J'accepte les <a href="#" class="text-blue-600 hover:underline">conditions générales d'utilisation</a> et la <a href="#" class="text-blue-600 hover:underline">politique de confidentialité</a>
+                    J'accepte les <a href="{{ route('legal') }}" target="_blank" class="text-blue-600 hover:underline">mentions légales</a> et la <a href="{{ route('privacy') }}" target="_blank" class="text-blue-600 hover:underline">politique de confidentialité</a>
                 </label>
             </div>
 

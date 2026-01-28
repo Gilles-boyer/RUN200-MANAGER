@@ -98,6 +98,6 @@ class ChampionshipStandings extends Component
     public function render()
     {
         return view('livewire.public.championship-standings')
-            ->layout('layouts.guest', ['title' => 'Classement du championnat']);
+            ->layout('components.layouts.racing-public', ['title' => 'Classement du championnat - RUN200']);
     }
 }

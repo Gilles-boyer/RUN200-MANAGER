@@ -93,25 +93,31 @@
                         Plan du Paddock
                     </h2>
                     @if($editMode)
-                        <span class="text-xs text-checkered-yellow-500 bg-checkered-yellow-500/10 px-2 py-1 rounded-lg">
-                            Glissez-déposez les emplacements
-                        </span>
+                        <div class="flex flex-col items-end gap-1">
+                            <span class="text-xs text-checkered-yellow-500 bg-checkered-yellow-500/10 px-2 py-1 rounded-lg">
+                                🖱️ Glissez-déposez ou cliquez pour placer
+                            </span>
+                            <span class="text-xs text-carbon-400">
+                                Sélectionnez un emplacement puis cliquez sur la carte
+                            </span>
+                        </div>
                     @endif
                 </div>
 
-                {{-- Zone de la carte --}}
+                {{-- Zone de la carte - Plus grande pour permettre le scroll sur une carte circulaire --}}
                 <div
                     class="relative bg-carbon-900 overflow-auto"
-                    style="height: 600px;"
+                    style="height: 700px;"
                     x-ref="mapContainer"
                 >
                     <div
-                        class="relative bg-cover bg-center bg-no-repeat"
+                        class="relative bg-contain bg-center bg-no-repeat"
                         style="width: {{ $mapWidth }}px; height: {{ $mapHeight }}px; background-image: url('{{ $mapImage }}'); background-color: #1a1a1a;"
                         x-ref="mapArea"
                         @if($editMode)
                             @dragover.prevent
                             @drop="handleDrop($event)"
+                            @click="handleClick($event)"
                         @endif
                     >
                         {{-- Grille en mode édition --}}
@@ -343,15 +349,35 @@
             const spotId = parseInt(event.dataTransfer.getData('text/plain'));
             if (!spotId) return;
 
+            this.positionSpotAtEvent(event, spotId);
+        },
+
+        // Placement par clic direct : si un emplacement est sélectionné, le placer où on clique
+        handleClick(event) {
+            // Ignorer si on clique sur un marqueur existant
+            if (event.target.closest('[wire\\:key^="spot-"]')) return;
+
+            const selectedSpotId = this.$wire.selectedSpotId;
+            if (!selectedSpotId) return;
+
+            this.positionSpotAtEvent(event, selectedSpotId);
+        },
+
+        // Méthode commune pour calculer et envoyer la position
+        positionSpotAtEvent(event, spotId) {
             const mapArea = this.$refs.mapArea;
             const rect = mapArea.getBoundingClientRect();
 
-            // Calculer la position relative à la carte
-            const x = Math.round(event.clientX - rect.left + mapArea.parentElement.scrollLeft);
-            const y = Math.round(event.clientY - rect.top + mapArea.parentElement.scrollTop);
+            // getBoundingClientRect() donne la position relative au viewport
+            // Quand on scroll, rect.left/top deviennent négatifs, ce qui compense automatiquement
+            // Donc on n'a PAS besoin d'ajouter scrollLeft/scrollTop (sinon on compte le scroll 2 fois)
+            const x = Math.round(event.clientX - rect.left);
+            const y = Math.round(event.clientY - rect.top);
 
-            // Envoyer au serveur
-            this.$wire.dispatch('spot-moved', { spotId: spotId, x: x, y: y });
+            console.log('Position calculée:', { x, y, clientX: event.clientX, clientY: event.clientY, rectLeft: rect.left, rectTop: rect.top });
+
+            // Appeler directement la méthode Livewire
+            this.$wire.updateSpotPosition(spotId, x, y);
         }
     }));
 </script>

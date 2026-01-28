@@ -1,0 +1,36 @@
+# ==============================================================================
+# RUN200 MANAGER - Protection du répertoire racine
+# ==============================================================================
+# Ce fichier protège le répertoire Laravel principal (hors public_html)
+# Si vous utilisez la structure recommandée où l'app est hors de public_html,
+# ce fichier offre une protection supplémentaire.
+# ==============================================================================
+
+# Refuser tout accès direct
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>
+
+# Bloquer explicitement les fichiers sensibles
+<FilesMatch "^\.env|composer\.(json|lock)|package(-lock)?\.json|phpunit\.xml|artisan$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Désactiver l'affichage du contenu des répertoires
+Options -Indexes
+
+# Désactiver l'exécution de scripts dans ce répertoire
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>

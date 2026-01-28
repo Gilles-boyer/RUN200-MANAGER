@@ -3,6 +3,7 @@
 namespace App\Actions\Fortify;
 
 use App\Concerns\PasswordValidationRules;
+use App\Events\PilotRegistered;
 use App\Models\Pilot;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -45,13 +46,16 @@ class CreateNewUser implements CreatesNewUsers
             $user->assignRole('PILOTE');
 
             // Create associated pilot profile
-            Pilot::create([
+            $pilot = Pilot::create([
                 'user_id' => $user->id,
                 'first_name' => $input['first_name'],
                 'last_name' => $input['last_name'],
                 'phone' => $input['phone'],
                 'license_number' => $input['license_number'],
             ]);
+
+            // Dispatch welcome email event
+            PilotRegistered::dispatch($pilot);
 
             return $user;
         });

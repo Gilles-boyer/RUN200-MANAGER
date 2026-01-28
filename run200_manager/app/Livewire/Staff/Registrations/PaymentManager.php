@@ -26,6 +26,8 @@ class PaymentManager extends Component
 
     public int $manualAmount = 5000;
 
+    public string $manualMethod = 'cash';
+
     public string $manualNotes = '';
 
     public ?int $selectedPaymentId = null;
@@ -64,6 +66,7 @@ class PaymentManager extends Component
     public function openManualPaymentModal(): void
     {
         $this->manualAmount = (int) config('stripe.default_registration_fee', 5000);
+        $this->manualMethod = 'cash';
         $this->manualNotes = '';
         $this->showManualPaymentModal = true;
     }
@@ -77,6 +80,7 @@ class PaymentManager extends Component
     {
         $this->validate([
             'manualAmount' => ['required', 'integer', 'min:100'],
+            'manualMethod' => ['required', 'string', 'in:cash,card_onsite,bank_transfer,manual'],
             'manualNotes' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -88,7 +92,8 @@ class PaymentManager extends Component
             $user,
             (float) ($this->manualAmount / 100),
             'EUR',
-            $this->manualNotes ?: null
+            $this->manualNotes ?: null,
+            $this->manualMethod
         );
 
         $this->closeManualPaymentModal();

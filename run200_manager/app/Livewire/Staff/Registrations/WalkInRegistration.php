@@ -44,7 +44,7 @@ class WalkInRegistration extends Component
     #[Validate('required_if:pilotMode,create|email|max:255')]
     public string $newPilotEmail = '';
 
-    #[Validate('required_if:pilotMode,create|digits_between:1,6')]
+    #[Validate('required_if:pilotMode,create|string|max:20')]
     public string $newPilotLicense = '';
 
     #[Validate('required_if:pilotMode,create|date|before:today')]
@@ -59,6 +59,18 @@ class WalkInRegistration extends Component
     #[Validate('required_if:pilotMode,create|string|max:500')]
     public string $newPilotAddress = '';
 
+    public string $newPilotCity = '';
+
+    public string $newPilotPostalCode = '';
+
+    public string $newPilotPermitNumber = '';
+
+    public string $newPilotPermitDate = '';
+
+    public string $newPilotEmergencyContactName = '';
+
+    public string $newPilotEmergencyContactPhone = '';
+
     public bool $newPilotIsMinor = false;
 
     public string $newPilotGuardianFirstName = '';
@@ -66,6 +78,8 @@ class WalkInRegistration extends Component
     public string $newPilotGuardianLastName = '';
 
     public string $newPilotGuardianLicense = '';
+
+    public string $newPilotGuardianPhone = '';
 
     public $newPilotPhoto = null;
 
@@ -190,6 +204,24 @@ class WalkInRegistration extends Component
         $this->selectedCarId = $carId;
     }
 
+    public function generateRandomRaceNumber(): void
+    {
+        // Get all existing race numbers from cars
+        $usedNumbers = Car::pluck('race_number')->toArray();
+
+        // Generate available numbers (0-999)
+        $allNumbers = range(0, 999);
+        $availableNumbers = array_diff($allNumbers, $usedNumbers);
+
+        if (empty($availableNumbers)) {
+            $this->errorMessage = 'Aucun numéro de course disponible.';
+            return;
+        }
+
+        // Pick a random available number
+        $this->newCarRaceNumber = $availableNumbers[array_rand($availableNumbers)];
+    }
+
     public function goToStep(int $step): void
     {
         // Validate current step before moving forward
@@ -244,19 +276,30 @@ class WalkInRegistration extends Component
                 return true;
 
             case 2:
-                if ($this->carMode === 'select' && ! $this->selectedCarId) {
+                // Déterminer si on crée une nouvelle voiture
+                // (soit mode explicite 'create', soit pas de voitures existantes pour ce pilote)
+                $pilotHasCars = $this->pilotMode === 'search'
+                    && $this->selectedPilotId
+                    && $this->pilotCars->count() > 0;
+
+                $isCreatingCar = $this->carMode === 'create' || ! $pilotHasCars;
+
+                if (! $isCreatingCar && ! $this->selectedCarId) {
                     $this->errorMessage = 'Veuillez sélectionner une voiture ou en créer une nouvelle.';
 
                     return false;
                 }
 
-                if ($this->carMode === 'create') {
+                if ($isCreatingCar) {
                     $this->validate([
                         'newCarRaceNumber' => 'required|integer|between:0,999|unique:cars,race_number',
                         'newCarMake' => 'required|string|max:255',
                         'newCarModel' => 'required|string|max:255',
                         'newCarCategoryId' => 'required|exists:car_categories,id',
                     ]);
+
+                    // Forcer le mode create pour la suite du processus
+                    $this->carMode = 'create';
                 }
 
                 return true;
@@ -337,7 +380,7 @@ class WalkInRegistration extends Component
         $user = User::create([
             'name' => $this->newPilotFirstName.' '.$this->newPilotLastName,
             'email' => $this->newPilotEmail,
-            'password' => Hash::make(Str::random(16)), // Random password, user will need to reset
+            'password' => Hash::make('password'), // Default password for walk-in registrations
             'email_verified_at' => now(),
         ]);
 
@@ -353,10 +396,17 @@ class WalkInRegistration extends Component
             'birth_place' => $this->newPilotBirthPlace,
             'phone' => $this->newPilotPhone,
             'address' => $this->newPilotAddress,
+            'city' => $this->newPilotCity ?: null,
+            'postal_code' => $this->newPilotPostalCode ?: null,
+            'permit_number' => $this->newPilotPermitNumber ?: null,
+            'permit_date' => $this->newPilotPermitDate ?: null,
+            'emergency_contact_name' => $this->newPilotEmergencyContactName ?: null,
+            'emergency_contact_phone' => $this->newPilotEmergencyContactPhone ?: null,
             'is_minor' => $this->newPilotIsMinor,
             'guardian_first_name' => $this->newPilotIsMinor ? $this->newPilotGuardianFirstName : null,
             'guardian_last_name' => $this->newPilotIsMinor ? $this->newPilotGuardianLastName : null,
             'guardian_license_number' => $this->newPilotIsMinor ? $this->newPilotGuardianLicense : null,
+            'guardian_phone' => $this->newPilotIsMinor ? $this->newPilotGuardianPhone : null,
         ]);
 
         // Handle photo upload

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Results\UseCases;
 
+use App\Events\ResultsPublished;
 use App\Models\Race;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -46,6 +47,9 @@ final class PublishRaceResults
 
             // Dispatch championship recalculation job if race is part of a championship
             $this->dispatchChampionshipRecalculation($race);
+
+            // Dispatch event to notify pilots about published results
+            ResultsPublished::dispatch($race);
 
             $race->refresh();
 

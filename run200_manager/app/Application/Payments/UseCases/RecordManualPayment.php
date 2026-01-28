@@ -26,7 +26,8 @@ final class RecordManualPayment
         User $recorder,
         float $amount,
         string $currency = 'EUR',
-        ?string $notes = null
+        ?string $notes = null,
+        string $method = 'manual'
     ): Payment {
         // Validate registration status
         if ($registration->status !== 'ACCEPTED') {
@@ -46,7 +47,7 @@ final class RecordManualPayment
             );
         }
 
-        return DB::transaction(function () use ($registration, $recorder, $amount, $currency, $notes) {
+        return DB::transaction(function () use ($registration, $recorder, $amount, $currency, $notes, $method) {
             // Cancel any pending payments
             $registration->payments()
                 ->where('status', 'pending')
@@ -59,7 +60,7 @@ final class RecordManualPayment
                 'amount' => $amount,
                 'amount_cents' => (int) round($amount * 100),
                 'currency' => $currency,
-                'method' => 'manual',
+                'method' => $method,
                 'status' => 'paid',
                 'paid_at' => now(),
                 'metadata' => [

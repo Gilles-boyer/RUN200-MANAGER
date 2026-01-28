@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -18,6 +19,7 @@ class Race extends Model
     protected $fillable = [
         'season_id',
         'name',
+        'slug',
         'race_date',
         'location',
         'status',
@@ -31,6 +33,56 @@ class Race extends Model
         'name' => TitleCaseCast::class,
         'location' => UppercaseCast::class,
     ];
+
+    // =========================================================================
+    // Boot
+    // =========================================================================
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function (Race $race) {
+            if (empty($race->slug)) {
+                $race->slug = static::generateUniqueSlug($race->name, $race->race_date);
+            }
+        });
+
+        static::updating(function (Race $race) {
+            // Regénérer le slug si le nom ou la date change
+            if ($race->isDirty(['name', 'race_date']) && !$race->isDirty('slug')) {
+                $race->slug = static::generateUniqueSlug($race->name, $race->race_date, $race->id);
+            }
+        });
+    }
+
+    /**
+     * Générer un slug unique pour la course
+     */
+    public static function generateUniqueSlug(string $name, $date, ?int $excludeId = null): string
+    {
+        $dateString = $date instanceof \DateTimeInterface ? $date->format('Y-m-d') : $date;
+        $baseSlug = Str::slug($name . '-' . $dateString);
+        $slug = $baseSlug;
+        $counter = 1;
+
+        $query = static::where('slug', $slug);
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        while ($query->exists()) {
+            $slug = $baseSlug . '-' . $counter;
+            $counter++;
+
+            $query = static::where('slug', $slug);
+            if ($excludeId) {
+                $query->where('id', '!=', $excludeId);
+            }
+        }
+
+        return $slug;
+    }
 
     /**
      * Get the entry fee in cents (uses default if not set)
@@ -81,10 +133,42 @@ class Race extends Model
         return $this->hasOne(ResultImport::class)->latestOfMany();
     }
 
+    /**
+     * Documents officiels de la course (tableau d'affichage)
+     *
+     * @return HasMany<RaceDocument, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(RaceDocument::class);
+    }
+
+    /**
+     * Documents publiés de la course
+     *
+     * @return HasMany<RaceDocument, $this>
+     */
+    public function publishedDocuments(): HasMany
+    {
+        /** @var HasMany<RaceDocument, $this> */
+        return $this->hasMany(RaceDocument::class)
+            ->where('status', 'PUBLISHED')
+            ->with('category')
+            ->orderBy('sort_order');
+    }
+
+    /**
+     * URL publique du tableau d'affichage
+     */
+    public function getBoardUrlAttribute(): string
+    {
+        return route('board.show', $this->slug);
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'race_date', 'location', 'status', 'entry_fee_cents'])
+            ->logOnly(['name', 'slug', 'race_date', 'location', 'status', 'entry_fee_cents'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }

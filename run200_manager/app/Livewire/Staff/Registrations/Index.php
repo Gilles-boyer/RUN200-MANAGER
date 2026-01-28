@@ -224,7 +224,7 @@ class Index extends Component
 
     public function render()
     {
-        $query = RaceRegistration::with(['pilot', 'car.category', 'race.season', 'passages.checkpoint']);
+        $query = RaceRegistration::with(['pilot', 'car.category', 'race.season', 'passages.checkpoint', 'payments']);
 
         if ($this->raceId) {
             $query->where('race_id', $this->raceId);

@@ -41,6 +41,8 @@ class Payment extends Model
         'paid_at' => 'datetime',
         'refunded_at' => 'datetime',
         'metadata' => 'array',
+        'method' => PaymentMethod::class,
+        'status' => PaymentStatus::class,
     ];
 
     // =========================================================================
@@ -90,25 +92,12 @@ class Payment extends Model
     /**
      * Get payment method enum.
      */
-    public function getMethodEnumAttribute(): PaymentMethod
-    {
-        return PaymentMethod::from($this->method);
-    }
-
-    /**
-     * Get payment status enum.
-     */
-    public function getStatusEnumAttribute(): PaymentStatus
-    {
-        return PaymentStatus::from($this->status);
-    }
-
     /**
      * Get method label for display.
      */
     public function getMethodLabelAttribute(): string
     {
-        return $this->method_enum->label();
+        return $this->method->label();
     }
 
     /**
@@ -116,7 +105,7 @@ class Payment extends Model
      */
     public function getStatusLabelAttribute(): string
     {
-        return $this->status_enum->label();
+        return $this->status->label();
     }
 
     /**
@@ -124,7 +113,7 @@ class Payment extends Model
      */
     public function getStatusColorAttribute(): string
     {
-        return $this->status_enum->badgeColor();
+        return $this->status->badgeColor();
     }
 
     // =========================================================================
@@ -133,37 +122,37 @@ class Payment extends Model
 
     public function isPending(): bool
     {
-        return $this->status === 'pending';
+        return $this->status === PaymentStatus::PENDING;
     }
 
     public function isProcessing(): bool
     {
-        return $this->status === 'processing';
+        return $this->status === PaymentStatus::PROCESSING;
     }
 
     public function isPaid(): bool
     {
-        return $this->status === 'paid';
+        return $this->status === PaymentStatus::PAID;
     }
 
     public function isFailed(): bool
     {
-        return $this->status === 'failed';
+        return $this->status === PaymentStatus::FAILED;
     }
 
     public function isRefunded(): bool
     {
-        return $this->status === 'refunded';
+        return $this->status === PaymentStatus::REFUNDED;
     }
 
     public function isPartiallyRefunded(): bool
     {
-        return $this->status === 'partially_refunded';
+        return $this->status === PaymentStatus::PARTIALLY_REFUNDED;
     }
 
     public function isCancelled(): bool
     {
-        return $this->status === 'cancelled';
+        return $this->status === PaymentStatus::CANCELLED;
     }
 
     public function isCompleted(): bool
@@ -173,19 +162,19 @@ class Payment extends Model
 
     public function canBeRefunded(): bool
     {
-        return $this->status_enum->canBeRefunded()
-            && $this->method === 'stripe'
+        return $this->status->canBeRefunded()
+            && $this->method === PaymentMethod::STRIPE
             && $this->stripe_payment_intent_id !== null;
     }
 
     public function isStripePayment(): bool
     {
-        return $this->method === 'stripe';
+        return $this->method === PaymentMethod::STRIPE;
     }
 
     public function isManualPayment(): bool
     {
-        return $this->method === 'manual';
+        return $this->method === PaymentMethod::MANUAL;
     }
 
     // =========================================================================

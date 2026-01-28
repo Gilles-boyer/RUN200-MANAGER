@@ -18,6 +18,22 @@ Route::post('/stripe/webhook', App\Http\Controllers\Webhook\StripeWebhookControl
 Route::prefix('public')->name('public.')->group(function () {
     Route::get('/calendrier', App\Livewire\Public\RaceCalendar::class)->name('calendar');
     Route::get('/classement', App\Livewire\Public\ChampionshipStandings::class)->name('standings');
+    Route::get('/tableaux-affichage', App\Livewire\Public\BoardIndex::class)->name('boards');
+});
+
+// =========================================================================
+// Legal Pages (public - no authentication required)
+// =========================================================================
+Route::get('/mentions-legales', fn () => view('pages.legal'))->name('legal');
+Route::get('/confidentialite', fn () => view('pages.privacy'))->name('privacy');
+
+// =========================================================================
+// Tableau d'affichage numérique (Public - accessible sans authentification)
+// =========================================================================
+Route::prefix('board')->name('board.')->middleware('throttle:60,1')->group(function () {
+    Route::get('/{race:slug}', App\Livewire\Public\RaceBoard::class)->name('show');
+    Route::get('/doc/{slug}', [App\Http\Controllers\RaceBoardController::class, 'view'])->name('view');
+    Route::get('/doc/{slug}/download', [App\Http\Controllers\RaceBoardController::class, 'download'])->name('download');
 });
 
 Route::get('/', function () {
@@ -209,6 +225,7 @@ Route::middleware(['auth', 'role:ADMIN'])->prefix('admin')->name('admin.')->grou
         Route::get('/create', App\Livewire\Admin\Races\Form::class)->name('create');
         Route::get('/{race}/edit', App\Livewire\Admin\Races\Form::class)->name('edit');
         Route::get('/{race}/notifications', App\Livewire\Admin\Races\Notifications::class)->name('notifications');
+        Route::get('/{race}/documents', App\Livewire\Admin\Races\Documents::class)->name('documents');
     });
 
     // Users management
