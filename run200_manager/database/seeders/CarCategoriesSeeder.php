@@ -13,30 +13,26 @@ class CarCategoriesSeeder extends Seeder
     public function run(): void
     {
         $categories = [
-            // Groupe 1 : Racing (5 catégories)
-            ['name' => 'Racing GT', 'sort_order' => 10],
-            ['name' => 'Racing Prototype', 'sort_order' => 20],
-            ['name' => 'Racing Formule', 'sort_order' => 30],
-            ['name' => 'Racing Silhouette', 'sort_order' => 40],
-            ['name' => 'Racing Barquette', 'sort_order' => 50],
+            // Groupe 1 : Diesel
+            ['name' => 'Diesel 100% Mécanique', 'sort_order' => 10],
+            ['name' => 'Diesel 2rm 4 cylindres', 'sort_order' => 20],
+            ['name' => 'Diesel 2rm 4 cylindres gaz', 'sort_order' => 30],
+            ['name' => 'Diesel 4rm 4 cylindres', 'sort_order' => 40],
+            ['name' => 'Diesel 4rm 4 cylindres gaz', 'sort_order' => 50],
+            ['name' => 'Diesel 2rm 6 cylindres', 'sort_order' => 60],
+            ['name' => 'Diesel 2rm 6 cylindres gaz', 'sort_order' => 70],
+            ['name' => 'Diesel 4rm 6 cylindres', 'sort_order' => 80],
+            ['name' => 'Diesel 4rm 6 cylindres gaz', 'sort_order' => 90],
 
-            // Groupe 2 : Turbo (3 catégories)
-            ['name' => 'Turbo < 1600cc', 'sort_order' => 60],
-            ['name' => 'Turbo 1600-2000cc', 'sort_order' => 70],
-            ['name' => 'Turbo > 2000cc', 'sort_order' => 80],
-
-            // Groupe 3 : Berline (4 catégories)
-            ['name' => 'Berline < 1600cc', 'sort_order' => 90],
-            ['name' => 'Berline 1600-2000cc', 'sort_order' => 100],
-            ['name' => 'Berline 2000-3000cc', 'sort_order' => 110],
-            ['name' => 'Berline > 3000cc', 'sort_order' => 120],
-
-            // Groupe 4 : Autres (5 catégories)
-            ['name' => 'Propulsion Arrière', 'sort_order' => 130],
-            ['name' => 'Cabriolet', 'sort_order' => 140],
-            ['name' => 'SUV/4x4', 'sort_order' => 150],
-            ['name' => 'Électrique/Hybride', 'sort_order' => 160],
-            ['name' => 'Ancêtre (> 25 ans)', 'sort_order' => 170],
+            // Groupe 2 : Essence
+            ['name' => 'Essence Youngtimer (205gti, AX, ...)', 'sort_order' => 100],
+            ['name' => 'Essence 2rm 4 cylindres', 'sort_order' => 110],
+            ['name' => 'Essence 2rm 4 cylindres gaz', 'sort_order' => 120],
+            ['name' => 'Essence 4rm 4 cylindres', 'sort_order' => 130],
+            ['name' => 'Essence 4rm 4 cylindres gaz', 'sort_order' => 140],
+            ['name' => 'Essence 4rm 5 cylindres', 'sort_order' => 150],
+            ['name' => 'Essence 2rm 6 cylindres', 'sort_order' => 160],
+            ['name' => 'Essence 4rm 6 cylindres', 'sort_order' => 170],
         ];
 
         $created = 0;

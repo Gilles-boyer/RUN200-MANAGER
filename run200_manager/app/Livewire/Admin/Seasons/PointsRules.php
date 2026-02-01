@@ -132,25 +132,24 @@ class PointsRules extends Component
             return;
         }
 
-        // Standard F1-like points
+        // Barème Run200
+        // 1er = 25 pts, 2ème = 20 pts, 3ème = 16 pts, 4ème = 14 pts,
+        // 5ème = 10 pts, 6ème = 8 pts, 7ème et + = 5 pts
         $defaultRules = [
             ['position_from' => 1, 'position_to' => 1, 'points' => 25],
-            ['position_from' => 2, 'position_to' => 2, 'points' => 18],
-            ['position_from' => 3, 'position_to' => 3, 'points' => 15],
-            ['position_from' => 4, 'position_to' => 4, 'points' => 12],
+            ['position_from' => 2, 'position_to' => 2, 'points' => 20],
+            ['position_from' => 3, 'position_to' => 3, 'points' => 16],
+            ['position_from' => 4, 'position_to' => 4, 'points' => 14],
             ['position_from' => 5, 'position_to' => 5, 'points' => 10],
             ['position_from' => 6, 'position_to' => 6, 'points' => 8],
-            ['position_from' => 7, 'position_to' => 7, 'points' => 6],
-            ['position_from' => 8, 'position_to' => 8, 'points' => 4],
-            ['position_from' => 9, 'position_to' => 9, 'points' => 2],
-            ['position_from' => 10, 'position_to' => 10, 'points' => 1],
+            ['position_from' => 7, 'position_to' => 9999, 'points' => 5],
         ];
 
         foreach ($defaultRules as $rule) {
             $this->season->pointsRules()->create($rule);
         }
 
-        session()->flash('success', 'Règles de points par défaut créées (système F1).');
+        session()->flash('success', 'Règles de points Run200 créées avec succès.');
     }
 
     public function render()
