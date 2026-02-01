@@ -100,11 +100,20 @@
                                     </a>
                                     @if($acceptedCount > 0)
                                         <button wire:click="downloadEngagedList({{ $race->id }})"
-                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-racing-red-500 hover:text-racing-red-400 hover:bg-racing-red-500/10 transition-colors">
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-racing-red-500 hover:text-racing-red-400 hover:bg-racing-red-500/10 transition-colors"
+                                                title="Export PDF">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                             </svg>
                                             PDF
+                                        </button>
+                                        <button wire:click="downloadEngagedCsv({{ $race->id }})"
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-status-info hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
+                                                title="Export CSV pour le chrono">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                            CSV
                                         </button>
                                     @endif
                                     @can('race.manage')
@@ -215,11 +224,20 @@
                             </a>
                             @if($acceptedCount > 0)
                                 <button wire:click="downloadEngagedList({{ $race->id }})"
-                                        class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-racing-red-500 hover:bg-racing-red-500/10 transition-colors">
+                                        class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-racing-red-500 hover:bg-racing-red-500/10 transition-colors"
+                                        title="Export PDF">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                     </svg>
                                     PDF
+                                </button>
+                                <button wire:click="downloadEngagedCsv({{ $race->id }})"
+                                        class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-status-info hover:bg-blue-500/10 transition-colors"
+                                        title="Export CSV pour le chrono">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    CSV
                                 </button>
                             @endif
                             @can('race.manage')

@@ -26,6 +26,11 @@ class Index extends Component
         return $this->redirect(route('staff.races.engaged-pdf', $raceId));
     }
 
+    public function downloadEngagedCsv(int $raceId)
+    {
+        return $this->redirect(route('staff.races.engaged-csv', $raceId));
+    }
+
     public function render()
     {
         $query = Race::with(['season', 'registrations']);

@@ -173,6 +173,8 @@ Route::middleware(['auth', 'role:ADMIN|STAFF_ADMINISTRATIF|CONTROLEUR_TECHNIQUE|
 
             return $pdfService->download($race);
         })->name('engaged-pdf');
+        Route::get('/{race}/engaged-csv', App\Http\Controllers\Staff\ExportEngagedCsvController::class)
+            ->name('engaged-csv');
         Route::get('/{race}/results', App\Livewire\Staff\Results\ResultsManager::class)
             ->middleware('permission:race.manage')
             ->name('results');
