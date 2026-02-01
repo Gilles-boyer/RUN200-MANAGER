@@ -70,6 +70,17 @@ final class StripePaymentService
         /** @var \App\Models\User|null $user */
         $user = $pilot->user;
 
+        // Metadata that will be attached to both session and payment_intent
+        $paymentMetadata = array_merge([
+            'registration_id' => (string) $registration->id,
+            'race_id' => (string) $race->id,
+            'race_name' => $race->name ?? '',
+            'pilot_id' => (string) $pilot->id,
+            'pilot_name' => $pilot->full_name ?? $pilot->first_name.' '.$pilot->last_name,
+            'car_id' => (string) $car->id,
+            'car_number' => (string) $car->race_number,
+        ], $metadata ?? []);
+
         return Session::create([
             'payment_method_types' => config('stripe.payment_methods', ['card']),
             'line_items' => [
@@ -89,15 +100,12 @@ final class StripePaymentService
             'success_url' => $successUrl,
             'cancel_url' => $cancelUrl,
             'customer_email' => $user?->email,
-            'metadata' => array_merge([
-                'registration_id' => (string) $registration->id,
-                'race_id' => (string) $race->id,
-                'race_name' => $race->name ?? '',
-                'pilot_id' => (string) $pilot->id,
-                'pilot_name' => $pilot->full_name ?? $pilot->first_name.' '.$pilot->last_name,
-                'car_id' => (string) $car->id,
-                'car_number' => (string) $car->race_number,
-            ], $metadata ?? []),
+            'metadata' => $paymentMetadata,
+            // IMPORTANT: Pass metadata to the PaymentIntent as well
+            // This ensures payment_intent.succeeded events have the metadata
+            'payment_intent_data' => [
+                'metadata' => $paymentMetadata,
+            ],
             'locale' => 'fr',
             'expires_at' => now()->addHours(24)->timestamp,
         ]);

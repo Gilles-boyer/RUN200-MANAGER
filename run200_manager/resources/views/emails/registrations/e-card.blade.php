@@ -77,4 +77,3 @@
     <p>Sportivement,<br><strong>L'équipe Run200</strong></p>
 </div>
 @endsection
-@endsection

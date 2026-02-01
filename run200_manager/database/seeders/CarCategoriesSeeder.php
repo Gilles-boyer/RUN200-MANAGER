@@ -39,14 +39,25 @@ class CarCategoriesSeeder extends Seeder
             ['name' => 'Ancêtre (> 25 ans)', 'sort_order' => 170],
         ];
 
+        $created = 0;
+        $existing = 0;
+
         foreach ($categories as $category) {
-            CarCategory::create([
-                'name' => $category['name'],
-                'is_active' => true,
-                'sort_order' => $category['sort_order'],
-            ]);
+            $result = CarCategory::firstOrCreate(
+                ['name' => $category['name']],
+                [
+                    'is_active' => true,
+                    'sort_order' => $category['sort_order'],
+                ]
+            );
+
+            if ($result->wasRecentlyCreated) {
+                $created++;
+            } else {
+                $existing++;
+            }
         }
 
-        $this->command->info('✅ 17 catégories de voitures créées avec succès!');
+        $this->command->info("✅ Catégories de voitures: {$created} créées, {$existing} existantes.");
     }
 }

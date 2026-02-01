@@ -53,13 +53,19 @@ class StripeWebhookController extends Controller
         Log::info('Stripe webhook received', [
             'type' => $event->type,
             'id' => $event->id,
+            'data_object_id' => $event->data->object->id ?? null,
         ]);
 
         // Check idempotency - prevent duplicate processing
-        if (\App\Models\Payment::where('stripe_event_id', $event->id)->exists()) {
-            Log::info('Stripe webhook already processed', ['event_id' => $event->id]);
+        // But only for events that store the event_id (checkout.session.completed, payment_intent.succeeded)
+        $eventTypesWithIdempotency = ['checkout.session.completed', 'payment_intent.succeeded'];
 
-            return response('Event already processed', 200);
+        if (in_array($event->type, $eventTypesWithIdempotency)) {
+            if (\App\Models\Payment::where('stripe_event_id', $event->id)->exists()) {
+                Log::info('Stripe webhook already processed', ['event_id' => $event->id]);
+
+                return response('Event already processed', 200);
+            }
         }
 
         try {
@@ -70,6 +76,10 @@ class StripeWebhookController extends Controller
                 ),
                 'checkout.session.expired' => $this->handleWebhook->handleCheckoutExpired(
                     $event->data->object->toArray()
+                ),
+                'payment_intent.succeeded' => $this->handleWebhook->handlePaymentIntentSucceeded(
+                    $event->data->object->toArray(),
+                    $event->id
                 ),
                 'payment_intent.payment_failed' => $this->handleWebhook->handlePaymentFailed(
                     $event->data->object->toArray()
