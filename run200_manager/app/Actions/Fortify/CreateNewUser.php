@@ -29,9 +29,31 @@ class CreateNewUser implements CreatesNewUsers
             'phone' => ['required', 'string', 'max:20'],
             'license_number' => ['required', 'string', 'min:1', 'max:6', 'regex:/^[0-9]+$/', 'unique:pilots,license_number'],
             'password' => $this->passwordRules(),
+            'terms' => ['accepted'],
         ], [
-            'license_number.unique' => 'Ce numéro de licence est déjà utilisé.',
-            'license_number.regex' => 'Le numéro de licence doit contenir uniquement des chiffres.',
+            // Messages personnalisés pour le numéro de licence
+            'license_number.required' => 'Le numéro de licence FFSA est obligatoire.',
+            'license_number.min' => 'Le numéro de licence doit contenir au moins 1 chiffre.',
+            'license_number.max' => 'Le numéro de licence ne peut pas dépasser 6 chiffres.',
+            'license_number.regex' => 'Le numéro de licence doit contenir uniquement des chiffres (ex: 123456).',
+            'license_number.unique' => 'Ce numéro de licence est déjà enregistré. Contactez-nous si vous pensez qu\'il s\'agit d\'une erreur.',
+
+            // Messages personnalisés pour l'email
+            'email.required' => 'L\'adresse email est obligatoire.',
+            'email.email' => 'Veuillez saisir une adresse email valide (ex: nom@domaine.com).',
+            'email.unique' => 'Cette adresse email est déjà utilisée. Essayez de vous connecter ou utilisez une autre adresse.',
+
+            // Messages personnalisés pour le mot de passe
+            'password.required' => 'Le mot de passe est obligatoire.',
+            'password.confirmed' => 'Les deux mots de passe ne correspondent pas.',
+
+            // Messages personnalisés pour les informations personnelles
+            'first_name.required' => 'Le prénom est obligatoire.',
+            'last_name.required' => 'Le nom est obligatoire.',
+            'phone.required' => 'Le numéro de téléphone est obligatoire.',
+
+            // Message pour les conditions
+            'terms.accepted' => 'Vous devez accepter les mentions légales et la politique de confidentialité.',
         ])->validate();
 
         return DB::transaction(function () use ($input) {
