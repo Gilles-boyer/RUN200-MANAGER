@@ -13,10 +13,10 @@ class PaddockMap extends Component
 {
     public string $mapImage = '';
 
-    // Dimensions de la carte (suffisamment grandes pour une carte circulaire)
-    public int $mapWidth = 2000;
+    // Dimensions de la carte (basées sur l'image paddock-map.svg)
+    public int $mapWidth = 1200;
 
-    public int $mapHeight = 2000;
+    public int $mapHeight = 850;
 
     public ?int $selectedSpotId = null;
 

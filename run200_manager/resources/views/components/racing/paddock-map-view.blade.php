@@ -2,8 +2,8 @@
     'spots',
     'selectedSpotId' => null,
     'highlightSpotId' => null,
-    'width' => 2000,
-    'height' => 2000,
+    'width' => 1200,
+    'height' => 850,
     'interactive' => true,
     'emptyMessage' => 'Aucun emplacement positionné sur la carte',
 ])
@@ -23,10 +23,11 @@
             </div>
         </div>
     @else
-        <div class="overflow-auto" style="max-height: 700px;">
+        {{-- Conteneur avec scroll horizontal sur mobile pour maintenir la taille originale --}}
+        <div class="overflow-auto" style="max-height: 700px; -webkit-overflow-scrolling: touch;">
             <div
                 class="relative bg-contain bg-center bg-no-repeat"
-                style="width: {{ $width }}px; height: {{ $height }}px; background-image: url('{{ asset('images/paddock-map.svg') }}'); background-color: #1a1a1a;"
+                style="width: {{ $width }}px; height: {{ $height }}px; min-width: {{ $width }}px; background-image: url('{{ asset('images/paddock-map.svg') }}'); background-color: #1a1a1a;"
             >
                 @foreach($positionedSpots as $spot)
                     @php
