@@ -63,6 +63,29 @@ class Edit extends Component
         ];
     }
 
+    protected function messages(): array
+    {
+        return [
+            'first_name.required' => 'Le prénom est obligatoire.',
+            'first_name.max' => 'Le prénom ne peut pas dépasser 255 caractères.',
+            'last_name.required' => 'Le nom est obligatoire.',
+            'last_name.max' => 'Le nom ne peut pas dépasser 255 caractères.',
+            'birth_date.required' => 'La date de naissance est obligatoire.',
+            'birth_date.date' => 'La date de naissance n\'est pas valide.',
+            'license_number.max' => 'Le numéro de licence ne peut pas dépasser 255 caractères.',
+            'phone.max' => 'Le téléphone ne peut pas dépasser 20 caractères.',
+            'address.max' => 'L\'adresse ne peut pas dépasser 255 caractères.',
+            'city.max' => 'La ville ne peut pas dépasser 255 caractères.',
+            'postal_code.max' => 'Le code postal ne peut pas dépasser 10 caractères.',
+            'emergency_contact_name.max' => 'Le nom du contact d\'urgence ne peut pas dépasser 255 caractères.',
+            'emergency_contact_phone.max' => 'Le téléphone du contact d\'urgence ne peut pas dépasser 20 caractères.',
+            'medical_certificate_date.date' => 'La date du certificat médical n\'est pas valide.',
+            'notes.max' => 'Les notes ne peuvent pas dépasser 1000 caractères.',
+            'permit_number.max' => 'Le numéro de permis ne peut pas dépasser 50 caractères.',
+            'permit_date.date' => 'La date du permis n\'est pas valide.',
+        ];
+    }
+
     /**
      * Get the pilot's cars with their categories eager-loaded.
      *

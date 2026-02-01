@@ -176,6 +176,85 @@ return [
         'terms' => [
             'accepted' => 'Vous devez accepter les conditions générales.',
         ],
+        'csvFile' => [
+            'required' => 'Veuillez sélectionner un fichier CSV.',
+            'file' => 'Le fichier n\'est pas valide.',
+            'mimes' => 'Le fichier doit être au format CSV (.csv ou .txt).',
+            'max' => 'Le fichier ne doit pas dépasser 5 Mo.',
+            'extensions' => 'L\'extension du fichier doit être .csv ou .txt.',
+        ],
+        'status' => [
+            'required' => 'Le statut est obligatoire.',
+            'in' => 'Le statut sélectionné n\'est pas valide.',
+        ],
+        'notes' => [
+            'max' => 'Les notes ne peuvent pas dépasser :max caractères.',
+        ],
+        'season_id' => [
+            'required' => 'La saison est obligatoire.',
+            'exists' => 'La saison sélectionnée n\'existe pas.',
+        ],
+        'race_date' => [
+            'required' => 'La date de la course est obligatoire.',
+            'date' => 'La date de la course n\'est pas valide.',
+        ],
+        'location' => [
+            'required' => 'Le lieu est obligatoire.',
+            'max' => 'Le lieu ne peut pas dépasser :max caractères.',
+        ],
+        'entry_fee' => [
+            'numeric' => 'Le prix d\'inscription doit être un nombre.',
+            'min' => 'Le prix d\'inscription ne peut pas être négatif.',
+            'max' => 'Le prix d\'inscription ne peut pas dépasser :max €.',
+        ],
+        'start_date' => [
+            'required' => 'La date de début est obligatoire.',
+            'date' => 'La date de début n\'est pas valide.',
+        ],
+        'end_date' => [
+            'required' => 'La date de fin est obligatoire.',
+            'date' => 'La date de fin n\'est pas valide.',
+            'after' => 'La date de fin doit être après la date de début.',
+        ],
+        'spotNumber' => [
+            'required' => 'Le numéro d\'emplacement est obligatoire.',
+            'unique' => 'Cet emplacement existe déjà.',
+            'max' => 'Le numéro ne peut pas dépasser :max caractères.',
+        ],
+        'zone' => [
+            'required' => 'La zone est obligatoire.',
+            'max' => 'La zone ne peut pas dépasser :max caractères.',
+        ],
+        'code' => [
+            'required' => 'Le code est obligatoire.',
+            'unique' => 'Ce code existe déjà.',
+            'max' => 'Le code ne peut pas dépasser :max caractères.',
+        ],
+        'uploadedFile' => [
+            'required' => 'Veuillez sélectionner un fichier.',
+            'file' => 'Le fichier n\'est pas valide.',
+            'mimes' => 'Le type de fichier n\'est pas autorisé.',
+            'max' => 'Le fichier ne doit pas dépasser :max Ko.',
+        ],
+        'visibility' => [
+            'required' => 'La visibilité est obligatoire.',
+            'in' => 'La visibilité sélectionnée n\'est pas valide.',
+        ],
+        'positionFrom' => [
+            'required' => 'La position de début est obligatoire.',
+            'integer' => 'La position doit être un nombre entier.',
+            'min' => 'La position doit être au moins :min.',
+        ],
+        'positionTo' => [
+            'required' => 'La position de fin est obligatoire.',
+            'integer' => 'La position doit être un nombre entier.',
+            'gte' => 'La position de fin doit être supérieure ou égale à la position de début.',
+        ],
+        'points' => [
+            'required' => 'Le nombre de points est obligatoire.',
+            'integer' => 'Les points doivent être un nombre entier.',
+            'min' => 'Les points ne peuvent pas être négatifs.',
+        ],
     ],
 
     /*
@@ -208,6 +287,56 @@ return [
         'model' => 'modèle',
         'car_category_id' => 'catégorie',
         'terms' => 'conditions générales',
+        // Formulaires admin/staff
+        'season_id' => 'saison',
+        'race_date' => 'date de la course',
+        'location' => 'lieu',
+        'entry_fee' => 'prix d\'inscription',
+        'start_date' => 'date de début',
+        'end_date' => 'date de fin',
+        'is_active' => 'actif',
+        'status' => 'statut',
+        'notes' => 'notes',
+        // Emplacements paddock
+        'spotNumber' => 'numéro d\'emplacement',
+        'spot_number' => 'numéro d\'emplacement',
+        'zone' => 'zone',
+        'positionX' => 'position X',
+        'positionY' => 'position Y',
+        'position_x' => 'position X',
+        'position_y' => 'position Y',
+        'isAvailable' => 'disponible',
+        'is_available' => 'disponible',
+        // Checkpoints
+        'code' => 'code',
+        'requiredPermission' => 'permission requise',
+        'required_permission' => 'permission requise',
+        'sortOrder' => 'ordre de tri',
+        'sort_order' => 'ordre de tri',
+        // Documents
+        'selectedCategoryId' => 'catégorie',
+        'documentTitle' => 'titre du document',
+        'document_title' => 'titre du document',
+        'documentDescription' => 'description du document',
+        'document_description' => 'description du document',
+        'uploadedFile' => 'fichier',
+        'uploaded_file' => 'fichier',
+        'visibility' => 'visibilité',
+        // Points/Classement
+        'positionFrom' => 'position de début',
+        'positionTo' => 'position de fin',
+        'position_from' => 'position de début',
+        'position_to' => 'position de fin',
+        'points' => 'points',
+        // Import CSV
+        'csvFile' => 'fichier CSV',
+        'csv_file' => 'fichier CSV',
+        // Voitures
+        'displacement' => 'cylindrée',
+        'power' => 'puissance',
+        'year' => 'année',
+        'plate' => 'immatriculation',
+        'photo' => 'photo',
     ],
 
 ];

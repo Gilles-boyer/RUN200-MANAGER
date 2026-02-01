@@ -26,6 +26,12 @@ class TechInspectionForm extends Component
         'notes' => 'nullable|string|max:2000',
     ];
 
+    protected $messages = [
+        'status.required' => 'Le statut du contrôle technique est obligatoire.',
+        'status.in' => 'Le statut doit être "OK" ou "FAIL".',
+        'notes.max' => 'Les notes ne peuvent pas dépasser 2000 caractères.',
+    ];
+
     public function mount(RaceRegistration $registration)
     {
         $this->registration = $registration->load([
