@@ -61,9 +61,17 @@ return [
     |--------------------------------------------------------------------------
     |
     | List of enabled payment methods in Stripe Checkout.
+    | Only include methods that are activated in your Stripe dashboard.
+    | Available options: card, bancontact, ideal, sepa_debit, giropay, sofort
+    |
+    | Configure via STRIPE_PAYMENT_METHODS env variable (comma-separated)
+    | Example: STRIPE_PAYMENT_METHODS=card,bancontact
     |
     */
-    'payment_methods' => ['card', 'bancontact', 'ideal', 'sepa_debit'],
+    'payment_methods' => array_filter(
+        explode(',', env('STRIPE_PAYMENT_METHODS', 'card')),
+        fn ($method) => !empty(trim($method))
+    ),
 
     /*
     |--------------------------------------------------------------------------
