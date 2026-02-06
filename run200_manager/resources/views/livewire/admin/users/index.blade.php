@@ -616,6 +616,39 @@
                         </div>
 
                         <div class="px-6 py-4 max-h-[60vh] overflow-y-auto">
+                            {{-- Photo Section --}}
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-carbon-300 mb-2">Photo du pilote</label>
+                                <div class="flex items-center gap-4">
+                                    @if($pilotCurrentPhotoPath)
+                                        <div class="relative">
+                                            <img src="{{ Storage::url($pilotCurrentPhotoPath) }}" alt="Photo pilote" class="w-24 h-24 rounded-lg object-cover border border-carbon-600">
+                                            <button type="button" wire:click="removePilotPhoto" wire:confirm="Êtes-vous sûr de vouloir supprimer cette photo ?" class="absolute -top-2 -right-2 bg-status-danger text-white rounded-full p-1 hover:bg-red-600 transition">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    @elseif($pilotPhoto)
+                                        <div class="relative">
+                                            <img src="{{ $pilotPhoto->temporaryUrl() }}" alt="Nouvelle photo" class="w-24 h-24 rounded-lg object-cover border border-racing-red-500">
+                                            <span class="absolute -bottom-1 left-0 right-0 text-xs text-center bg-racing-red-500 text-white rounded-b-lg py-0.5">Nouvelle</span>
+                                        </div>
+                                    @else
+                                        <div class="w-24 h-24 rounded-lg bg-carbon-700 border border-carbon-600 flex items-center justify-center">
+                                            <svg class="w-12 h-12 text-carbon-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                            </svg>
+                                        </div>
+                                    @endif
+                                    <div class="flex-1">
+                                        <input type="file" wire:model="pilotPhoto" accept="image/*" class="block w-full text-sm text-carbon-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-racing-red-500 file:text-white hover:file:bg-racing-red-600 file:cursor-pointer cursor-pointer">
+                                        <p class="text-xs text-carbon-500 mt-1">JPG, PNG ou GIF. 2 Mo maximum.</p>
+                                        @error('pilotPhoto') <span class="text-xs text-status-danger">{{ $message }}</span> @enderror
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="grid grid-cols-2 gap-4">
                                 <x-racing.form.input
                                     label="Prénom"
@@ -653,6 +686,60 @@
                                     wire:model="pilotBirthPlace"
                                 />
 
+                                {{-- Permit Section --}}
+                                <div class="col-span-2 border-t border-carbon-700 pt-4 mt-2">
+                                    <h4 class="text-sm font-medium text-carbon-300 mb-3 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-racing-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                        Informations du permis
+                                    </h4>
+                                </div>
+
+                                <x-racing.form.input
+                                    label="N° de permis"
+                                    wire:model="pilotPermitNumber"
+                                    placeholder="Ex: 12AB34567"
+                                    :error="$errors->first('pilotPermitNumber')"
+                                />
+
+                                <x-racing.form.input
+                                    type="date"
+                                    label="Date d'obtention du permis"
+                                    wire:model="pilotPermitDate"
+                                    :error="$errors->first('pilotPermitDate')"
+                                />
+
+                                {{-- Medical Certificate --}}
+                                <div class="col-span-2 border-t border-carbon-700 pt-4 mt-2">
+                                    <h4 class="text-sm font-medium text-carbon-300 mb-3 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-status-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        Certificat médical
+                                    </h4>
+                                </div>
+
+                                <x-racing.form.input
+                                    type="date"
+                                    label="Date du certificat médical"
+                                    wire:model="pilotMedicalCertificateDate"
+                                    :error="$errors->first('pilotMedicalCertificateDate')"
+                                />
+
+                                <div></div> {{-- Empty cell for grid alignment --}}
+
+                                {{-- Address Section --}}
+                                <div class="col-span-2 border-t border-carbon-700 pt-4 mt-2">
+                                    <h4 class="text-sm font-medium text-carbon-300 mb-3 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-carbon-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        </svg>
+                                        Adresse
+                                    </h4>
+                                </div>
+
                                 <div class="col-span-2">
                                     <x-racing.form.input
                                         label="Adresse"
@@ -670,14 +757,24 @@
                                     wire:model="pilotCity"
                                 />
 
+                                {{-- Emergency Contact Section --}}
+                                <div class="col-span-2 border-t border-carbon-700 pt-4 mt-2">
+                                    <h4 class="text-sm font-medium text-carbon-300 mb-3 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-status-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                        </svg>
+                                        Contact d'urgence
+                                    </h4>
+                                </div>
+
                                 <x-racing.form.input
-                                    label="Contact d'urgence"
+                                    label="Nom du contact"
                                     wire:model="pilotEmergencyName"
                                 />
 
                                 <x-racing.form.input
                                     type="tel"
-                                    label="Tél. urgence"
+                                    label="Téléphone d'urgence"
                                     wire:model="pilotEmergencyPhone"
                                 />
                             </div>

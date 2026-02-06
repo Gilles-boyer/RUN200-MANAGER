@@ -4,15 +4,17 @@ namespace App\Livewire\Admin\Users;
 
 use App\Models\Pilot;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use Spatie\Permission\Models\Role;
 
 #[Layout('layouts.app')]
 class Index extends Component
 {
-    use WithPagination;
+    use WithFileUploads, WithPagination;
 
     public string $search = '';
 
@@ -62,6 +64,17 @@ class Index extends Component
     public string $pilotEmergencyName = '';
 
     public string $pilotEmergencyPhone = '';
+
+    // New pilot fields
+    public string $pilotPermitNumber = '';
+
+    public ?string $pilotPermitDate = null;
+
+    public ?string $pilotMedicalCertificateDate = null;
+
+    public ?string $pilotCurrentPhotoPath = null;
+
+    public $pilotPhoto = null;  // For file upload
 
     // Delete confirmation
     public bool $showDeleteConfirmation = false;
@@ -230,6 +243,12 @@ class Index extends Component
         $this->pilotPostalCode = $pilot->postal_code ?? '';
         $this->pilotEmergencyName = $pilot->emergency_contact_name ?? '';
         $this->pilotEmergencyPhone = $pilot->emergency_contact_phone ?? '';
+        // New fields
+        $this->pilotPermitNumber = $pilot->permit_number ?? '';
+        $this->pilotPermitDate = $pilot->permit_date?->format('Y-m-d');
+        $this->pilotMedicalCertificateDate = $pilot->medical_certificate_date?->format('Y-m-d');
+        $this->pilotCurrentPhotoPath = $pilot->photo_path;
+        $this->pilotPhoto = null;
         $this->showEditPilotModal = true;
     }
 
@@ -247,9 +266,25 @@ class Index extends Component
             'pilotPostalCode' => 'nullable|string|max:10',
             'pilotEmergencyName' => 'nullable|string|max:255',
             'pilotEmergencyPhone' => 'nullable|string|max:20',
+            'pilotPermitNumber' => 'nullable|string|max:50',
+            'pilotPermitDate' => 'nullable|date',
+            'pilotMedicalCertificateDate' => 'nullable|date',
+            'pilotPhoto' => 'nullable|image|max:2048', // 2MB max
         ]);
 
         $pilot = Pilot::findOrFail($this->editingPilotId);
+
+        // Handle photo upload
+        $photoPath = $pilot->photo_path;
+        if ($this->pilotPhoto) {
+            // Delete old photo if exists
+            if ($pilot->photo_path && Storage::disk('public')->exists($pilot->photo_path)) {
+                Storage::disk('public')->delete($pilot->photo_path);
+            }
+            // Store new photo
+            $photoPath = $this->pilotPhoto->store('pilots/photos', 'public');
+        }
+
         $pilot->update([
             'first_name' => $this->pilotFirstName,
             'last_name' => $this->pilotLastName,
@@ -262,10 +297,29 @@ class Index extends Component
             'postal_code' => $this->pilotPostalCode ?: null,
             'emergency_contact_name' => $this->pilotEmergencyName ?: null,
             'emergency_contact_phone' => $this->pilotEmergencyPhone ?: null,
+            'permit_number' => $this->pilotPermitNumber ?: null,
+            'permit_date' => $this->pilotPermitDate ?: null,
+            'medical_certificate_date' => $this->pilotMedicalCertificateDate ?: null,
+            'photo_path' => $photoPath,
         ]);
 
         session()->flash('success', "Profil pilote de {$this->pilotFirstName} {$this->pilotLastName} mis à jour.");
         $this->closeEditPilotModal();
+    }
+
+    public function removePilotPhoto()
+    {
+        if ($this->editingPilotId) {
+            $pilot = Pilot::find($this->editingPilotId);
+            if ($pilot && $pilot->photo_path) {
+                if (Storage::disk('public')->exists($pilot->photo_path)) {
+                    Storage::disk('public')->delete($pilot->photo_path);
+                }
+                $pilot->update(['photo_path' => null]);
+                $this->pilotCurrentPhotoPath = null;
+                session()->flash('success', 'Photo supprimée.');
+            }
+        }
     }
 
     public function closeEditPilotModal()
@@ -276,6 +330,8 @@ class Index extends Component
             'pilotFirstName', 'pilotLastName', 'pilotPhone', 'pilotLicenseNumber',
             'pilotBirthDate', 'pilotBirthPlace', 'pilotAddress', 'pilotCity',
             'pilotPostalCode', 'pilotEmergencyName', 'pilotEmergencyPhone',
+            'pilotPermitNumber', 'pilotPermitDate', 'pilotMedicalCertificateDate',
+            'pilotCurrentPhotoPath', 'pilotPhoto',
         ]);
     }
 
