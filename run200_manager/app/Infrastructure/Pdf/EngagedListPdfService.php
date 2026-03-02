@@ -18,8 +18,21 @@ class EngagedListPdfService
         $registrations = $race->registrations()
             ->with(['pilot', 'car.category'])
             ->where('status', 'ACCEPTED')
-            ->orderBy('paddock')
+            ->join('pilots', 'race_registrations.pilot_id', '=', 'pilots.id')
+            ->orderBy('pilots.last_name', 'asc')
+            ->orderBy('pilots.first_name', 'asc')
+            ->select('race_registrations.*')
             ->get();
+
+        // Générer les codes d'inscription
+        $registrations->each(function ($registration) use ($race) {
+            $registration->registration_code = sprintf(
+                '%s-%s-%04d',
+                strtoupper(substr($race->name, 0, 3)),
+                str_pad($registration->pilot->license_number ?? $registration->pilot_id, 6, '0', STR_PAD_LEFT),
+                $registration->id
+            );
+        });
 
         $data = [
             'race' => $race,

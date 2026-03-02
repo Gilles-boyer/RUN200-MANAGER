@@ -85,6 +85,13 @@
                 </thead>
                 <tbody class="divide-y divide-carbon-700/50">
                     @forelse($registrations as $registration)
+                        @php
+                            $regCode = sprintf('%s-%s-%04d',
+                                strtoupper(substr($registration->race->name, 0, 3)),
+                                str_pad($registration->pilot->license_number ?? $registration->pilot_id, 6, '0', STR_PAD_LEFT),
+                                $registration->id
+                            );
+                        @endphp
                         <tr class="hover:bg-carbon-800/50 transition-colors">
                             <td class="px-4 py-4">
                                 <div class="text-sm font-medium text-white">
@@ -92,6 +99,9 @@
                                 </div>
                                 <div class="text-xs text-carbon-400">
                                     Licence: {{ $registration->pilot->license_number }}
+                                </div>
+                                <div class="text-xs text-racing-red-400 font-mono mt-1">
+                                    {{ $regCode }}
                                 </div>
                             </td>
                             <td class="px-4 py-4">
@@ -213,6 +223,15 @@
                             </td>
                             <td class="px-4 py-4">
                                 <div class="flex items-center justify-end gap-2">
+                                    {{-- Bouton QR Code --}}
+                                    <button wire:click="openQrModal({{ $registration->id }})"
+                                            class="p-2 rounded-lg text-carbon-400 hover:text-white hover:bg-carbon-700 transition-colors"
+                                            title="Voir le QR Code d'inscription">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h2M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+                                        </svg>
+                                    </button>
+
                                     {{-- Bouton voir les étapes --}}
                                     <a href="{{ route('staff.registrations.checkpoints', $registration) }}"
                                        class="p-2 rounded-lg text-carbon-400 hover:text-white hover:bg-carbon-700 transition-colors"
@@ -651,6 +670,77 @@
                         </x-racing.button>
                         <x-racing.button wire:click="updateStatus" variant="primary">
                             Enregistrer
+                        </x-racing.button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Modal QR Code --}}
+    @if($showQrModal && $selectedRegistration)
+        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+                <div class="fixed inset-0 bg-carbon-950/80 transition-opacity" wire:click="closeQrModal"></div>
+
+                <div class="relative inline-block w-full max-w-md overflow-hidden text-left align-bottom bg-carbon-900 rounded-2xl border border-carbon-700 shadow-xl transform transition-all sm:my-8 sm:align-middle">
+                    {{-- Header --}}
+                    <div class="px-6 py-4 border-b border-carbon-700">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                                📱 QR Code d'inscription
+                            </h3>
+                            <button wire:click="closeQrModal" class="text-carbon-400 hover:text-white transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Body --}}
+                    <div class="px-6 py-6 space-y-6">
+                        {{-- Infos pilote --}}
+                        <div class="bg-carbon-800/50 rounded-xl p-4 border border-carbon-700">
+                            <div class="text-center">
+                                <p class="text-sm text-carbon-400">Pilote</p>
+                                <p class="text-lg font-bold text-white">{{ $selectedRegistration->pilot->last_name }} {{ $selectedRegistration->pilot->first_name }}</p>
+                                <p class="text-xs text-carbon-400 mt-1">Licence: {{ $selectedRegistration->pilot->license_number }}</p>
+                            </div>
+                        </div>
+
+                        {{-- Code d'inscription --}}
+                        <div class="text-center">
+                            <p class="text-sm text-carbon-400 mb-2">Code d'inscription</p>
+                            <div class="inline-flex items-center px-4 py-2 bg-racing-red-500/20 border border-racing-red-500/30 rounded-lg">
+                                <span class="text-xl font-mono font-bold text-racing-red-500 tracking-wider">{{ $registrationCode }}</span>
+                            </div>
+                        </div>
+
+                        {{-- QR Code --}}
+                        <div class="flex justify-center">
+                            <div class="p-4 bg-white rounded-xl">
+                                {!! $qrCodeSvg !!}
+                            </div>
+                        </div>
+
+                        {{-- Infos course et voiture --}}
+                        <div class="grid grid-cols-2 gap-4 text-center">
+                            <div class="bg-carbon-800/50 rounded-xl p-3 border border-carbon-700">
+                                <p class="text-xs text-carbon-400">Course</p>
+                                <p class="text-sm font-medium text-white">{{ $selectedRegistration->race->name }}</p>
+                            </div>
+                            <div class="bg-carbon-800/50 rounded-xl p-3 border border-carbon-700">
+                                <p class="text-xs text-carbon-400">Voiture</p>
+                                <p class="text-sm font-medium text-white">#{{ $selectedRegistration->car->race_number }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Footer --}}
+                    <div class="px-6 py-4 bg-carbon-900/50 border-t border-carbon-700 rounded-b-xl">
+                        <x-racing.button variant="outline" wire:click="closeQrModal" class="w-full">
+                            Fermer
                         </x-racing.button>
                     </div>
                 </div>

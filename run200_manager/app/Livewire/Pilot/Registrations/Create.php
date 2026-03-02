@@ -37,16 +37,8 @@ class Create extends Component
             return $this->redirect(route('pilot.profile.edit'));
         }
 
-        // Vérifier si déjà inscrit
-        $existingRegistration = $this->race->registrations()
-            ->where('pilot_id', $pilot->id)
-            ->first();
-
-        if ($existingRegistration) {
-            session()->flash('error', 'Vous êtes déjà inscrit à cette course.');
-
-            return $this->redirect(route('pilot.registrations.index'));
-        }
+        // Note: Un pilote peut inscrire plusieurs voitures sur la même course
+        // La contrainte unique est sur (race_id, car_id), pas sur (race_id, pilot_id)
     }
 
     #[Computed]
@@ -62,7 +54,20 @@ class Create extends Component
             return collect();
         }
 
-        return $this->pilot->cars()->get();
+        // Récupérer les IDs des voitures déjà inscrites sur cette course (sauf refusées/annulées)
+        $alreadyRegisteredCarIds = $this->race->registrations()
+            ->where('pilot_id', $this->pilot->id)
+            ->whereNotIn('status', ['REFUSED', 'CANCELLED'])
+            ->pluck('car_id')
+            ->toArray();
+
+        return $this->pilot->cars()
+            ->with('category')
+            ->get()
+            ->map(function ($car) use ($alreadyRegisteredCarIds) {
+                $car->is_already_registered = in_array($car->id, $alreadyRegisteredCarIds);
+                return $car;
+            });
     }
 
     #[Computed]
@@ -102,6 +107,18 @@ class Create extends Component
         $car = Car::find($this->selectedCarId);
         if (! $car || $car->pilot_id !== $pilot->id) {
             $this->errorMessage = 'Voiture invalide ou non autorisée.';
+
+            return;
+        }
+
+        // Vérifier si cette voiture est déjà inscrite sur cette course
+        $existingRegistration = $this->race->registrations()
+            ->where('car_id', $car->id)
+            ->whereNotIn('status', ['REFUSED', 'CANCELLED'])
+            ->first();
+
+        if ($existingRegistration) {
+            $this->errorMessage = 'Cette voiture est déjà inscrite sur cette course.';
 
             return;
         }

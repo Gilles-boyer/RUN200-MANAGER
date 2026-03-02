@@ -144,22 +144,49 @@
     <!-- Manual Input -->
     @if($scanMode === 'manual')
         <x-racing.card class="mb-6">
-            <div class="space-y-4">
+            <div class="space-y-6">
+                <!-- Search by Registration Code -->
                 <div>
-                    <label for="token" class="block text-sm font-medium text-gray-300 mb-2">
-                        Token QR (scanner externe ou coller)
+                    <label for="registrationCode" class="block text-sm font-medium text-gray-300 mb-2">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-racing-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+                            </svg>
+                            Code d'inscription (recommandé)
+                        </span>
                     </label>
                     <div class="flex gap-3">
-                        <input wire:model="token"
-                               wire:keydown.enter="processToken"
+                        <input wire:model="registrationCode"
+                               wire:keydown.enter="searchByRegistrationCode"
                                type="text"
-                               id="token"
+                               id="registrationCode"
                                autofocus
-                               class="flex-1 rounded-xl bg-carbon-700 border-carbon-600 text-white placeholder-gray-500 shadow-sm focus:ring-racing-red-500 focus:border-racing-red-500"
-                               placeholder="Scannez ou collez le token QR...">
-                        <x-racing.button wire:click="processToken">
-                            Vérifier
+                               class="flex-1 rounded-xl bg-carbon-700 border-carbon-600 text-white placeholder-gray-500 shadow-sm focus:ring-racing-red-500 focus:border-racing-red-500 font-mono uppercase"
+                               placeholder="Ex: RUN-001234-0042">
+                        <x-racing.button wire:click="searchByRegistrationCode">
+                            Rechercher
                         </x-racing.button>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500">Le code figure sur la liste des engagés (PDF)</p>
+                </div>
+
+                <div class="border-t border-carbon-700 pt-4">
+                    <p class="text-xs text-gray-500 uppercase tracking-wide mb-3">Ou utiliser le token QR</p>
+                    <div>
+                        <label for="token" class="block text-sm font-medium text-gray-300 mb-2">
+                            Token QR (scanner externe ou coller)
+                        </label>
+                        <div class="flex gap-3">
+                            <input wire:model="token"
+                                   wire:keydown.enter="processToken"
+                                   type="text"
+                                   id="token"
+                                   class="flex-1 rounded-xl bg-carbon-700 border-carbon-600 text-white placeholder-gray-500 shadow-sm focus:ring-racing-red-500 focus:border-racing-red-500"
+                                   placeholder="Scannez ou collez le token QR...">
+                            <x-racing.button wire:click="processToken">
+                                Vérifier
+                            </x-racing.button>
+                        </div>
                     </div>
                 </div>
 
@@ -167,7 +194,7 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    Utilisez un scanner QR externe (type pistolet) ou collez directement le token
+                    Utilisez le code d'inscription de la liste PDF ou un scanner QR externe
                 </p>
             </div>
         </x-racing.card>

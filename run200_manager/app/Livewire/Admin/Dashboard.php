@@ -28,7 +28,11 @@ class Dashboard extends Component
             'total_pilots' => Pilot::count(),
             'total_seasons' => Season::count(),
             'total_races' => Race::count(),
-            'pending_registrations' => RaceRegistration::where('status', 'PENDING_VALIDATION')->count(),
+            'pending_registrations' => RaceRegistration::whereIn('status', [
+                'SUBMITTED',
+                'PENDING_PAYMENT',
+                'PENDING_VALIDATION',
+            ])->count(),
             'open_races' => Race::where('status', 'OPEN')->count(),
             'total_cars' => Car::count(),
             'total_registrations' => RaceRegistration::count(),
@@ -129,16 +133,36 @@ class Dashboard extends Component
     #[Computed]
     public function paymentStats(): array
     {
-        $total = RaceRegistration::whereIn('status', ['ACCEPTED', 'ADMIN_CHECKED', 'TECH_CHECKED_OK', 'TECH_CHECKED_FAIL', 'ENTRY_SCANNED', 'BRACELET_GIVEN', 'PUBLISHED'])->count();
-        $pending = RaceRegistration::where('status', 'PENDING_VALIDATION')->count();
-        $refused = RaceRegistration::where('status', 'REFUSED')->count();
+        // Inscriptions validées (ACCEPTED et tous les statuts suivants)
+        $validated = RaceRegistration::whereIn('status', [
+            'ACCEPTED',
+            'ADMIN_CHECKED',
+            'TECH_CHECKED_OK',
+            'TECH_CHECKED_FAIL',
+            'ENTRY_SCANNED',
+            'BRACELET_GIVEN',
+            'RESULTS_IMPORTED',
+            'PUBLISHED',
+        ])->count();
+
+        // Inscriptions en attente (toutes formes d'attente)
+        $pending = RaceRegistration::whereIn('status', [
+            'SUBMITTED',
+            'PENDING_PAYMENT',
+            'PENDING_VALIDATION',
+        ])->count();
+
+        // Refusées ou annulées
+        $refused = RaceRegistration::whereIn('status', ['REFUSED', 'CANCELLED'])->count();
+
+        $total = $validated + $pending + $refused;
 
         return [
-            'accepted' => $total,
+            'accepted' => $validated,
             'pending' => $pending,
             'refused' => $refused,
-            'conversion_rate' => $total + $pending + $refused > 0
-                ? round(($total / ($total + $pending + $refused)) * 100, 1)
+            'conversion_rate' => $total > 0
+                ? round(($validated / $total) * 100, 1)
                 : 0,
         ];
     }

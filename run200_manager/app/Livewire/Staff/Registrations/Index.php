@@ -5,6 +5,7 @@ namespace App\Livewire\Staff\Registrations;
 use App\Application\Registrations\UseCases\AssignPaddock;
 use App\Application\Registrations\UseCases\ValidateRegistration;
 use App\Domain\Registration\Enums\RegistrationStatus;
+use App\Infrastructure\Qr\QrTokenService;
 use App\Models\Checkpoint;
 use App\Models\Race;
 use App\Models\RaceRegistration;
@@ -42,6 +43,13 @@ class Index extends Component
     public string $newStatus = '';
 
     public string $statusChangeReason = '';
+
+    // Modal QR Code
+    public bool $showQrModal = false;
+
+    public string $qrCodeSvg = '';
+
+    public ?string $registrationCode = null;
 
     protected $queryString = [
         'raceId' => ['except' => null, 'as' => 'raceId'],
@@ -81,6 +89,41 @@ class Index extends Component
     public function updatingStatusFilter()
     {
         $this->resetPage();
+    }
+
+    public function openQrModal(int $registrationId)
+    {
+        $registration = RaceRegistration::with(['pilot', 'car', 'race'])->find($registrationId);
+        if (! $registration) {
+            return;
+        }
+
+        $this->selectedRegistration = $registration;
+
+        // Générer ou récupérer le token QR
+        $qrService = new QrTokenService;
+        $token = $qrService->getOrGenerateToken($registration);
+
+        // Générer le code d'inscription (format: RACE_ID-PILOT_ID-REG_ID)
+        $this->registrationCode = sprintf(
+            '%s-%s-%04d',
+            strtoupper(substr($registration->race->name, 0, 3)),
+            str_pad($registration->pilot->license_number ?? $registration->pilot_id, 6, '0', STR_PAD_LEFT),
+            $registration->id
+        );
+
+        // Générer le SVG du QR code
+        $this->qrCodeSvg = $qrService->generateQrCodeSvg($token, 250);
+
+        $this->showQrModal = true;
+    }
+
+    public function closeQrModal()
+    {
+        $this->showQrModal = false;
+        $this->selectedRegistration = null;
+        $this->qrCodeSvg = '';
+        $this->registrationCode = null;
     }
 
     public function openValidationModal(int $registrationId, string $action)
@@ -242,7 +285,12 @@ class Index extends Component
             });
         }
 
-        $registrations = $query->orderBy('created_at', 'desc')->paginate(15);
+        $registrations = $query
+            ->join('pilots', 'race_registrations.pilot_id', '=', 'pilots.id')
+            ->orderBy('pilots.last_name', 'asc')
+            ->orderBy('pilots.first_name', 'asc')
+            ->select('race_registrations.*')
+            ->paginate(15);
 
         $races = Race::with('season')
             ->orderBy('race_date', 'desc')

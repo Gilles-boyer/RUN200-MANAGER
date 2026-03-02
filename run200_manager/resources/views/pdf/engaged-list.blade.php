@@ -155,6 +155,7 @@
             <tr>
                 <th class="paddock">PADDOCK</th>
                 <th class="race-number">N°</th>
+                <th>CODE INSCRIPTION</th>
                 <th>PILOTE</th>
                 <th>VÉHICULE</th>
                 <th>CATÉGORIE</th>
@@ -165,6 +166,7 @@
             <tr>
                 <td class="paddock">{{ $registration->paddock ?? '-' }}</td>
                 <td class="race-number">{{ $registration->car->race_number }}</td>
+                <td style="font-weight: bold; font-size: 8pt;">{{ $registration->registration_code ?? '-' }}</td>
                 <td>
                     {{ $registration->pilot->last_name }} {{ $registration->pilot->first_name }}
                     <br><span class="category">Licence: {{ $registration->pilot->license_number }}</span>
@@ -176,7 +178,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="5" style="text-align: center; padding: 20px;">Aucun engagé pour cette course</td>
+                <td colspan="6" style="text-align: center; padding: 20px;">Aucun engagé pour cette course</td>
             </tr>
             @endforelse
         </tbody>

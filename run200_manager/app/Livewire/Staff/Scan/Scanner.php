@@ -17,6 +17,8 @@ class Scanner extends Component
 
     public string $token = '';
 
+    public string $registrationCode = '';
+
     public ?array $registrationInfo = null;
 
     public ?string $scanResult = null;
@@ -108,7 +110,63 @@ class Scanner extends Component
 
     public function resetScanner(): void
     {
-        $this->reset(['token', 'registrationInfo', 'scanResult', 'errorMessage', 'showSuccess']);
+        $this->reset(['token', 'registrationCode', 'registrationInfo', 'scanResult', 'errorMessage', 'showSuccess']);
+    }
+
+    /**
+     * Search by registration code (format: XXX-NNNNNN-RRRR)
+     */
+    public function searchByRegistrationCode(): void
+    {
+        if (empty($this->registrationCode)) {
+            $this->errorMessage = 'Veuillez entrer un code d\'inscription';
+            return;
+        }
+
+        $this->reset(['registrationInfo', 'scanResult', 'errorMessage', 'showSuccess']);
+
+        // Parse registration code: XXX-NNNNNN-RRRR
+        $code = strtoupper(trim($this->registrationCode));
+
+        // Try to extract registration ID from the code
+        if (preg_match('/^([A-Z]{2,5})-([0-9]+)-([0-9]+)$/', $code, $matches)) {
+            $registrationId = (int) $matches[3];
+
+            $registration = \App\Models\RaceRegistration::with(['pilot', 'car.category', 'race', 'passages.checkpoint'])
+                ->find($registrationId);
+
+            if ($registration) {
+                // Verify code matches
+                $expectedCode = sprintf(
+                    '%s-%s-%04d',
+                    strtoupper(substr($registration->race->name, 0, 3)),
+                    str_pad($registration->pilot->license_number ?? $registration->pilot_id, 6, '0', STR_PAD_LEFT),
+                    $registration->id
+                );
+
+                if ($code === $expectedCode) {
+                    $passedCheckpoints = $registration->passages->pluck('checkpoint.code')->toArray();
+
+                    $this->registrationInfo = [
+                        'registration' => $registration,
+                        'pilot' => $registration->pilot,
+                        'car' => $registration->car,
+                        'race' => $registration->race,
+                        'status' => $registration->status,
+                        'paddock' => $registration->paddock,
+                        'passed_checkpoints' => $passedCheckpoints,
+                    ];
+
+                    // Generate token for scan validation
+                    $qrService = new QrTokenService;
+                    $this->token = $qrService->getOrGenerateToken($registration);
+
+                    return;
+                }
+            }
+        }
+
+        $this->errorMessage = 'Code d\'inscription invalide ou non trouvé';
     }
 
     public function render()

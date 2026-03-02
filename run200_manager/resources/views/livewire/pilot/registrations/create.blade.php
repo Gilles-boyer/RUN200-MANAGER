@@ -106,6 +106,41 @@
                 @else
                     <div class="space-y-3">
                         @foreach($this->cars as $car)
+                            @if($car->is_already_registered ?? false)
+                                {{-- Voiture déjà inscrite - désactivée --}}
+                                <div class="relative flex rounded-xl border-2 p-4 border-carbon-200 dark:border-carbon-700 bg-carbon-100 dark:bg-carbon-800/50 opacity-60">
+                                    <div class="flex items-center gap-4 w-full">
+                                        {{-- Car Icon --}}
+                                        <div class="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center bg-carbon-200 dark:bg-carbon-700 text-carbon-400">
+                                            <span class="text-2xl">🏎️</span>
+                                        </div>
+
+                                        {{-- Car Info --}}
+                                        <div class="flex-1 min-w-0">
+                                            <span class="block text-sm font-semibold text-carbon-600 dark:text-carbon-400 truncate">
+                                                {{ $car->make ?? '' }} {{ $car->model }}
+                                            </span>
+                                            <div class="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-carbon-200 dark:bg-carbon-700 font-mono text-carbon-500">
+                                                    #{{ $car->race_number }}
+                                                </span>
+                                                @if($car->category)
+                                                    <x-racing.badge-status status="info" size="sm">
+                                                        {{ $car->category->name ?? 'Catégorie inconnue' }}
+                                                    </x-racing.badge-status>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        {{-- Already registered indicator --}}
+                                        <div class="flex-shrink-0">
+                                            <x-racing.badge-status status="success" size="sm">
+                                                Déjà inscrite
+                                            </x-racing.badge-status>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
                             <label
                                 class="relative flex cursor-pointer rounded-xl border-2 p-4 transition-all duration-200 hover:border-racing-red-400
                                     {{ $selectedCarId == $car->id
@@ -131,14 +166,12 @@
                                     {{-- Car Info --}}
                                     <div class="flex-1 min-w-0">
                                         <span class="block text-sm font-semibold text-carbon-900 dark:text-white truncate">
-                                            {{ $car->brand?->name ?? '' }} {{ $car->model }}
+                                            {{ $car->make ?? '' }} {{ $car->model }}
                                         </span>
                                         <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-carbon-500 dark:text-carbon-400">
-                                            @if($car->license_plate)
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-carbon-100 dark:bg-carbon-800 font-mono">
-                                                    {{ $car->license_plate }}
-                                                </span>
-                                            @endif
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-carbon-100 dark:bg-carbon-800 font-mono">
+                                                #{{ $car->race_number }}
+                                            </span>
                                             @if($car->category)
                                                 <x-racing.badge-status status="info" size="sm">
                                                     {{ $car->category->name ?? 'Catégorie inconnue' }}
@@ -160,6 +193,7 @@
                                     </div>
                                 </div>
                             </label>
+                            @endif
                         @endforeach
                     </div>
 
