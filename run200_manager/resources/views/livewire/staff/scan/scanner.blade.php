@@ -285,6 +285,44 @@
                     <p class="text-sm text-gray-400">{{ $registrationInfo['race']->race_date->format('d/m/Y') }}</p>
                 </div>
 
+                <!-- Payment Status -->
+                <div class="p-4 rounded-xl border flex items-center justify-between
+                    @if($registrationInfo['is_paid'] ?? false)
+                        bg-status-success/10 border-status-success/20
+                    @else
+                        bg-status-danger/10 border-status-danger/20
+                    @endif">
+                    <div>
+                        <p class="text-xs uppercase tracking-wide font-semibold
+                            @if($registrationInfo['is_paid'] ?? false)
+                                text-status-success
+                            @else
+                                text-status-danger
+                            @endif">
+                            Statut Paiement
+                        </p>
+                        <p class="font-bold mt-1
+                            @if($registrationInfo['is_paid'] ?? false)
+                                text-status-success
+                            @else
+                                text-status-danger
+                            @endif">
+                            @if($registrationInfo['is_paid'] ?? false)
+                                ✓ PAYÉ
+                            @else
+                                ✗ NON PAYÉ
+                            @endif
+                        </p>
+                    </div>
+                    <div class="text-3xl">
+                        @if($registrationInfo['is_paid'] ?? false)
+                            💰
+                        @else
+                            ⚠️
+                        @endif
+                    </div>
+                </div>
+
                 <!-- Paddock -->
                 @if($registrationInfo['paddock'])
                     <div class="p-4 bg-status-info/10 border border-status-info/20 rounded-xl text-center">

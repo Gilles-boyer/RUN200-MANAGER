@@ -147,6 +147,9 @@ class Scanner extends Component
                 if ($code === $expectedCode) {
                     $passedCheckpoints = $registration->passages->pluck('checkpoint.code')->toArray();
 
+                    // Load payments for isPaid check
+                    $registration->load('payments');
+
                     $this->registrationInfo = [
                         'registration' => $registration,
                         'pilot' => $registration->pilot,
@@ -155,6 +158,7 @@ class Scanner extends Component
                         'status' => $registration->status,
                         'paddock' => $registration->paddock,
                         'passed_checkpoints' => $passedCheckpoints,
+                        'is_paid' => $registration->isPaid(),
                     ];
 
                     // Generate token for scan validation

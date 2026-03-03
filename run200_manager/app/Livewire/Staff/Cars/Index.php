@@ -22,6 +22,13 @@ class Index extends Component
 
     public string $sortDirection = 'asc';
 
+    // Category editing modal
+    public bool $showCategoryModal = false;
+
+    public ?int $editingCarId = null;
+
+    public ?int $newCategoryId = null;
+
     public function updatingSearch(): void
     {
         $this->resetPage();
@@ -100,6 +107,38 @@ class Index extends Component
         return \App\Models\Pilot::with('user')
             ->orderBy('last_name')
             ->get();
+    }
+
+    public function openCategoryModal(int $carId): void
+    {
+        $car = Car::find($carId);
+        if ($car) {
+            $this->editingCarId = $carId;
+            $this->newCategoryId = $car->car_category_id;
+            $this->showCategoryModal = true;
+        }
+    }
+
+    public function closeCategoryModal(): void
+    {
+        $this->showCategoryModal = false;
+        $this->editingCarId = null;
+        $this->newCategoryId = null;
+    }
+
+    public function updateCategory(): void
+    {
+        if (! $this->editingCarId || ! $this->newCategoryId) {
+            return;
+        }
+
+        $car = Car::find($this->editingCarId);
+        if ($car) {
+            $car->update(['car_category_id' => $this->newCategoryId]);
+            $this->dispatch('notify', type: 'success', message: 'Catégorie mise à jour avec succès');
+        }
+
+        $this->closeCategoryModal();
     }
 
     public function render()

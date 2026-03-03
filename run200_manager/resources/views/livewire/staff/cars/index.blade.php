@@ -149,11 +149,19 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right">
-                                    <a href="{{ route('staff.cars.tech-history', $car) }}"
-                                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-checkered-yellow-500 hover:text-checkered-yellow-400 hover:bg-checkered-yellow-500/10 transition-colors">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                        Historique
-                                    </a>
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button wire:click="openCategoryModal({{ $car->id }})"
+                                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-carbon-700/50 transition-colors"
+                                           title="Modifier la catégorie">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                            Catégorie
+                                        </button>
+                                        <a href="{{ route('staff.cars.tech-history', $car) }}"
+                                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-checkered-yellow-500 hover:text-checkered-yellow-400 hover:bg-checkered-yellow-500/10 transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            Historique
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
@@ -217,11 +225,16 @@
                         </div>
 
                         {{-- Footer avec action --}}
-                        <div class="px-4 py-3 bg-carbon-800/50 border-t border-carbon-700">
+                        <div class="px-4 py-3 bg-carbon-800/50 border-t border-carbon-700 flex gap-2">
+                            <button wire:click="openCategoryModal({{ $car->id }})"
+                               class="flex items-center justify-center gap-2 flex-1 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-carbon-700/50 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                Catégorie
+                            </button>
                             <a href="{{ route('staff.cars.tech-history', $car) }}"
-                               class="flex items-center justify-center gap-2 w-full py-2 rounded-lg text-sm font-medium text-checkered-yellow-500 hover:bg-checkered-yellow-500/10 transition-colors">
+                               class="flex items-center justify-center gap-2 flex-1 py-2 rounded-lg text-sm font-medium text-checkered-yellow-500 hover:bg-checkered-yellow-500/10 transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                Voir l'historique
+                                Historique
                             </a>
                         </div>
                     </div>
@@ -236,4 +249,44 @@
             @endif
         @endif
     </x-racing.card>
+
+    <!-- Category Edit Modal -->
+    @if($showCategoryModal)
+        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+                <div class="fixed inset-0 bg-carbon-950/80 transition-opacity" wire:click="closeCategoryModal"></div>
+
+                <div class="relative inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-carbon-800 border border-carbon-700 shadow-xl rounded-2xl">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-white" id="modal-title">
+                            Modifier la catégorie
+                        </h3>
+                        <button wire:click="closeCategoryModal" class="text-gray-400 hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <x-racing.form.select wire:model="newCategoryId" label="Catégorie">
+                            <option value="">Sélectionner une catégorie</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}">{{ $category->name }}</option>
+                            @endforeach
+                        </x-racing.form.select>
+                    </div>
+
+                    <div class="mt-6 flex justify-end gap-3">
+                        <x-racing.button variant="secondary" wire:click="closeCategoryModal">
+                            Annuler
+                        </x-racing.button>
+                        <x-racing.button wire:click="updateCategory">
+                            Enregistrer
+                        </x-racing.button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

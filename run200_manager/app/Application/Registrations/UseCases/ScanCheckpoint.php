@@ -127,7 +127,7 @@ class ScanCheckpoint
             return null;
         }
 
-        $registration->load(['pilot', 'car.category', 'race', 'passages.checkpoint']);
+        $registration->load(['pilot', 'car.category', 'race', 'passages.checkpoint', 'payments']);
 
         $passedCheckpoints = $registration->passages->pluck('checkpoint.code')->toArray();
 
@@ -139,6 +139,7 @@ class ScanCheckpoint
             'status' => $registration->status,
             'paddock' => $registration->paddock,
             'passed_checkpoints' => $passedCheckpoints,
+            'is_paid' => $registration->isPaid(),
         ];
     }
 }
