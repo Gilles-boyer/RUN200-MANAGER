@@ -37,6 +37,12 @@ class CheckpointsSeeder extends Seeder
                 'required_permission' => 'checkpoint.scan.bracelet',
                 'sort_order' => 4,
             ],
+            [
+                'code' => 'ASSISTANCE',
+                'name' => 'Contrôle voiture assistance',
+                'required_permission' => null, // Tous peuvent scanner
+                'sort_order' => 5,
+            ],
         ];
 
         foreach ($checkpoints as $checkpoint) {

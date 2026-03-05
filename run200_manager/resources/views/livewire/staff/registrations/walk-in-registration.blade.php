@@ -77,6 +77,9 @@
         </x-racing.alert>
     @endif
 
+    {{-- Affichage global des erreurs de validation --}}
+    <x-racing.form.errors class="mb-6" />
+
     <x-racing.card class="mt-10" noPadding>
         {{-- Step 1: Pilot Selection/Creation --}}
         @if($currentStep === 1)

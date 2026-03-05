@@ -5,6 +5,9 @@
         <!-- Session Status -->
         <x-auth-session-status class="text-center" :status="session('status')" />
 
+        {{-- Affichage global des erreurs --}}
+        <x-racing.form.errors class="mb-4" />
+
         <!-- Info box -->
         <div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-4 text-sm text-blue-700 dark:text-blue-300">
             <div class="flex items-start gap-3">

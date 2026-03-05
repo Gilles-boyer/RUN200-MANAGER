@@ -24,12 +24,14 @@
             ['route' => 'staff.registrations.index', 'label' => 'Inscriptions', 'icon' => 'clipboard'],
             ['route' => 'staff.paddock.manage', 'label' => 'Paddock', 'icon' => 'grid'],
             ['route' => 'staff.pilots.index', 'label' => 'Pilotes', 'icon' => 'users'],
+            ['route' => 'staff.scan.assistance', 'label' => 'Scan Assistance', 'icon' => 'qrcode'],
         ],
         'admin' => [
             ['route' => 'admin.dashboard', 'label' => 'Dashboard', 'icon' => 'dashboard'],
             ['route' => 'admin.races.index', 'label' => 'Courses', 'icon' => 'flag'],
             ['route' => 'admin.users.index', 'label' => 'Utilisateurs', 'icon' => 'users'],
             ['route' => 'admin.seasons.index', 'label' => 'Saisons', 'icon' => 'calendar'],
+            ['route' => 'staff.scan.assistance', 'label' => 'Scan Assistance', 'icon' => 'qrcode'],
             ['route' => 'settings.profile', 'label' => 'Paramètres', 'icon' => 'settings'],
         ],
     ];

@@ -341,6 +341,7 @@
                                 'TECH_CHECK' => 'Tech',
                                 'ENTRY' => 'Entrée',
                                 'BRACELET' => 'Bracelet',
+                                'ASSISTANCE' => 'Assistance',
                             ];
                         @endphp
 
@@ -362,7 +363,30 @@
             </div>
 
             <!-- Action Button -->
-            @if(!$showSuccess && !in_array($checkpointCode, $registrationInfo['passed_checkpoints']))
+            @if($alreadyScanned && !$showSuccess)
+                <div class="px-6 py-4 bg-status-danger/10 border-t border-status-danger/30">
+                    <div class="flex items-center gap-3 mb-4 p-4 bg-status-danger/20 rounded-xl border border-status-danger/40">
+                        <div class="flex-shrink-0">
+                            <svg class="w-10 h-10 text-status-danger" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-status-danger font-bold text-lg">ATTENTION - DÉJÀ CONTRÔLÉ</p>
+                            <p class="text-status-danger/80 text-sm">Ce checkpoint a déjà été effectué pour cette inscription.</p>
+                            @if($checkpointCode === 'ASSISTANCE')
+                                <p class="text-status-danger font-semibold mt-1">Le véhicule d'assistance est déjà entré !</p>
+                            @endif
+                        </div>
+                    </div>
+                    <button wire:click="resetScanner" class="w-full px-4 py-3 bg-carbon-700 text-white rounded-xl font-semibold hover:bg-carbon-600 transition-all duration-200 flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Scanner une autre inscription
+                    </button>
+                </div>
+            @elseif(!$showSuccess && !in_array($checkpointCode, $registrationInfo['passed_checkpoints']))
                 <div class="px-6 py-4 bg-carbon-700/30 border-t border-carbon-700/50">
                     <button wire:click="confirmScan"
                             class="w-full px-4 py-4 bg-status-success text-white rounded-xl font-bold hover:bg-status-success/80 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-status-success/25 text-lg">
@@ -371,12 +395,6 @@
                         </svg>
                         Valider {{ $checkpoint->name }}
                     </button>
-                </div>
-            @elseif(in_array($checkpointCode, $registrationInfo['passed_checkpoints']) && !$showSuccess)
-                <div class="px-6 py-4 bg-status-warning/10 border-t border-status-warning/20">
-                    <p class="text-center text-status-warning font-semibold">
-                        ⚠️ Ce checkpoint a déjà été validé pour cette inscription
-                    </p>
                 </div>
             @endif
         </x-racing.card>

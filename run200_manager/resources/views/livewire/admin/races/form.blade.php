@@ -37,6 +37,9 @@
 
     {{-- Formulaire --}}
     <form wire:submit="save">
+        {{-- Affichage global des erreurs --}}
+        <x-racing.form.errors class="mb-6 max-w-2xl" />
+
         <x-racing.card class="max-w-2xl">
             <x-slot name="header">
                 <h3 class="text-lg font-semibold text-white flex items-center gap-2">

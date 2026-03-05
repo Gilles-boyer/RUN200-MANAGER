@@ -258,7 +258,7 @@ class Index extends Component
             'pilotFirstName' => 'required|string|max:255',
             'pilotLastName' => 'required|string|max:255',
             'pilotPhone' => 'nullable|string|max:20',
-            'pilotLicenseNumber' => 'nullable|string|max:50',
+            'pilotLicenseNumber' => ['nullable', 'string', 'min:1', 'max:6', 'regex:/^[0-9]+$/', 'unique:pilots,license_number,' . $this->editingPilotId],
             'pilotBirthDate' => 'nullable|date',
             'pilotBirthPlace' => 'nullable|string|max:255',
             'pilotAddress' => 'nullable|string|max:255',
@@ -270,6 +270,13 @@ class Index extends Component
             'pilotPermitDate' => 'nullable|date',
             'pilotMedicalCertificateDate' => 'nullable|date',
             'pilotPhoto' => 'nullable|image|max:2048', // 2MB max
+        ], [
+            'pilotLicenseNumber.regex' => 'Le numéro de licence doit contenir uniquement des chiffres (1-6 chiffres).',
+            'pilotLicenseNumber.unique' => 'Ce numéro de licence est déjà utilisé par un autre pilote.',
+            'pilotLicenseNumber.min' => 'Le numéro de licence doit contenir au moins 1 chiffre.',
+            'pilotLicenseNumber.max' => 'Le numéro de licence ne peut pas dépasser 6 chiffres.',
+            'pilotPhoto.image' => 'Le fichier doit être une image.',
+            'pilotPhoto.max' => 'L\'image ne doit pas dépasser 2 Mo.',
         ]);
 
         $pilot = Pilot::findOrFail($this->editingPilotId);

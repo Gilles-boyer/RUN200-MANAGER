@@ -5,6 +5,9 @@
         <!-- Session Status -->
         <x-auth-session-status class="text-center" :status="session('status')" />
 
+        {{-- Affichage global des erreurs --}}
+        <x-racing.form.errors />
+
         <form method="POST" action="{{ route('login.store') }}" class="flex flex-col gap-5">
             @csrf
 

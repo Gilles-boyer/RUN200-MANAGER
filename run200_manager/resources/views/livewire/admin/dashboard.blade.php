@@ -469,6 +469,17 @@
                 <span class="text-sm font-semibold text-white group-hover:text-checkered-yellow-500 transition-colors">Distribution Bracelets</span>
                 <span class="text-xs text-carbon-400 mt-1">Remise des bracelets</span>
             </a>
+
+            <a href="{{ route('staff.scan.assistance') }}"
+               class="group relative flex flex-col items-center p-6 rounded-xl border-2 border-carbon-700 bg-carbon-800/50 hover:border-orange-500 hover:bg-orange-500/10 transition-all duration-200">
+                <div class="w-14 h-14 rounded-full bg-orange-500/20 flex items-center justify-center mb-3 group-hover:bg-orange-500/30 transition-colors">
+                    <svg class="w-7 h-7 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                    </svg>
+                </div>
+                <span class="text-sm font-semibold text-white group-hover:text-orange-500 transition-colors">Véhicule Assistance</span>
+                <span class="text-xs text-carbon-400 mt-1">Entrée véhicule assistance</span>
+            </a>
         </div>
     </x-racing.card>
 </div>

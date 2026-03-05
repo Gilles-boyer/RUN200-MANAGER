@@ -153,6 +153,7 @@
     <table>
         <thead>
             <tr>
+                <th style="width: 50px; text-align: center;">QR</th>
                 <th class="paddock">PADDOCK</th>
                 <th class="race-number">N°</th>
                 <th>CODE INSCRIPTION</th>
@@ -164,6 +165,13 @@
         <tbody>
             @forelse($registrations as $registration)
             <tr>
+                <td style="text-align: center; padding: 4px;">
+                    @if($registration->qr_code_data_uri)
+                        <img src="{{ $registration->qr_code_data_uri }}" alt="QR" style="width: 45px; height: 45px;">
+                    @else
+                        -
+                    @endif
+                </td>
                 <td class="paddock">{{ $registration->paddock ?? '-' }}</td>
                 <td class="race-number">{{ $registration->car->race_number }}</td>
                 <td style="font-weight: bold; font-size: 8pt;">{{ $registration->registration_code ?? '-' }}</td>
@@ -178,7 +186,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="6" style="text-align: center; padding: 20px;">Aucun engagé pour cette course</td>
+                <td colspan="7" style="text-align: center; padding: 20px;">Aucun engagé pour cette course</td>
             </tr>
             @endforelse
         </tbody>

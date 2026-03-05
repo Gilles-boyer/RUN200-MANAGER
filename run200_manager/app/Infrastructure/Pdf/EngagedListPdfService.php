@@ -2,12 +2,20 @@
 
 namespace App\Infrastructure\Pdf;
 
+use App\Infrastructure\Qr\QrTokenService;
 use App\Models\Race;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Collection;
 
 class EngagedListPdfService
 {
+    protected QrTokenService $qrTokenService;
+
+    public function __construct(?QrTokenService $qrTokenService = null)
+    {
+        $this->qrTokenService = $qrTokenService ?? new QrTokenService();
+    }
+
     /**
      * Générer le PDF de la liste des engagés pour une course
      *
@@ -16,7 +24,7 @@ class EngagedListPdfService
     public function generate(Race $race)
     {
         $registrations = $race->registrations()
-            ->with(['pilot', 'car.category'])
+            ->with(['pilot', 'car.category', 'qrToken'])
             ->where('status', 'ACCEPTED')
             ->join('pilots', 'race_registrations.pilot_id', '=', 'pilots.id')
             ->orderBy('pilots.last_name', 'asc')
@@ -24,7 +32,7 @@ class EngagedListPdfService
             ->select('race_registrations.*')
             ->get();
 
-        // Générer les codes d'inscription
+        // Générer les codes d'inscription et les QR codes
         $registrations->each(function ($registration) use ($race) {
             $registration->registration_code = sprintf(
                 '%s-%s-%04d',
@@ -32,6 +40,10 @@ class EngagedListPdfService
                 str_pad($registration->pilot->license_number ?? $registration->pilot_id, 6, '0', STR_PAD_LEFT),
                 $registration->id
             );
+
+            // Générer le QR code (token sécurisé)
+            $token = $this->qrTokenService->getOrGenerateToken($registration);
+            $registration->qr_code_data_uri = $this->qrTokenService->generateQrCodeDataUri($token, 80);
         });
 
         $data = [

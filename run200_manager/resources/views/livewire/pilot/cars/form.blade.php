@@ -15,6 +15,9 @@
     </div>
 
     <form wire:submit="save">
+        {{-- Affichage global des erreurs --}}
+        <x-racing.form.errors class="mb-6" />
+
         <x-racing.card class="mb-6">
             <h2 class="text-lg font-semibold text-carbon-900 dark:text-white mb-6 flex items-center gap-2">
                 <span>🏎️</span> Informations Véhicule

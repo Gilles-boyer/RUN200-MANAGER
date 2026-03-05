@@ -194,6 +194,9 @@ Route::middleware(['auth', 'role:ADMIN|STAFF_ADMINISTRATIF|CONTROLEUR_TECHNIQUE|
         Route::get('/bracelet', App\Livewire\Staff\Scan\Scanner::class)
             ->defaults('checkpointCode', 'BRACELET')
             ->name('bracelet');
+        Route::get('/assistance', App\Livewire\Staff\Scan\Scanner::class)
+            ->defaults('checkpointCode', 'ASSISTANCE')
+            ->name('assistance');
     });
 
     // Pilots management

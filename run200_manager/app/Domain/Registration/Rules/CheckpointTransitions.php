@@ -24,6 +24,9 @@ class CheckpointTransitions
 
         // Bracelet requires entry to be scanned
         'BRACELET' => ['ADMIN_CHECK', 'TECH_CHECK', 'ENTRY'],
+
+        // Assistance vehicle entry - no prerequisites, can be scanned anytime after registration is ACCEPTED
+        'ASSISTANCE' => [],
     ];
 
     /**
@@ -34,6 +37,7 @@ class CheckpointTransitions
         'TECH_CHECK' => ['ACCEPTED', 'ADMIN_CHECKED'],
         'ENTRY' => ['ACCEPTED', 'ADMIN_CHECKED', 'TECH_CHECKED_OK'],
         'BRACELET' => ['ACCEPTED', 'ADMIN_CHECKED', 'TECH_CHECKED_OK', 'ENTRY_SCANNED'],
+        'ASSISTANCE' => ['ACCEPTED', 'ADMIN_CHECKED', 'TECH_CHECKED_OK', 'ENTRY_SCANNED', 'BRACELET_GIVEN'],
     ];
 
     /**
@@ -44,6 +48,7 @@ class CheckpointTransitions
         'TECH_CHECK' => 'TECH_CHECKED_OK',
         'ENTRY' => 'ENTRY_SCANNED',
         'BRACELET' => 'BRACELET_GIVEN',
+        'ASSISTANCE' => null, // Does not change status, just records passage
     ];
 
     /**

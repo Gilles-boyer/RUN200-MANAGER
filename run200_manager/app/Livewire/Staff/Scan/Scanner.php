@@ -27,6 +27,8 @@ class Scanner extends Component
 
     public bool $showSuccess = false;
 
+    public bool $alreadyScanned = false;
+
     public string $scanMode = 'camera'; // 'camera' or 'manual'
 
     public function mount(string $checkpointCode)
@@ -58,7 +60,7 @@ class Scanner extends Component
             return;
         }
 
-        $this->reset(['registrationInfo', 'scanResult', 'errorMessage', 'showSuccess']);
+        $this->reset(['registrationInfo', 'scanResult', 'errorMessage', 'showSuccess', 'alreadyScanned']);
 
         $qrService = new QrTokenService;
         $scanUseCase = new ScanCheckpoint($qrService);
@@ -70,6 +72,12 @@ class Scanner extends Component
             $this->errorMessage = 'Token QR invalide ou expiré';
 
             return;
+        }
+
+        // Check if this checkpoint was already scanned
+        $passedCheckpoints = $this->registrationInfo['passed_checkpoints'] ?? [];
+        if (in_array($this->checkpointCode, $passedCheckpoints)) {
+            $this->alreadyScanned = true;
         }
 
         // Store token for potential scan
@@ -110,7 +118,7 @@ class Scanner extends Component
 
     public function resetScanner(): void
     {
-        $this->reset(['token', 'registrationCode', 'registrationInfo', 'scanResult', 'errorMessage', 'showSuccess']);
+        $this->reset(['token', 'registrationCode', 'registrationInfo', 'scanResult', 'errorMessage', 'showSuccess', 'alreadyScanned']);
     }
 
     /**
@@ -123,7 +131,7 @@ class Scanner extends Component
             return;
         }
 
-        $this->reset(['registrationInfo', 'scanResult', 'errorMessage', 'showSuccess']);
+        $this->reset(['registrationInfo', 'scanResult', 'errorMessage', 'showSuccess', 'alreadyScanned']);
 
         // Parse registration code: XXX-NNNNNN-RRRR
         $code = strtoupper(trim($this->registrationCode));
@@ -160,6 +168,11 @@ class Scanner extends Component
                         'passed_checkpoints' => $passedCheckpoints,
                         'is_paid' => $registration->isPaid(),
                     ];
+
+                    // Check if this checkpoint was already scanned
+                    if (in_array($this->checkpointCode, $passedCheckpoints)) {
+                        $this->alreadyScanned = true;
+                    }
 
                     // Generate token for scan validation
                     $qrService = new QrTokenService;

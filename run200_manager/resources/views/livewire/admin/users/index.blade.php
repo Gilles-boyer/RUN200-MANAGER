@@ -550,6 +550,9 @@
                         </div>
 
                         <div class="px-6 py-4 space-y-4">
+                            {{-- Affichage global des erreurs --}}
+                            <x-racing.form.errors class="mb-2" />
+
                             <x-racing.form.input
                                 label="Nom"
                                 wire:model="editName"
@@ -616,6 +619,9 @@
                         </div>
 
                         <div class="px-6 py-4 max-h-[60vh] overflow-y-auto">
+                            {{-- Affichage global des erreurs --}}
+                            <x-racing.form.errors class="mb-4" />
+
                             {{-- Photo Section --}}
                             <div class="mb-6">
                                 <label class="block text-sm font-medium text-carbon-300 mb-2">Photo du pilote</label>
@@ -673,6 +679,9 @@
                                 <x-racing.form.input
                                     label="N° de licence"
                                     wire:model="pilotLicenseNumber"
+                                    placeholder="Ex: 123456"
+                                    hint="1 à 6 chiffres, doit être unique"
+                                    :error="$errors->first('pilotLicenseNumber')"
                                 />
 
                                 <x-racing.form.input
@@ -849,6 +858,9 @@
                         </div>
 
                         <div class="px-6 py-4 space-y-4">
+                            {{-- Affichage global des erreurs --}}
+                            <x-racing.form.errors class="mb-2" />
+
                             <p class="text-sm text-carbon-400">
                                 Créez un compte pour un membre du staff ou un contrôleur technique.
                             </p>

@@ -45,6 +45,9 @@
 
     {{-- Form --}}
     <form wire:submit="save">
+        {{-- Affichage global des erreurs --}}
+        <x-racing.form.errors class="mb-6" />
+
         <x-racing.card>
             <x-slot name="header">
                 <h3 class="text-lg font-semibold text-white flex items-center gap-2">
