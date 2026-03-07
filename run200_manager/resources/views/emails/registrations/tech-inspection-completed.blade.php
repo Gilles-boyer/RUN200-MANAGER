@@ -1,7 +1,7 @@
 @extends('emails.layout')
 
 @section('content')
-@if($techInspection->status === 'PASSED')
+@if($techInspection->status === 'OK')
     <h2>✅ Contrôle technique validé !</h2>
 @else
     <h2>❌ Contrôle technique refusé</h2>
@@ -9,7 +9,7 @@
 
 <p>Bonjour <strong>{{ $techInspection->registration->pilot->user->name }}</strong>,</p>
 
-@if($techInspection->status === 'PASSED')
+@if($techInspection->status === 'OK')
     <p>Le contrôle technique de votre véhicule pour la course <strong>{{ $techInspection->registration->race->name }}</strong> a été <span class="status-badge status-success">validé avec succès</span> !</p>
 
     <div class="success-box">
@@ -91,7 +91,7 @@
 </div>
 
 <div class="signature">
-    @if($techInspection->status === 'PASSED')
+    @if($techInspection->status === 'OK')
         <p>À très bientôt sur la piste !</p>
     @else
         <p>En espérant vous voir bientôt sur la piste,</p>

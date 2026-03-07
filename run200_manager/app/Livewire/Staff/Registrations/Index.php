@@ -287,12 +287,18 @@ class Index extends Component
     {
         $query = RaceRegistration::with(['pilot', 'car.category', 'race.season', 'passages.checkpoint', 'payments']);
 
+        // Jointures pour le tri (avant les filtres pour éviter les ambiguïtés)
+        $query->join('pilots', 'race_registrations.pilot_id', '=', 'pilots.id')
+              ->join('cars', 'race_registrations.car_id', '=', 'cars.id')
+              ->join('races', 'race_registrations.race_id', '=', 'races.id')
+              ->select('race_registrations.*');
+
         if ($this->raceId) {
-            $query->where('race_id', $this->raceId);
+            $query->where('race_registrations.race_id', $this->raceId);
         }
 
         if ($this->statusFilter) {
-            $query->where('status', $this->statusFilter);
+            $query->where('race_registrations.status', $this->statusFilter);
         }
 
         if ($this->search) {
@@ -310,12 +316,6 @@ class Index extends Component
                 });
             });
         }
-
-        // Jointures pour le tri
-        $query->join('pilots', 'race_registrations.pilot_id', '=', 'pilots.id')
-              ->join('cars', 'race_registrations.car_id', '=', 'cars.id')
-              ->join('races', 'race_registrations.race_id', '=', 'races.id')
-              ->select('race_registrations.*');
 
         // Appliquer le tri
         switch ($this->sortBy) {
