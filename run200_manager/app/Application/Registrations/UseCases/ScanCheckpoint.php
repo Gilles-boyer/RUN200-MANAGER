@@ -4,9 +4,11 @@ namespace App\Application\Registrations\UseCases;
 
 use App\Domain\Registration\Rules\CheckpointTransitions;
 use App\Infrastructure\Qr\QrTokenService;
+use App\Models\CarTechInspectionHistory;
 use App\Models\Checkpoint;
 use App\Models\CheckpointPassage;
 use App\Models\RaceRegistration;
+use App\Models\TechInspection;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -99,6 +101,39 @@ class ScanCheckpoint
             if ($checkpointCode === 'ADMIN_CHECK') {
                 $engagementValidation = new UpdateEngagementFormValidation;
                 $engagementValidation->recordAdminValidation($registration, $scanner);
+            }
+
+            // Si c'est un checkpoint TECH_CHECK, créer l'inspection technique et l'historique
+            if ($checkpointCode === 'TECH_CHECK') {
+                // Créer l'entrée TechInspection si elle n'existe pas
+                $techInspection = $registration->techInspection;
+                if (! $techInspection) {
+                    $techInspection = TechInspection::create([
+                        'race_registration_id' => $registration->id,
+                        'status' => 'OK',
+                        'notes' => null,
+                        'inspected_by' => $scanner->id,
+                        'inspected_at' => now(),
+                    ]);
+
+                    // Créer l'entrée dans l'historique pour la voiture
+                    CarTechInspectionHistory::create([
+                        'car_id' => $registration->car_id,
+                        'race_registration_id' => $registration->id,
+                        'tech_inspection_id' => $techInspection->id,
+                        'status' => 'OK',
+                        'notes' => null,
+                        'inspected_by' => $scanner->id,
+                        'inspected_at' => now(),
+                    ]);
+
+                    // Mettre à jour la fiche d'engagement
+                    $engagementValidation = new UpdateEngagementFormValidation;
+                    $engagementValidation->recordTechValidation($registration, $scanner, 'OK', null);
+
+                    // Dispatch event for email notification
+                    \App\Events\TechInspectionCompleted::dispatch($techInspection);
+                }
             }
 
             // Log activity
