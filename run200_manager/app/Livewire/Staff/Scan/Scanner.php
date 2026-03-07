@@ -3,8 +3,12 @@
 namespace App\Livewire\Staff\Scan;
 
 use App\Application\Registrations\UseCases\ScanCheckpoint;
+use App\Domain\Registration\Enums\RegistrationStatus;
 use App\Infrastructure\Qr\QrTokenService;
 use App\Models\Checkpoint;
+use App\Models\Race;
+use App\Models\RaceRegistration;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -31,6 +35,10 @@ class Scanner extends Component
 
     public string $scanMode = 'camera'; // 'camera' or 'manual'
 
+    public ?int $selectedRaceId = null;
+
+    public array $raceStats = [];
+
     public function mount(string $checkpointCode)
     {
         $this->checkpointCode = strtoupper($checkpointCode);
@@ -47,6 +55,108 @@ class Scanner extends Component
         if (! $this->checkpoint->userCanScan(Auth::user())) {
             abort(403, 'Vous n\'avez pas la permission de scanner ce checkpoint');
         }
+
+        // Pre-select the most recent active race if available
+        $latestRace = Race::where('status', 'OPEN')
+            ->orderByDesc('race_date')
+            ->first();
+        if ($latestRace) {
+            $this->selectedRaceId = $latestRace->id;
+            $this->computeRaceStats();
+        }
+    }
+
+    /**
+     * Called when the selected race changes
+     */
+    public function updatedSelectedRaceId(): void
+    {
+        $this->computeRaceStats();
+    }
+
+    /**
+     * Compute statistics for the selected race
+     */
+    public function computeRaceStats(): void
+    {
+        if (! $this->selectedRaceId) {
+            $this->raceStats = [];
+            return;
+        }
+
+        // Get all registrations for this race (excluding REFUSED and SUBMITTED)
+        $acceptedStatuses = [
+            RegistrationStatus::ACCEPTED->value,
+            RegistrationStatus::ADMIN_CHECKED->value,
+            RegistrationStatus::TECH_CHECKED_OK->value,
+            RegistrationStatus::TECH_CHECKED_FAIL->value,
+            RegistrationStatus::ENTRY_SCANNED->value,
+            RegistrationStatus::BRACELET_GIVEN->value,
+            RegistrationStatus::RESULTS_IMPORTED->value,
+            RegistrationStatus::PUBLISHED->value,
+        ];
+
+        $registrations = RaceRegistration::where('race_id', $this->selectedRaceId)
+            ->whereIn('status', $acceptedStatuses)
+            ->get();
+
+        $total = $registrations->count();
+
+        // Admin checked = status is ADMIN_CHECKED or beyond (means they passed admin check)
+        $adminCheckedStatuses = [
+            RegistrationStatus::ADMIN_CHECKED->value,
+            RegistrationStatus::TECH_CHECKED_OK->value,
+            RegistrationStatus::TECH_CHECKED_FAIL->value,
+            RegistrationStatus::ENTRY_SCANNED->value,
+            RegistrationStatus::BRACELET_GIVEN->value,
+            RegistrationStatus::RESULTS_IMPORTED->value,
+            RegistrationStatus::PUBLISHED->value,
+        ];
+        $adminChecked = $registrations->whereIn('status', $adminCheckedStatuses)->count();
+
+        // Tech checked = status is TECH_CHECKED_OK, TECH_CHECKED_FAIL or beyond
+        $techCheckedStatuses = [
+            RegistrationStatus::TECH_CHECKED_OK->value,
+            RegistrationStatus::TECH_CHECKED_FAIL->value,
+            RegistrationStatus::ENTRY_SCANNED->value,
+            RegistrationStatus::BRACELET_GIVEN->value,
+            RegistrationStatus::RESULTS_IMPORTED->value,
+            RegistrationStatus::PUBLISHED->value,
+        ];
+        $techChecked = $registrations->whereIn('status', $techCheckedStatuses)->count();
+
+        // Tech OK only
+        $techOkStatuses = [
+            RegistrationStatus::TECH_CHECKED_OK->value,
+            RegistrationStatus::ENTRY_SCANNED->value,
+            RegistrationStatus::BRACELET_GIVEN->value,
+            RegistrationStatus::RESULTS_IMPORTED->value,
+            RegistrationStatus::PUBLISHED->value,
+        ];
+        $techOk = $registrations->whereIn('status', $techOkStatuses)->count();
+
+        // Tech FAIL
+        $techFail = $registrations->where('status', RegistrationStatus::TECH_CHECKED_FAIL->value)->count();
+
+        $this->raceStats = [
+            'total' => $total,
+            'admin_checked' => $adminChecked,
+            'tech_checked' => $techChecked,
+            'tech_ok' => $techOk,
+            'tech_fail' => $techFail,
+            'admin_pending' => $total - $adminChecked,
+            'tech_pending' => $adminChecked - $techChecked,
+        ];
+    }
+
+    /**
+     * Get available races for selection
+     */
+    public function getAvailableRacesProperty(): Collection
+    {
+        return Race::whereIn('status', ['OPEN', 'CLOSED'])
+            ->orderByDesc('race_date')
+            ->get();
     }
 
     #[On('tokenScanned')]

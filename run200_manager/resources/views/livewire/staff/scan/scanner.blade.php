@@ -14,6 +14,75 @@
         </div>
     </div>
 
+    <!-- Race Selector & Statistics (TECH_CHECK only) -->
+    @if($checkpointCode === 'TECH_CHECK')
+        <x-racing.card class="mb-6">
+            {{-- Race Selector --}}
+            <div class="mb-4">
+                <label for="selectedRaceId" class="block text-sm font-medium text-gray-300 mb-2">
+                    <span class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-racing-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        Sélectionner une course
+                    </span>
+                </label>
+                <select wire:model.live="selectedRaceId"
+                        id="selectedRaceId"
+                        class="w-full rounded-xl bg-carbon-700 border-carbon-600 text-white shadow-sm focus:ring-racing-red-500 focus:border-racing-red-500">
+                    <option value="">-- Choisir une course --</option>
+                    @foreach($this->availableRaces as $race)
+                        <option value="{{ $race->id }}">
+                            {{ $race->name }} - {{ $race->race_date->format('d/m/Y') }}
+                            @if($race->status === 'OPEN') (En cours) @endif
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Statistics --}}
+            @if($selectedRaceId && !empty($raceStats))
+                <div class="border-t border-carbon-700 pt-4">
+                    <h3 class="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Statistiques de la course</h3>
+
+                    <div class="grid grid-cols-3 gap-3">
+                        {{-- Total Inscrits --}}
+                        <div class="bg-carbon-700/50 rounded-xl p-3 text-center border border-carbon-600/50">
+                            <div class="text-2xl font-black text-white">{{ $raceStats['total'] }}</div>
+                            <div class="text-xs text-gray-400 mt-1">Inscrits</div>
+                        </div>
+
+                        {{-- Vérif Admin --}}
+                        <div class="bg-status-info/10 rounded-xl p-3 text-center border border-status-info/20">
+                            <div class="text-2xl font-black text-status-info">{{ $raceStats['admin_checked'] }}</div>
+                            <div class="text-xs text-gray-400 mt-1">Vérif. admin</div>
+                            <div class="text-xs text-gray-500">({{ $raceStats['admin_pending'] }} en attente)</div>
+                        </div>
+
+                        {{-- Vérif Tech --}}
+                        <div class="bg-status-success/10 rounded-xl p-3 text-center border border-status-success/20">
+                            <div class="text-2xl font-black text-status-success">{{ $raceStats['tech_checked'] }}</div>
+                            <div class="text-xs text-gray-400 mt-1">Vérif. tech</div>
+                            <div class="text-xs text-gray-500">({{ $raceStats['tech_pending'] }} en attente)</div>
+                        </div>
+                    </div>
+
+                    {{-- Detail Tech OK/FAIL --}}
+                    <div class="mt-3 flex gap-3">
+                        <div class="flex-1 bg-status-success/10 rounded-lg p-2 text-center border border-status-success/20">
+                            <span class="text-lg font-bold text-status-success">{{ $raceStats['tech_ok'] }}</span>
+                            <span class="text-xs text-status-success ml-1">OK</span>
+                        </div>
+                        <div class="flex-1 bg-status-danger/10 rounded-lg p-2 text-center border border-status-danger/20">
+                            <span class="text-lg font-bold text-status-danger">{{ $raceStats['tech_fail'] }}</span>
+                            <span class="text-xs text-status-danger ml-1">Échec</span>
+                        </div>
+                    </div>
+                </div>
+            @endif
+        </x-racing.card>
+    @endif
+
     <!-- Scan Mode Selector - Racing Style -->
     <div class="mb-6">
         <div class="flex rounded-xl bg-carbon-800 border border-carbon-700/50 p-1">
