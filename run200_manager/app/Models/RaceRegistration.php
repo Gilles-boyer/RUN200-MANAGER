@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Registration\Enums\RegistrationStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -32,6 +33,28 @@ class RaceRegistration extends Model
     ];
 
     // =========================================================================
+    // Status Constants
+    // =========================================================================
+
+    /**
+     * Get all statuses that represent an "engaged" pilot (accepted and beyond)
+     * These pilots should appear in engaged lists, paddock plans, etc.
+     */
+    public static function engagedStatuses(): array
+    {
+        return [
+            RegistrationStatus::ACCEPTED->value,
+            RegistrationStatus::ADMIN_CHECKED->value,
+            RegistrationStatus::TECH_CHECKED_OK->value,
+            RegistrationStatus::TECH_CHECKED_FAIL->value,
+            RegistrationStatus::ENTRY_SCANNED->value,
+            RegistrationStatus::BRACELET_GIVEN->value,
+            RegistrationStatus::RESULTS_IMPORTED->value,
+            RegistrationStatus::PUBLISHED->value,
+        ];
+    }
+
+    // =========================================================================
     // Scopes
     // =========================================================================
 
@@ -45,9 +68,21 @@ class RaceRegistration extends Model
         return $query->where('status', 'PENDING_VALIDATION');
     }
 
+    /**
+     * Scope for pilots with ACCEPTED status only (first acceptance step)
+     */
     public function scopeAccepted(Builder $query): Builder
     {
         return $query->where('status', 'ACCEPTED');
+    }
+
+    /**
+     * Scope for pilots that are "engaged" - accepted and all progression statuses
+     * Use this for engaged lists, paddock plans, engagement forms, etc.
+     */
+    public function scopeEngaged(Builder $query): Builder
+    {
+        return $query->whereIn('status', self::engagedStatuses());
     }
 
     public function scopeRefused(Builder $query): Builder

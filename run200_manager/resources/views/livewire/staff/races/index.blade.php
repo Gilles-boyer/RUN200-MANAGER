@@ -51,7 +51,8 @@
                 <tbody class="divide-y divide-carbon-700/50">
                     @forelse($races as $race)
                         @php
-                            $acceptedCount = $race->registrations->where('status', 'ACCEPTED')->count();
+                            $engagedStatuses = \App\Models\RaceRegistration::engagedStatuses();
+                            $acceptedCount = $race->registrations->whereIn('status', $engagedStatuses)->count();
                             $pendingCount = $race->registrations->where('status', 'PENDING_VALIDATION')->count();
                             $totalCount = $race->registrations->count();
                         @endphp
@@ -158,7 +159,8 @@
         <div class="md:hidden p-4 space-y-4">
             @forelse($races as $race)
                 @php
-                    $acceptedCount = $race->registrations->where('status', 'ACCEPTED')->count();
+                    $engagedStatuses = \App\Models\RaceRegistration::engagedStatuses();
+                    $acceptedCount = $race->registrations->whereIn('status', $engagedStatuses)->count();
                     $pendingCount = $race->registrations->where('status', 'PENDING_VALIDATION')->count();
                     $totalCount = $race->registrations->count();
                 @endphp

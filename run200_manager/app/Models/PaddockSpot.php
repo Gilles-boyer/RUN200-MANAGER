@@ -57,10 +57,12 @@ class PaddockSpot extends Model
      */
     public function scopeAvailableForRace(Builder $query, int $raceId): Builder
     {
+        $validStatuses = array_merge(RaceRegistration::engagedStatuses(), ['PENDING_VALIDATION']);
+
         return $query->where('is_available', true)
-            ->whereDoesntHave('registrations', function ($q) use ($raceId) {
+            ->whereDoesntHave('registrations', function ($q) use ($raceId, $validStatuses) {
                 $q->where('race_id', $raceId)
-                    ->whereIn('status', ['ACCEPTED', 'PENDING_VALIDATION']);
+                    ->whereIn('status', $validStatuses);
             });
     }
 
@@ -69,10 +71,12 @@ class PaddockSpot extends Model
      */
     public function scopeOccupiedForRace(Builder $query, int $raceId): Builder
     {
+        $validStatuses = array_merge(RaceRegistration::engagedStatuses(), ['PENDING_VALIDATION']);
+
         return $query->where('is_available', true)
-            ->whereHas('registrations', function ($q) use ($raceId) {
+            ->whereHas('registrations', function ($q) use ($raceId, $validStatuses) {
                 $q->where('race_id', $raceId)
-                    ->whereIn('status', ['ACCEPTED', 'PENDING_VALIDATION']);
+                    ->whereIn('status', $validStatuses);
             });
     }
 
@@ -109,10 +113,12 @@ class PaddockSpot extends Model
      */
     public function registrationForRace(int $raceId): ?RaceRegistration
     {
+        $validStatuses = array_merge(RaceRegistration::engagedStatuses(), ['PENDING_VALIDATION']);
+
         /** @var RaceRegistration|null $registration */
         $registration = $this->registrations()
             ->where('race_id', $raceId)
-            ->whereIn('status', ['ACCEPTED', 'PENDING_VALIDATION'])
+            ->whereIn('status', $validStatuses)
             ->first();
 
         return $registration;
@@ -147,9 +153,11 @@ class PaddockSpot extends Model
             return false;
         }
 
+        $validStatuses = array_merge(RaceRegistration::engagedStatuses(), ['PENDING_VALIDATION']);
+
         return ! $this->registrations()
             ->where('race_id', $raceId)
-            ->whereIn('status', ['ACCEPTED', 'PENDING_VALIDATION'])
+            ->whereIn('status', $validStatuses)
             ->exists();
     }
 
@@ -158,9 +166,11 @@ class PaddockSpot extends Model
      */
     public function isOccupiedForRace(int $raceId): bool
     {
+        $validStatuses = array_merge(RaceRegistration::engagedStatuses(), ['PENDING_VALIDATION']);
+
         return $this->registrations()
             ->where('race_id', $raceId)
-            ->whereIn('status', ['ACCEPTED', 'PENDING_VALIDATION'])
+            ->whereIn('status', $validStatuses)
             ->exists();
     }
 

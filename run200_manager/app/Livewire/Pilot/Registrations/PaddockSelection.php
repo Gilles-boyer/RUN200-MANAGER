@@ -136,9 +136,10 @@ class PaddockSelection extends Component
         }
 
         // Charger les inscriptions pour cette course spécifique
-        $query->with(['registrations' => function ($q) use ($raceId) {
+        $validStatuses = array_merge(\App\Models\RaceRegistration::engagedStatuses(), ['PENDING_VALIDATION']);
+        $query->with(['registrations' => function ($q) use ($raceId, $validStatuses) {
             $q->where('race_id', $raceId)
-                ->whereIn('status', ['ACCEPTED', 'PENDING_VALIDATION'])
+                ->whereIn('status', $validStatuses)
                 ->with('pilot.user', 'car');
         }]);
 

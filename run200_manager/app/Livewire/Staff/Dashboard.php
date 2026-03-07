@@ -22,7 +22,7 @@ class Dashboard extends Component
     {
         return [
             'pending_registrations' => RaceRegistration::where('status', 'PENDING_VALIDATION')->count(),
-            'accepted_registrations' => RaceRegistration::whereIn('status', ['ACCEPTED', 'ADMIN_CHECKED'])->count(),
+            'accepted_registrations' => RaceRegistration::whereIn('status', RaceRegistration::engagedStatuses())->count(),
             'tech_pending' => RaceRegistration::where('status', 'ADMIN_CHECKED')->count(),
             'upcoming_races' => Race::where('race_date', '>=', now())->count(),
             'open_races' => Race::where('status', 'OPEN')->count(),

@@ -92,7 +92,7 @@ class EngagementSign extends Component
         }
 
         $query = RaceRegistration::where('race_id', $this->raceId)
-            ->where('status', 'ACCEPTED')
+            ->whereIn('status', RaceRegistration::engagedStatuses())
             ->whereDoesntHave('engagementForm')
             ->with(['pilot', 'car.category']);
 
@@ -145,7 +145,7 @@ class EngagementSign extends Component
         }
 
         $total = RaceRegistration::where('race_id', $this->raceId)
-            ->where('status', 'ACCEPTED')
+            ->whereIn('status', RaceRegistration::engagedStatuses())
             ->count();
 
         $signed = EngagementForm::forRace($this->raceId)->count();

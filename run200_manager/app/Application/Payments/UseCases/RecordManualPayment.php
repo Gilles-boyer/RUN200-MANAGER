@@ -29,8 +29,8 @@ final class RecordManualPayment
         ?string $notes = null,
         string $method = 'manual'
     ): Payment {
-        // Validate registration status
-        if ($registration->status !== 'ACCEPTED') {
+        // Validate registration status - must be engaged (accepted or beyond)
+        if (! in_array($registration->status, RaceRegistration::engagedStatuses())) {
             throw new InvalidArgumentException(
                 'Le paiement ne peut être enregistré que pour une inscription acceptée.'
             );

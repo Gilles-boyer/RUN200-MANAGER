@@ -195,7 +195,7 @@ class ManagePaddock extends Component
         }
 
         $query = RaceRegistration::where('race_id', $this->selectedRaceId)
-            ->where('status', 'ACCEPTED')
+            ->whereIn('status', RaceRegistration::engagedStatuses())
             ->with(['pilot.user', 'car', 'paddockSpot']);
 
         if ($this->searchPilot) {
@@ -286,7 +286,7 @@ class ManagePaddock extends Component
         }
 
         return RaceRegistration::where('race_id', $this->selectedRaceId)
-            ->where('status', 'ACCEPTED')
+            ->whereIn('status', RaceRegistration::engagedStatuses())
             ->whereNull('paddock_spot_id')
             ->with(['pilot', 'car'])
             ->get();

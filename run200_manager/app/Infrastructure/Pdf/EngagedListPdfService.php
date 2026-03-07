@@ -4,6 +4,7 @@ namespace App\Infrastructure\Pdf;
 
 use App\Infrastructure\Qr\QrTokenService;
 use App\Models\Race;
+use App\Models\RaceRegistration;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Collection;
 
@@ -25,7 +26,7 @@ class EngagedListPdfService
     {
         $registrations = $race->registrations()
             ->with(['pilot', 'car.category', 'qrToken'])
-            ->where('status', 'ACCEPTED')
+            ->whereIn('status', RaceRegistration::engagedStatuses())
             ->join('pilots', 'race_registrations.pilot_id', '=', 'pilots.id')
             ->orderBy('pilots.last_name', 'asc')
             ->orderBy('pilots.first_name', 'asc')
