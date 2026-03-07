@@ -17,14 +17,15 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class ExportEngagedCsvController extends Controller
 {
     /**
-     * Export the list of accepted registrations for a race as CSV.
+     * Export the list of engaged registrations for a race as CSV.
      *
+     * Includes all pilots that have been accepted and beyond (VA/VT passed, etc.)
      * Columns: Bib, Nom, Prénom, Voiture, Catégorie
      */
     public function __invoke(Race $race): StreamedResponse
     {
         $registrations = $race->registrations()
-            ->accepted()
+            ->engaged()
             ->with(['pilot', 'car.category'])
             ->get()
             ->sortBy('car.race_number');
