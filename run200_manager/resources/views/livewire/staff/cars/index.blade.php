@@ -106,9 +106,11 @@
                         @foreach($cars as $car)
                             <tr class="hover:bg-carbon-700/30 transition-colors">
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="text-2xl font-black text-racing-red-500">
+                                    <button wire:click="openRaceNumberModal({{ $car->id }})"
+                                        class="text-2xl font-black text-racing-red-500 hover:text-racing-red-400 cursor-pointer transition-colors"
+                                        title="Modifier le numéro de course">
                                         #{{ $car->race_number }}
-                                    </span>
+                                    </button>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm font-semibold text-white">{{ $car->make }}</div>
@@ -176,9 +178,11 @@
                         {{-- Header de la carte --}}
                         <div class="p-4 bg-carbon-800 border-b border-carbon-700 flex items-center justify-between">
                             <div class="flex items-center gap-3">
-                                <span class="text-2xl font-black text-racing-red-500">
+                                <button wire:click="openRaceNumberModal({{ $car->id }})"
+                                    class="text-2xl font-black text-racing-red-500 hover:text-racing-red-400 cursor-pointer transition-colors"
+                                    title="Modifier le numéro de course">
                                     #{{ $car->race_number }}
-                                </span>
+                                </button>
                                 <div>
                                     <div class="text-sm font-semibold text-white">{{ $car->make }}</div>
                                     <div class="text-xs text-gray-400">{{ $car->model }}</div>
@@ -285,6 +289,68 @@
                             Enregistrer
                         </x-racing.button>
                     </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Race Number Edit Modal -->
+    @if($showRaceNumberModal)
+        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title-race" role="dialog" aria-modal="true">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+                <div class="fixed inset-0 bg-carbon-950/80 transition-opacity" wire:click="closeRaceNumberModal"></div>
+
+                <div class="relative inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-carbon-800 border border-carbon-700 shadow-xl rounded-2xl">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-white" id="modal-title-race">
+                            Modifier le numéro de course
+                        </h3>
+                        <button wire:click="closeRaceNumberModal" class="text-gray-400 hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <form wire:submit="updateRaceNumber">
+                        {{-- Affichage global des erreurs --}}
+                        <x-racing.form.errors class="mb-4" />
+
+                        <div class="space-y-4">
+                            <div>
+                                <label for="newRaceNumber" class="block text-sm font-medium text-carbon-300 mb-1.5">
+                                    Numéro de course <span class="text-racing-red-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-carbon-400 text-lg font-bold">#</span>
+                                    </div>
+                                    <input
+                                        type="number"
+                                        wire:model="newRaceNumber"
+                                        id="newRaceNumber"
+                                        min="0"
+                                        max="999"
+                                        class="w-full pl-8 pr-4 py-2.5 bg-carbon-900 border border-carbon-600 rounded-xl text-white placeholder-carbon-500 focus:ring-2 focus:ring-racing-red-500 focus:border-racing-red-500 transition-colors @error('newRaceNumber') border-status-danger @enderror"
+                                        placeholder="123"
+                                    >
+                                </div>
+                                <p class="mt-1.5 text-xs text-carbon-500">Entier de 0 à 999, unique globalement</p>
+                                @error('newRaceNumber')
+                                    <p class="mt-1 text-sm text-status-danger">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <div class="mt-6 flex justify-end gap-3">
+                            <x-racing.button type="button" variant="secondary" wire:click="closeRaceNumberModal">
+                                Annuler
+                            </x-racing.button>
+                            <x-racing.button type="submit">
+                                Enregistrer
+                            </x-racing.button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

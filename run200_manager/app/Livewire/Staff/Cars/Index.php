@@ -29,6 +29,13 @@ class Index extends Component
 
     public ?int $newCategoryId = null;
 
+    // Race number editing modal
+    public bool $showRaceNumberModal = false;
+
+    public ?int $editingRaceNumberCarId = null;
+
+    public ?int $newRaceNumber = null;
+
     public function updatingSearch(): void
     {
         $this->resetPage();
@@ -139,6 +146,51 @@ class Index extends Component
         }
 
         $this->closeCategoryModal();
+    }
+
+    public function openRaceNumberModal(int $carId): void
+    {
+        $car = Car::find($carId);
+        if ($car) {
+            $this->editingRaceNumberCarId = $carId;
+            $this->newRaceNumber = $car->race_number->toInt();
+            $this->showRaceNumberModal = true;
+        }
+    }
+
+    public function closeRaceNumberModal(): void
+    {
+        $this->showRaceNumberModal = false;
+        $this->editingRaceNumberCarId = null;
+        $this->newRaceNumber = null;
+        $this->resetValidation(['newRaceNumber']);
+    }
+
+    public function updateRaceNumber(): void
+    {
+        $this->validate([
+            'newRaceNumber' => [
+                'required',
+                'integer',
+                'min:0',
+                'max:999',
+                'unique:cars,race_number,' . $this->editingRaceNumberCarId,
+            ],
+        ], [
+            'newRaceNumber.required' => 'Le numéro de course est obligatoire.',
+            'newRaceNumber.integer' => 'Le numéro de course doit être un nombre entier.',
+            'newRaceNumber.min' => 'Le numéro de course doit être au minimum 0.',
+            'newRaceNumber.max' => 'Le numéro de course ne peut pas dépasser 999.',
+            'newRaceNumber.unique' => 'Ce numéro de course est déjà utilisé par une autre voiture.',
+        ]);
+
+        $car = Car::find($this->editingRaceNumberCarId);
+        if ($car) {
+            $car->update(['race_number' => $this->newRaceNumber]);
+            $this->dispatch('notify', type: 'success', message: 'Numéro de course mis à jour avec succès');
+        }
+
+        $this->closeRaceNumberModal();
     }
 
     public function render()
