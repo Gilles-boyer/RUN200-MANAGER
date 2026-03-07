@@ -123,6 +123,64 @@ class TechInspectionForm extends Component
         }
     }
 
+    public function updateNotes()
+    {
+        $this->errorMessage = null;
+        $this->successMessage = null;
+
+        if (! $this->registration->techInspection) {
+            $this->errorMessage = 'Aucun contrôle technique à modifier.';
+            return;
+        }
+
+        $notesValue = trim($this->notes) !== '' ? trim($this->notes) : null;
+
+        // Mettre à jour TechInspection
+        $this->registration->techInspection->update([
+            'notes' => $notesValue,
+        ]);
+
+        // Synchroniser avec CarTechInspectionHistory
+        \App\Models\CarTechInspectionHistory::where('tech_inspection_id', $this->registration->techInspection->id)
+            ->update(['notes' => $notesValue]);
+
+        // Synchroniser avec EngagementForm
+        if ($this->registration->engagementForm) {
+            $this->registration->engagementForm->update([
+                'tech_notes' => $notesValue,
+            ]);
+        }
+
+        // Synchroniser avec le passage TECH_CHECK si existant
+        $techPassage = $this->registration->passages()
+            ->whereHas('checkpoint', fn ($q) => $q->where('code', 'TECH_CHECK'))
+            ->first();
+
+        if ($techPassage) {
+            $meta = $techPassage->meta ?? [];
+            if ($notesValue) {
+                $meta['staff_note'] = $notesValue;
+            } else {
+                unset($meta['staff_note']);
+            }
+            $techPassage->update(['meta' => $meta]);
+        }
+
+        activity()
+            ->performedOn($this->registration)
+            ->causedBy(Auth::user())
+            ->withProperties([
+                'notes' => $notesValue,
+                'action' => 'tech_notes_updated',
+            ])
+            ->log('tech.notes_updated');
+
+        $this->successMessage = 'Notes mises à jour avec succès.';
+
+        $this->registration->refresh();
+        $this->registration->load(['techInspection.inspector']);
+    }
+
     public function canInspect(): bool
     {
         return in_array($this->registration->status, ['ACCEPTED', 'ADMIN_CHECKED'])

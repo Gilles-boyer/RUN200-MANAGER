@@ -145,6 +145,24 @@
                 </div>
             @endif
 
+            {{-- Edit Notes Section --}}
+            <div class="mt-6 pt-4 border-t border-carbon-700/50">
+                <p class="text-sm font-medium text-gray-300 mb-3">Modifier les notes</p>
+                <x-racing.form.textarea
+                    wire:model="notes"
+                    rows="3"
+                    placeholder="Notes du contrôle technique..."
+                />
+                <div class="mt-3 flex justify-end">
+                    <x-racing.button wire:click="updateNotes" variant="primary" size="sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Enregistrer les notes
+                    </x-racing.button>
+                </div>
+            </div>
+
             <div class="mt-4 text-sm text-gray-400">
                 Contrôlé par <span class="font-medium text-white">{{ $registration->techInspection->inspector->name }}</span>
                 le <span class="text-checkered-yellow-500">{{ $registration->techInspection->inspected_at->format('d/m/Y à H:i') }}</span>

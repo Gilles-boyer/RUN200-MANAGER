@@ -61,7 +61,16 @@ class TechInspectionHistory extends Component
     {
         $query = CarTechInspectionHistory::query()
             ->where('car_id', $this->car->id)
-            ->with(['inspector', 'registration.race']);
+            ->with([
+                'inspector',
+                'registration.race',
+                'registration.engagementForm',
+                'registration.passages' => function ($q) {
+                    $q->whereHas('checkpoint', fn ($c) => $c->where('code', 'TECH_CHECK'));
+                },
+                'registration.passages.checkpoint',
+                'techInspection',
+            ]);
 
         // Filtres
         if ($this->statusFilter) {

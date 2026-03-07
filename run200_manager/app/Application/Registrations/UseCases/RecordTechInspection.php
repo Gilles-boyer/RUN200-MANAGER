@@ -133,6 +133,16 @@ class RecordTechInspection
         }
 
         DB::transaction(function () use ($registration, $actor) {
+            $techInspectionId = $registration->techInspection->id;
+
+            // Supprimer l'historique correspondant
+            CarTechInspectionHistory::where('tech_inspection_id', $techInspectionId)->delete();
+
+            // Supprimer le passage TECH_CHECK associé
+            $registration->passages()
+                ->whereHas('checkpoint', fn ($q) => $q->where('name', 'TECH_CHECK'))
+                ->delete();
+
             // Supprimer l'inspection existante
             $registration->techInspection->delete();
 

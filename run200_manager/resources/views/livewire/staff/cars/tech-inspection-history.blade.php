@@ -135,9 +135,17 @@
                                     {{ $inspection->inspector->name }}
                                 </td>
                                 <td class="px-6 py-4 text-sm">
-                                    @if($inspection->notes)
+                                    @php
+                                        $techInsp = $inspection->techInspectionWithFallback;
+                                        $techPassage = $inspection->registration?->passages?->first(fn($p) => $p->checkpoint?->code === 'TECH_CHECK');
+                                        $displayNotes = $inspection->notes
+                                            ?? $techInsp?->notes
+                                            ?? $inspection->registration?->engagementForm?->tech_notes
+                                            ?? ($techPassage?->meta['staff_note'] ?? null);
+                                    @endphp
+                                    @if($displayNotes)
                                         <div class="max-w-xs">
-                                            <p class="text-gray-300 whitespace-pre-wrap">{{ $inspection->notes }}</p>
+                                            <p class="text-gray-300 whitespace-pre-wrap">{{ $displayNotes }}</p>
                                         </div>
                                     @else
                                         <span class="text-gray-500 italic">Aucune note</span>
@@ -194,10 +202,18 @@
                             </div>
 
                             {{-- Notes --}}
-                            @if($inspection->notes)
+                            @php
+                                $mobileTechInsp = $inspection->techInspectionWithFallback;
+                                $mobileTechPassage = $inspection->registration?->passages?->first(fn($p) => $p->checkpoint?->code === 'TECH_CHECK');
+                                $mobileDisplayNotes = $inspection->notes
+                                    ?? $mobileTechInsp?->notes
+                                    ?? $inspection->registration?->engagementForm?->tech_notes
+                                    ?? ($mobileTechPassage?->meta['staff_note'] ?? null);
+                            @endphp
+                            @if($mobileDisplayNotes)
                                 <div class="pt-2 border-t border-carbon-700">
                                     <span class="text-xs text-carbon-400 uppercase tracking-wider block mb-2">Notes</span>
-                                    <p class="text-sm text-gray-300 whitespace-pre-wrap">{{ $inspection->notes }}</p>
+                                    <p class="text-sm text-gray-300 whitespace-pre-wrap">{{ $mobileDisplayNotes }}</p>
                                 </div>
                             @endif
                         </div>

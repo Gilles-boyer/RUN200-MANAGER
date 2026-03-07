@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Livewire\Staff\Registrations;
 
+use App\Application\Registrations\UseCases\UpdateEngagementFormValidation;
+use App\Models\CarTechInspectionHistory;
 use App\Models\Checkpoint;
 use App\Models\CheckpointPassage;
 use App\Models\RaceRegistration;
+use App\Models\TechInspection;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
@@ -57,7 +60,8 @@ class CheckpointsManager extends Component
     #[Computed]
     public function passagesByCheckpoint()
     {
-        return $this->registration->passages
+        // Force load scanner relation to avoid lazy loading
+        return $this->registration->passages->load('scanner', 'checkpoint')
             ->keyBy('checkpoint_id');
     }
 
@@ -157,6 +161,28 @@ class CheckpointsManager extends Component
                     'meta' => $meta,
                 ]);
 
+                // Si c'est un passage TECH_CHECK, synchroniser les notes avec TechInspection et CarTechInspectionHistory
+                $passage->load('checkpoint');
+                if ($passage->checkpoint && $passage->checkpoint->code === 'TECH_CHECK' && $this->registration->techInspection) {
+                    $notesValue = trim($this->staffNote) !== '' ? trim($this->staffNote) : null;
+
+                    // Mettre à jour TechInspection
+                    $this->registration->techInspection->update([
+                        'notes' => $notesValue,
+                    ]);
+
+                    // Mettre à jour CarTechInspectionHistory
+                    CarTechInspectionHistory::where('tech_inspection_id', $this->registration->techInspection->id)
+                        ->update(['notes' => $notesValue]);
+
+                    // Mettre à jour EngagementForm
+                    if ($this->registration->engagementForm) {
+                        $this->registration->engagementForm->update([
+                            'tech_notes' => $notesValue,
+                        ]);
+                    }
+                }
+
                 activity()
                     ->performedOn($this->registration)
                     ->causedBy(auth()->user())
@@ -211,6 +237,42 @@ class CheckpointsManager extends Component
                         'action' => 'manual_add',
                     ])
                     ->log('checkpoint.passage_added_manually');
+
+                // Si c'est un passage TECH_CHECK, créer l'inspection technique et l'historique
+                $checkpoint = Checkpoint::find($this->selectedCheckpointId);
+                if ($checkpoint && $checkpoint->code === 'TECH_CHECK') {
+                    // Créer l'entrée TechInspection si elle n'existe pas
+                    if (! $this->registration->techInspection) {
+                        $techInspection = TechInspection::create([
+                            'race_registration_id' => $this->registration->id,
+                            'status' => 'OK',
+                            'notes' => trim($this->staffNote) !== '' ? trim($this->staffNote) : null,
+                            'inspected_by' => auth()->id(),
+                            'inspected_at' => $scannedAt,
+                        ]);
+
+                        // Créer l'entrée dans l'historique pour la voiture
+                        CarTechInspectionHistory::create([
+                            'car_id' => $this->registration->car_id,
+                            'race_registration_id' => $this->registration->id,
+                            'tech_inspection_id' => $techInspection->id,
+                            'status' => 'OK',
+                            'notes' => trim($this->staffNote) !== '' ? trim($this->staffNote) : null,
+                            'inspected_by' => auth()->id(),
+                            'inspected_at' => $scannedAt,
+                        ]);
+
+                        // Mettre à jour la fiche d'engagement
+                        $engagementValidation = new UpdateEngagementFormValidation;
+                        $engagementValidation->recordTechValidation($this->registration, auth()->user(), 'OK', trim($this->staffNote) !== '' ? trim($this->staffNote) : null);
+
+                        // Mettre à jour le statut de l'inscription
+                        $this->registration->update(['status' => 'TECH_CHECKED_OK']);
+
+                        // Dispatch event for email notification
+                        \App\Events\TechInspectionCompleted::dispatch($techInspection);
+                    }
+                }
 
                 session()->flash('success', 'Passage ajouté avec succès.');
             }
@@ -269,6 +331,22 @@ class CheckpointsManager extends Component
                     'action' => 'manual_delete',
                 ])
                 ->log('checkpoint.passage_deleted');
+
+            // Si c'est un passage TECH_CHECK, supprimer aussi TechInspection et CarTechInspectionHistory
+            if ($checkpointName === 'TECH_CHECK' && $this->registration->techInspection) {
+                $techInspectionId = $this->registration->techInspection->id;
+
+                // Supprimer l'historique correspondant
+                CarTechInspectionHistory::where('tech_inspection_id', $techInspectionId)->delete();
+
+                // Supprimer le TechInspection
+                $this->registration->techInspection->delete();
+
+                // Remettre le statut approprié
+                $hasAdminCheck = $this->registration->hasPassedCheckpoint('ADMIN_CHECK');
+                $newStatus = $hasAdminCheck ? 'ADMIN_CHECKED' : 'ACCEPTED';
+                $this->registration->update(['status' => $newStatus]);
+            }
 
             $this->passageToDelete->delete();
 
