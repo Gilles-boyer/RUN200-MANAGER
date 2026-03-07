@@ -140,7 +140,7 @@ class RecordTechInspection
 
             // Supprimer le passage TECH_CHECK associé
             $registration->passages()
-                ->whereHas('checkpoint', fn ($q) => $q->where('name', 'TECH_CHECK'))
+                ->whereHas('checkpoint', fn ($q) => $q->where('code', 'TECH_CHECK'))
                 ->delete();
 
             // Supprimer l'inspection existante

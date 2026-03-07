@@ -333,7 +333,8 @@ class CheckpointsManager extends Component
                 ->log('checkpoint.passage_deleted');
 
             // Si c'est un passage TECH_CHECK, supprimer aussi TechInspection et CarTechInspectionHistory
-            if ($checkpointName === 'TECH_CHECK' && $this->registration->techInspection) {
+            $checkpointCode = $this->passageToDelete->checkpoint->code;
+            if ($checkpointCode === 'TECH_CHECK' && $this->registration->techInspection) {
                 $techInspectionId = $this->registration->techInspection->id;
 
                 // Supprimer l'historique correspondant
