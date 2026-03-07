@@ -23,6 +23,11 @@ class Index extends Component
 
     public string $search = '';
 
+    // Tri
+    public string $sortBy = 'pilot_name';
+
+    public string $sortDirection = 'asc';
+
     // Modal validation
     public bool $showValidationModal = false;
 
@@ -55,6 +60,8 @@ class Index extends Component
         'raceId' => ['except' => null, 'as' => 'raceId'],
         'statusFilter' => ['except' => ''],
         'search' => ['except' => ''],
+        'sortBy' => ['except' => 'pilot_name'],
+        'sortDirection' => ['except' => 'asc'],
     ];
 
     #[Computed]
@@ -88,6 +95,17 @@ class Index extends Component
 
     public function updatingStatusFilter()
     {
+        $this->resetPage();
+    }
+
+    public function sort(string $column): void
+    {
+        if ($this->sortBy === $column) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortBy = $column;
+            $this->sortDirection = 'asc';
+        }
         $this->resetPage();
     }
 
@@ -278,19 +296,51 @@ class Index extends Component
         }
 
         if ($this->search) {
-            $query->whereHas('pilot', function ($q) {
-                $q->where('first_name', 'like', '%'.$this->search.'%')
-                    ->orWhere('last_name', 'like', '%'.$this->search.'%')
-                    ->orWhere('license_number', 'like', '%'.$this->search.'%');
+            $searchTerm = $this->search;
+            $query->where(function ($q) use ($searchTerm) {
+                // Recherche par pilote
+                $q->whereHas('pilot', function ($pq) use ($searchTerm) {
+                    $pq->where('first_name', 'like', '%'.$searchTerm.'%')
+                        ->orWhere('last_name', 'like', '%'.$searchTerm.'%')
+                        ->orWhere('license_number', 'like', '%'.$searchTerm.'%');
+                })
+                // Recherche par numéro de voiture
+                ->orWhereHas('car', function ($cq) use ($searchTerm) {
+                    $cq->where('race_number', 'like', '%'.$searchTerm.'%');
+                });
             });
         }
 
-        $registrations = $query
-            ->join('pilots', 'race_registrations.pilot_id', '=', 'pilots.id')
-            ->orderBy('pilots.last_name', 'asc')
-            ->orderBy('pilots.first_name', 'asc')
-            ->select('race_registrations.*')
-            ->paginate(15);
+        // Jointures pour le tri
+        $query->join('pilots', 'race_registrations.pilot_id', '=', 'pilots.id')
+              ->join('cars', 'race_registrations.car_id', '=', 'cars.id')
+              ->join('races', 'race_registrations.race_id', '=', 'races.id')
+              ->select('race_registrations.*');
+
+        // Appliquer le tri
+        switch ($this->sortBy) {
+            case 'pilot_name':
+                $query->orderBy('pilots.last_name', $this->sortDirection)
+                      ->orderBy('pilots.first_name', $this->sortDirection);
+                break;
+            case 'race_number':
+                $query->orderBy('cars.race_number', $this->sortDirection);
+                break;
+            case 'race_date':
+                $query->orderBy('races.race_date', $this->sortDirection);
+                break;
+            case 'status':
+                $query->orderBy('race_registrations.status', $this->sortDirection);
+                break;
+            case 'created_at':
+                $query->orderBy('race_registrations.created_at', $this->sortDirection);
+                break;
+            default:
+                $query->orderBy('pilots.last_name', 'asc')
+                      ->orderBy('pilots.first_name', 'asc');
+        }
+
+        $registrations = $query->paginate(15);
 
         $races = Race::with('season')
             ->orderBy('race_date', 'desc')

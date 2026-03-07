@@ -60,7 +60,7 @@
             <x-racing.form.input
                 wire:model.live.debounce.300ms="search"
                 label="Recherche"
-                placeholder="Nom, prénom, licence..."
+                placeholder="Nom, prénom, licence, n° voiture..."
                 icon='<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>'
             />
         </div>
@@ -73,10 +73,78 @@
             <table class="table-racing w-full">
                 <thead>
                     <tr class="border-b border-carbon-700">
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">Pilote</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">Course</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">Voiture</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">Statut</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">
+                            <button wire:click="sort('pilot_name')" class="flex items-center gap-1 hover:text-white transition-colors">
+                                Pilote
+                                @if($sortBy === 'pilot_name')
+                                    <svg class="w-4 h-4 text-racing-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                        @if($sortDirection === 'asc')
+                                            <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                                        @else
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                        @endif
+                                    </svg>
+                                @else
+                                    <svg class="w-4 h-4 text-carbon-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                    </svg>
+                                @endif
+                            </button>
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">
+                            <button wire:click="sort('race_date')" class="flex items-center gap-1 hover:text-white transition-colors">
+                                Course
+                                @if($sortBy === 'race_date')
+                                    <svg class="w-4 h-4 text-racing-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                        @if($sortDirection === 'asc')
+                                            <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                                        @else
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                        @endif
+                                    </svg>
+                                @else
+                                    <svg class="w-4 h-4 text-carbon-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                    </svg>
+                                @endif
+                            </button>
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">
+                            <button wire:click="sort('race_number')" class="flex items-center gap-1 hover:text-white transition-colors">
+                                Voiture
+                                @if($sortBy === 'race_number')
+                                    <svg class="w-4 h-4 text-racing-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                        @if($sortDirection === 'asc')
+                                            <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                                        @else
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                        @endif
+                                    </svg>
+                                @else
+                                    <svg class="w-4 h-4 text-carbon-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                    </svg>
+                                @endif
+                            </button>
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">
+                            <button wire:click="sort('status')" class="flex items-center gap-1 hover:text-white transition-colors">
+                                Statut
+                                @if($sortBy === 'status')
+                                    <svg class="w-4 h-4 text-racing-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                        @if($sortDirection === 'asc')
+                                            <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                                        @else
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                        @endif
+                                    </svg>
+                                @else
+                                    <svg class="w-4 h-4 text-carbon-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                    </svg>
+                                @endif
+                            </button>
+                        </th>
                         <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">Paiement</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">Étapes</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">Paddock</th>
