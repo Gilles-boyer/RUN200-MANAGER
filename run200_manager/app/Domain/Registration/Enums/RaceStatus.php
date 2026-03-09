@@ -10,6 +10,8 @@ enum RaceStatus: string
     case RUNNING = 'RUNNING';
     case RESULTS_READY = 'RESULTS_READY';
     case PUBLISHED = 'PUBLISHED';
+    case COMPLETED = 'COMPLETED';
+    case CANCELLED = 'CANCELLED';
     case ARCHIVED = 'ARCHIVED';
 
     /**
@@ -32,6 +34,8 @@ enum RaceStatus: string
             self::RUNNING => 'En cours',
             self::RESULTS_READY => 'Résultats prêts',
             self::PUBLISHED => 'Résultats publiés',
+            self::COMPLETED => 'Terminée',
+            self::CANCELLED => 'Annulée',
             self::ARCHIVED => 'Archivée',
         };
     }

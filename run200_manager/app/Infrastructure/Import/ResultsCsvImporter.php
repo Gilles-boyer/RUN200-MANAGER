@@ -278,7 +278,7 @@ final class ResultsCsvImporter
     {
         $registrations = RaceRegistration::with(['pilot', 'car.category'])
             ->where('race_id', $race->id)
-            ->whereIn('status', ['CONFIRMED', 'CHECKED_IN', 'TECH_OK'])
+            ->whereIn('status', RaceRegistration::engagedStatuses())
             ->get();
 
         $bibs = [];
