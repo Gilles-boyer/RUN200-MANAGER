@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Cache;
 
+use App\Domain\Registration\Enums\RaceStatus;
 use App\Models\CarCategory;
 use App\Models\Season;
 use App\Models\SeasonCategoryStanding;
@@ -69,7 +70,7 @@ class StandingsCacheService
         return Cache::remember($key, self::CACHE_TTL_SECONDS, function () use ($season) {
             return [
                 'total_races' => $season->races()->count(),
-                'published_races' => $season->races()->where('status', 'PUBLISHED')->count(),
+                'published_races' => $season->races()->whereIn('status', RaceStatus::publishedResultsStatuses())->count(),
                 'participants' => SeasonStanding::forSeason($season->id)->count(),
             ];
         });

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Pilot;
 
 use App\Domain\Championship\Rules\StandingsRules;
+use App\Domain\Registration\Enums\RaceStatus;
 use App\Models\Season;
 use App\Models\SeasonCategoryStanding;
 use App\Models\SeasonStanding;
@@ -78,7 +79,7 @@ class ChampionshipStanding extends Component
         }
 
         $totalRaces = $this->season->races()->count();
-        $publishedRaces = $this->season->races()->where('status', 'PUBLISHED')->count();
+        $publishedRaces = $this->season->races()->whereIn('status', RaceStatus::publishedResultsStatuses())->count();
 
         return [
             'total_races' => $totalRaces,

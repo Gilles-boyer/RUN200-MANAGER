@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Registration\Enums\RaceStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -46,11 +47,11 @@ class Season extends Model
     }
 
     /**
-     * Get published races for this season
+     * Get published races for this season (PUBLISHED or COMPLETED status)
      */
     public function publishedRaces(): HasMany
     {
-        return $this->races()->where('status', 'PUBLISHED');
+        return $this->races()->whereIn('status', RaceStatus::publishedResultsStatuses());
     }
 
     /**

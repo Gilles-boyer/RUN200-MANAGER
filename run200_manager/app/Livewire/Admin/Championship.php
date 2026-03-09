@@ -6,6 +6,7 @@ namespace App\Livewire\Admin;
 
 use App\Application\Championship\UseCases\RebuildSeasonStandings;
 use App\Domain\Championship\Rules\StandingsRules;
+use App\Domain\Registration\Enums\RaceStatus;
 use App\Models\CarCategory;
 use App\Models\Season;
 use App\Models\SeasonCategoryStanding;
@@ -73,7 +74,7 @@ class Championship extends Component
     public function seasonStats(): array
     {
         $totalRaces = $this->season->races()->count();
-        $publishedRaces = $this->season->races()->where('status', 'PUBLISHED')->count();
+        $publishedRaces = $this->season->races()->whereIn('status', RaceStatus::publishedResultsStatuses())->count();
         $totalPilots = SeasonStanding::forSeason($this->season->id)->count();
         $rankedPilots = SeasonStanding::forSeason($this->season->id)->whereNotNull('rank')->count();
         $pilotsWithBonus = SeasonStanding::forSeason($this->season->id)->where('bonus_points', '>', 0)->count();

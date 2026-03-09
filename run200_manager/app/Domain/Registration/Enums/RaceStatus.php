@@ -63,4 +63,23 @@ enum RaceStatus: string
     {
         return $this === self::RESULTS_READY;
     }
+
+    /**
+     * Check if results are published and should count for championship standings
+     */
+    public function hasPublishedResults(): bool
+    {
+        return in_array($this, [self::PUBLISHED, self::COMPLETED]);
+    }
+
+    /**
+     * Get statuses that have published results (for queries)
+     */
+    public static function publishedResultsStatuses(): array
+    {
+        return [
+            self::PUBLISHED->value,
+            self::COMPLETED->value,
+        ];
+    }
 }

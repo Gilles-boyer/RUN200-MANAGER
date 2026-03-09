@@ -6,7 +6,7 @@ namespace App\Application\Championship\UseCases;
 
 use App\Domain\Championship\Rules\PointsTable;
 use App\Domain\Championship\Rules\StandingsRules;
-use App\Models\Race;
+use App\Domain\Registration\Enums\RaceStatus;
 use App\Models\Season;
 use App\Models\SeasonCategoryStanding;
 use App\Models\SeasonPointsRule;
@@ -28,9 +28,9 @@ final class RebuildSeasonStandings
     public function execute(Season $season, ?\App\Models\User $triggeredBy = null): array
     {
         return DB::transaction(function () use ($season, $triggeredBy) {
-            // Get published races for this season
+            // Get published races for this season (PUBLISHED or COMPLETED status)
             $publishedRaces = $season->races()
-                ->where('status', 'PUBLISHED')
+                ->whereIn('status', RaceStatus::publishedResultsStatuses())
                 ->with('results.registration.pilot', 'results.registration.car.category')
                 ->get();
 
