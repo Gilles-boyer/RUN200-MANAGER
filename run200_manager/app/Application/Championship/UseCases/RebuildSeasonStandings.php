@@ -110,6 +110,7 @@ final class RebuildSeasonStandings
 
     /**
      * Collect all pilot results from published races.
+     * For each race, only the best result (lowest position) per pilot is counted.
      * Returns: [pilot_id => ['races_count' => X, 'base_points' => Y]]
      */
     private function collectPilotResults(Collection $races, Collection $pointsRules): array
@@ -117,6 +118,9 @@ final class RebuildSeasonStandings
         $pilotResults = [];
 
         foreach ($races as $race) {
+            // Group results by pilot to find best result per pilot per race
+            $resultsByPilot = [];
+
             foreach ($race->results as $result) {
                 $registration = $result->registration;
                 if (! $registration || ! $registration->pilot_id) {
@@ -124,6 +128,15 @@ final class RebuildSeasonStandings
                 }
 
                 $pilotId = $registration->pilot_id;
+
+                // Keep only the best position (lowest number) for this pilot in this race
+                if (! isset($resultsByPilot[$pilotId]) || $result->position < $resultsByPilot[$pilotId]->position) {
+                    $resultsByPilot[$pilotId] = $result;
+                }
+            }
+
+            // Now process only the best result per pilot
+            foreach ($resultsByPilot as $pilotId => $result) {
                 $points = $this->getPointsForPosition($result->position, $pointsRules);
 
                 if (! isset($pilotResults[$pilotId])) {
@@ -143,6 +156,7 @@ final class RebuildSeasonStandings
 
     /**
      * Collect results by category.
+     * For each race and category, only the best result per pilot is counted.
      * Returns: [category_id => [pilot_id => ['races_count' => X, 'base_points' => Y]]]
      */
     private function collectCategoryResults(Collection $races, Collection $pointsRules): array
@@ -161,17 +175,27 @@ final class RebuildSeasonStandings
             })->filter(fn ($group, $key) => $key !== null);
 
             foreach ($resultsByCategory as $categoryId => $results) {
-                // Recompute positions within category
-                $categoryPosition = 1;
-                $sortedResults = $results->sortBy('position');
-
-                foreach ($sortedResults as $result) {
+                // First, find the best result per pilot in this category for this race
+                $bestResultsByPilot = [];
+                foreach ($results as $result) {
                     $registration = $result->registration;
                     if (! $registration || ! $registration->pilot_id) {
                         continue;
                     }
 
                     $pilotId = $registration->pilot_id;
+
+                    // Keep only the best position (lowest number) for this pilot
+                    if (! isset($bestResultsByPilot[$pilotId]) || $result->position < $bestResultsByPilot[$pilotId]->position) {
+                        $bestResultsByPilot[$pilotId] = $result;
+                    }
+                }
+
+                // Sort by position and assign category positions
+                $sortedResults = collect($bestResultsByPilot)->sortBy('position');
+                $categoryPosition = 1;
+
+                foreach ($sortedResults as $pilotId => $result) {
                     $points = $this->getPointsForPosition($categoryPosition, $pointsRules);
 
                     if (! isset($categoryResults[$categoryId])) {
