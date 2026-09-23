@@ -126,3 +126,18 @@ describe('Pilot Results Routes', function () {
     });
 
 });
+
+describe('Public Results Routes', function () {
+    it('allows guests to view published results', function () {
+        $race = Race::factory()->published()->create();
+        RaceResult::factory()->forRace($race)->create();
+
+        $this->get(route('public.results.race', $race))->assertOk();
+    });
+
+    it('hides unpublished results from guests', function () {
+        $race = Race::factory()->resultsReady()->create();
+
+        $this->get(route('public.results.race', $race))->assertNotFound();
+    });
+});

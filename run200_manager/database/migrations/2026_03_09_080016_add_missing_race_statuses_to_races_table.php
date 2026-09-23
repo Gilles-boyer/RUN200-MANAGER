@@ -11,8 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Modify the ENUM to include all statuses
-        DB::statement("ALTER TABLE races MODIFY COLUMN status ENUM('DRAFT', 'OPEN', 'CLOSED', 'RUNNING', 'RESULTS_READY', 'PUBLISHED', 'COMPLETED', 'CANCELLED', 'ARCHIVED') DEFAULT 'DRAFT'");
+        // SQLite stores this enum as text and needs no schema change.
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE races MODIFY COLUMN status ENUM('DRAFT', 'OPEN', 'CLOSED', 'RUNNING', 'RESULTS_READY', 'PUBLISHED', 'COMPLETED', 'CANCELLED', 'ARCHIVED') DEFAULT 'DRAFT'");
+        }
     }
 
     /**
@@ -22,10 +24,10 @@ return new class extends Migration
     public function down(): void
     {
         // First, convert any new statuses back to valid ones
-        DB::statement("UPDATE races SET status = 'PUBLISHED' WHERE status IN ('COMPLETED', 'ARCHIVED')");
-        DB::statement("UPDATE races SET status = 'CLOSED' WHERE status = 'CANCELLED'");
-
-        // Then modify the ENUM back
-        DB::statement("ALTER TABLE races MODIFY COLUMN status ENUM('DRAFT', 'OPEN', 'CLOSED', 'RUNNING', 'RESULTS_READY', 'PUBLISHED') DEFAULT 'DRAFT'");
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("UPDATE races SET status = 'PUBLISHED' WHERE status IN ('COMPLETED', 'ARCHIVED')");
+            DB::statement("UPDATE races SET status = 'CLOSED' WHERE status = 'CANCELLED'");
+            DB::statement("ALTER TABLE races MODIFY COLUMN status ENUM('DRAFT', 'OPEN', 'CLOSED', 'RUNNING', 'RESULTS_READY', 'PUBLISHED') DEFAULT 'DRAFT'");
+        }
     }
 };

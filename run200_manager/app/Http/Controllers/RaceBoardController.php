@@ -4,8 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\RaceDocument;
 use App\Models\RaceDocumentVersion;
-use Illuminate\Http\Request;
+use App\Models\RaceRegistration;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -76,12 +77,15 @@ class RaceBoardController extends Controller
             abort(404, 'Document non disponible');
         }
 
-        // Vérifier la visibilité (pour l'instant, on ne gère que PUBLIC)
-        // Si REGISTERED_ONLY, il faudrait vérifier l'auth
         if ($document->visibility === 'REGISTERED_ONLY') {
-            // Pour l'instant, on bloque si pas auth
-            // À améliorer en P1 avec vérification inscription
-            if (! auth()->check()) {
+            $user = auth()->user();
+            $pilotId = $user?->pilot?->id;
+
+            if (! $user || (! $user->isAdmin() && ! $user->isStaff() && (! $pilotId || ! RaceRegistration::query()
+                ->where('race_id', $document->race_id)
+                ->where('pilot_id', $pilotId)
+                ->whereIn('status', RaceRegistration::engagedStatuses())
+                ->exists()))) {
                 abort(403, 'Accès réservé aux pilotes inscrits');
             }
         }
@@ -101,7 +105,7 @@ class RaceBoardController extends Controller
             abort(500, 'Erreur lors de la lecture du fichier');
         }
 
-        $filename = $version->original_filename;
+        $filename = basename(str_replace('\\', '/', $version->original_filename));
 
         return response()->stream(
             function () use ($stream) {
@@ -113,7 +117,7 @@ class RaceBoardController extends Controller
             200,
             [
                 'Content-Type' => $version->mime_type,
-                'Content-Disposition' => "{$disposition}; filename=\"{$filename}\"",
+                'Content-Disposition' => HeaderUtils::makeDisposition($disposition, $filename, 'document.pdf'),
                 'Content-Length' => $version->file_size,
                 'Cache-Control' => 'private, max-age=3600',
                 'X-Content-Type-Options' => 'nosniff',

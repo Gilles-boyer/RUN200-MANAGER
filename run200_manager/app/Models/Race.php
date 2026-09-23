@@ -50,7 +50,7 @@ class Race extends Model
 
         static::updating(function (Race $race) {
             // Regénérer le slug si le nom ou la date change
-            if ($race->isDirty(['name', 'race_date']) && !$race->isDirty('slug')) {
+            if ($race->isDirty(['name', 'race_date']) && ! $race->isDirty('slug')) {
                 $race->slug = static::generateUniqueSlug($race->name, $race->race_date, $race->id);
             }
         });
@@ -62,7 +62,7 @@ class Race extends Model
     public static function generateUniqueSlug(string $name, $date, ?int $excludeId = null): string
     {
         $dateString = $date instanceof \DateTimeInterface ? $date->format('Y-m-d') : $date;
-        $baseSlug = Str::slug($name . '-' . $dateString);
+        $baseSlug = Str::slug($name.'-'.$dateString);
         $slug = $baseSlug;
         $counter = 1;
 
@@ -72,7 +72,7 @@ class Race extends Model
         }
 
         while ($query->exists()) {
-            $slug = $baseSlug . '-' . $counter;
+            $slug = $baseSlug.'-'.$counter;
             $counter++;
 
             $query = static::where('slug', $slug);
@@ -113,6 +113,7 @@ class Race extends Model
         return $this->belongsTo(Season::class);
     }
 
+    /** @return HasMany<RaceRegistration, $this> */
     public function registrations(): HasMany
     {
         return $this->hasMany(RaceRegistration::class);

@@ -8,6 +8,7 @@ use App\Events\ResultsPublished;
 use App\Models\Race;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Spatie\Activitylog\Facades\Activity;
 
 /**
@@ -38,23 +39,23 @@ final class PublishRaceResults
             );
         }
 
-        return DB::transaction(function () use ($race, $publisher) {
+        $publishedRace = DB::transaction(function () use ($race, $publisher) {
             // Update race status to PUBLISHED
             $race->update(['status' => 'PUBLISHED']);
 
             // Log the activity
             $this->logActivity($race, $publisher);
 
-            // Dispatch championship recalculation job if race is part of a championship
-            $this->dispatchChampionshipRecalculation($race);
-
-            // Dispatch event to notify pilots about published results
-            ResultsPublished::dispatch($race);
-
             $race->refresh();
 
             return $race;
         });
+
+        // Queue side effects only after the status is committed. Notification failures
+        // must not turn a successful publication into an apparent failure.
+        $this->dispatchPostPublicationActions($publishedRace);
+
+        return $publishedRace;
     }
 
     /**
@@ -70,7 +71,7 @@ final class PublishRaceResults
             );
         }
 
-        return DB::transaction(function () use ($race, $user) {
+        $unpublishedRace = DB::transaction(function () use ($race, $user) {
             $race->update(['status' => 'RESULTS_READY']);
 
             Activity::causedBy($user)
@@ -81,13 +82,42 @@ final class PublishRaceResults
                 ])
                 ->log('results_unpublished');
 
-            // Re-trigger championship recalculation to remove points
-            $this->dispatchChampionshipRecalculation($race);
-
             $race->refresh();
 
             return $race;
         });
+
+        try {
+            $this->dispatchChampionshipRecalculation($unpublishedRace);
+        } catch (\Throwable $e) {
+            Log::error('Unable to queue championship recalculation after unpublishing results', [
+                'race_id' => $unpublishedRace->id,
+                'exception' => $e,
+            ]);
+        }
+
+        return $unpublishedRace;
+    }
+
+    private function dispatchPostPublicationActions(Race $race): void
+    {
+        try {
+            $this->dispatchChampionshipRecalculation($race);
+        } catch (\Throwable $e) {
+            Log::error('Unable to queue championship recalculation after publishing results', [
+                'race_id' => $race->id,
+                'exception' => $e,
+            ]);
+        }
+
+        try {
+            ResultsPublished::dispatch($race);
+        } catch (\Throwable $e) {
+            Log::error('Unable to queue results publication notifications', [
+                'race_id' => $race->id,
+                'exception' => $e,
+            ]);
+        }
     }
 
     /**

@@ -56,6 +56,7 @@ class CarTechInspectionHistory extends Model
      * Le contrôle technique principal associé (si applicable).
      * Si tech_inspection_id est null, on cherche via race_registration_id.
      */
+    /** @return BelongsTo<TechInspection, $this> */
     public function techInspection(): BelongsTo
     {
         return $this->belongsTo(TechInspection::class);

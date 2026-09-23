@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -72,7 +73,8 @@ class Car extends Model
     /**
      * Get the latest tech inspection for this car.
      */
-    public function latestTechInspection()
+    /** @return HasOne<CarTechInspectionHistory, $this> */
+    public function latestTechInspection(): HasOne
     {
         return $this->hasOne(CarTechInspectionHistory::class)
             ->ofMany('inspected_at', 'max');

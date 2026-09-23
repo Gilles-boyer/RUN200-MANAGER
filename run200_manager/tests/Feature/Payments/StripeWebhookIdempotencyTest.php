@@ -10,6 +10,7 @@ use App\Models\Pilot;
 use App\Models\Race;
 use App\Models\RaceRegistration;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -73,7 +74,7 @@ class StripeWebhookIdempotencyTest extends TestCase
 
         // Verify event ID was stored
         $this->assertEquals($eventId, $result->stripe_event_id);
-        $this->assertEquals('paid', $result->status);
+        $this->assertEquals('paid', $result->status->value);
     }
 
     public function test_cannot_process_same_event_twice_via_handler(): void
@@ -90,7 +91,7 @@ class StripeWebhookIdempotencyTest extends TestCase
         // First processing
         $result1 = $this->webhookHandler->handleCheckoutCompleted($sessionData, $eventId);
         $this->assertEquals($eventId, $result1->stripe_event_id);
-        $this->assertEquals('paid', $result1->status);
+        $this->assertEquals('paid', $result1->status->value);
 
         // Verify event ID exists in database
         $this->assertTrue(Payment::where('stripe_event_id', $eventId)->exists());
@@ -106,7 +107,7 @@ class StripeWebhookIdempotencyTest extends TestCase
         $this->payment->update(['stripe_event_id' => 'evt_unique_123']);
 
         // Try to create another payment with same event ID - should fail due to unique constraint
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(QueryException::class);
 
         Payment::create([
             'race_registration_id' => $this->registration->id,

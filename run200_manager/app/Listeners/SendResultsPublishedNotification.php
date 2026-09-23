@@ -21,12 +21,23 @@ class SendResultsPublishedNotification implements ShouldQueue
 
         // Get all accepted registrations with their results
         $registrations = $race->registrations()
-            ->where('status', 'ACCEPTED')
+            ->whereIn('status', RaceRegistration::engagedStatuses())
             ->with(['pilot.user'])
             ->get();
 
-        // Get all results indexed by pilot_id
-        $results = $race->results()->get()->keyBy('pilot_id');
+        // The pilot belongs to the registration, not to the result itself.
+        $raceResults = $race->results()
+            ->with('registration')
+            ->orderBy('position')
+            ->get();
+        $results = [];
+        foreach ($raceResults as $result) {
+            /** @var RaceResult $result */
+            $pilotId = $result->registration?->pilot_id;
+            if ($pilotId !== null && ! isset($results[$pilotId])) {
+                $results[$pilotId] = $result;
+            }
+        }
 
         $sentCount = 0;
 
@@ -35,7 +46,7 @@ class SendResultsPublishedNotification implements ShouldQueue
             if ($registration->pilot && $registration->pilot->user && $registration->pilot->user->email) {
                 // Get the pilot's result if exists
                 /** @var RaceResult|null $pilotResult */
-                $pilotResult = $results->get($registration->pilot_id);
+                $pilotResult = $results[$registration->pilot_id] ?? null;
 
                 SendBulkEmailJob::dispatch(
                     $registration->pilot->user,

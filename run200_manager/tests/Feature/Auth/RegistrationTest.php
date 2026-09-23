@@ -24,6 +24,7 @@ test('new users can register as pilot', function () {
         'license_number' => '123456',
         'password' => 'password',
         'password_confirmation' => 'password',
+        'terms' => '1',
     ]);
 
     $response->assertSessionHasNoErrors()

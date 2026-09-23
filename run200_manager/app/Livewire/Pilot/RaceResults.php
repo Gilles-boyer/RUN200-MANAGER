@@ -100,6 +100,14 @@ class RaceResults extends Component
 
     public function render()
     {
-        return view('livewire.pilot.race-results');
+        $view = view('livewire.pilot.race-results');
+
+        if (request()->routeIs('public.results.race')) {
+            return $view->layout('components.layouts.racing-public', [
+                'title' => 'Résultats : '.$this->race->name.' - RUN200',
+            ]);
+        }
+
+        return $view;
     }
 }

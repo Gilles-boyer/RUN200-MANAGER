@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Staff;
 
 use App\Models\Race;
-use Illuminate\Http\Response;
+use App\Models\RaceRegistration;
 use Illuminate\Routing\Controller;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -25,7 +25,7 @@ class ExportEngagedCsvController extends Controller
     public function __invoke(Race $race): StreamedResponse
     {
         $registrations = $race->registrations()
-            ->engaged()
+            ->whereIn('status', RaceRegistration::engagedStatuses())
             ->with(['pilot', 'car.category'])
             ->get()
             ->sortBy('car.race_number');
@@ -40,7 +40,7 @@ class ExportEngagedCsvController extends Controller
             $handle = fopen('php://output', 'w');
 
             // UTF-8 BOM for Excel compatibility
-            fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
 
             // CSV Header
             fputcsv($handle, [
@@ -60,7 +60,7 @@ class ExportEngagedCsvController extends Controller
                     $car?->race_number ?? '',
                     $pilot?->last_name ?? '',
                     $pilot?->first_name ?? '',
-                    $car ? trim($car->make . ' ' . $car->model) : '',
+                    $car ? trim($car->make.' '.$car->model) : '',
                     $car?->category?->name ?? '',
                 ], ';');
             }
@@ -68,7 +68,7 @@ class ExportEngagedCsvController extends Controller
             fclose($handle);
         }, $filename, [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 }

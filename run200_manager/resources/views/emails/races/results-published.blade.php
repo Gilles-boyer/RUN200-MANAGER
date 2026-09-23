@@ -3,7 +3,7 @@
 @section('content')
 <h2>🏆 Résultats publiés !</h2>
 
-<p>Bonjour <strong>{{ $pilotResult?->pilot?->user?->name ?? 'Pilote' }}</strong>,</p>
+<p>Bonjour <strong>{{ $pilotResult?->registration?->pilot?->user?->name ?? 'Pilote' }}</strong>,</p>
 
 <p>Les résultats officiels de la course <strong>{{ $race->name }}</strong> sont maintenant disponibles !</p>
 
@@ -16,19 +16,15 @@
             {{ $pilotResult->position }}{{ $pilotResult->position <= 3 ? ($pilotResult->position == 1 ? ' 🥇' : ($pilotResult->position == 2 ? ' 🥈' : ' 🥉')) : 'e' }}
         </span>
     </div>
-    @if($pilotResult->category_position)
+    @if($pilotResult->category_name)
     <div class="detail-line">
-        <span class="detail-label">Position catégorie</span>
-        <span class="detail-value">{{ $pilotResult->category_position }}e en {{ $pilotResult->car?->category?->name ?? 'N/A' }}</span>
+        <span class="detail-label">Catégorie</span>
+        <span class="detail-value">{{ $pilotResult->category_name }}</span>
     </div>
     @endif
     <div class="detail-line">
-        <span class="detail-label">Meilleur tour</span>
-        <span class="detail-value">{{ $pilotResult->best_lap_time ?? 'N/A' }}</span>
-    </div>
-    <div class="detail-line">
-        <span class="detail-label">Points gagnés</span>
-        <span class="detail-value"><strong>{{ $pilotResult->points ?? 0 }} pts</strong></span>
+        <span class="detail-label">Temps</span>
+        <span class="detail-value">{{ $pilotResult->formatted_time ?? 'N/A' }}</span>
     </div>
 </div>
 
@@ -75,8 +71,8 @@
 </div>
 
 <p style="margin-top: 20px; text-align: center;">
-    <a href="{{ route('public.results.season', $race->season) }}" style="color: #E53935; text-decoration: none;">
-        📈 Voir le classement de la saison {{ $race->season?->year }}
+    <a href="{{ route('public.standings') }}" style="color: #E53935; text-decoration: none;">
+        📈 Voir le classement du championnat en cours
     </a>
 </p>
 

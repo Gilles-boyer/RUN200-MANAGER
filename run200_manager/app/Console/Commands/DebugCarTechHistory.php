@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Models\Car;
 use App\Models\CarTechInspectionHistory;
 use App\Models\RaceRegistration;
-use App\Models\TechInspection;
 use Illuminate\Console\Command;
 
 class DebugCarTechHistory extends Command
@@ -21,30 +20,31 @@ class DebugCarTechHistory extends Command
         $car = Car::find($carId);
         if (! $car) {
             $this->error("Car #{$carId} not found");
+
             return Command::FAILURE;
         }
 
         $this->info("=== Car #{$carId} ===");
-        $this->info("Brand: {$car->brand}, Model: {$car->model}");
+        $this->info("Brand: {$car->make}, Model: {$car->model}");
 
         // Check CarTechInspectionHistory
         $this->newLine();
-        $this->info("=== CarTechInspectionHistory ===");
+        $this->info('=== CarTechInspectionHistory ===');
         $histories = CarTechInspectionHistory::where('car_id', $carId)->get();
         $this->info("Count: {$histories->count()}");
 
         foreach ($histories as $h) {
             $this->line("  History #{$h->id}:");
-            $this->line("    - tech_inspection_id: " . ($h->tech_inspection_id ?? 'NULL'));
-            $this->line("    - race_registration_id: " . ($h->race_registration_id ?? 'NULL'));
+            $this->line('    - tech_inspection_id: '.($h->tech_inspection_id ?? 'NULL'));
+            $this->line('    - race_registration_id: '.($h->race_registration_id ?? 'NULL'));
             $this->line("    - status: {$h->status}");
-            $this->line("    - notes: " . ($h->notes ?? 'NULL'));
-            $this->line("    - inspected_at: " . ($h->inspected_at ?? 'NULL'));
+            $this->line('    - notes: '.($h->notes ?? 'NULL'));
+            $this->line('    - inspected_at: '.($h->inspected_at ?? 'NULL'));
         }
 
         // Check registrations for this car
         $this->newLine();
-        $this->info("=== RaceRegistrations for this car ===");
+        $this->info('=== RaceRegistrations for this car ===');
         $registrations = RaceRegistration::where('car_id', $carId)
             ->with(['techInspection', 'race', 'passages.checkpoint'])
             ->get();
@@ -57,13 +57,13 @@ class DebugCarTechHistory extends Command
             if ($reg->techInspection) {
                 $this->line("    - TechInspection #{$reg->techInspection->id}:");
                 $this->line("      - status: {$reg->techInspection->status}");
-                $this->line("      - notes: " . ($reg->techInspection->notes ?? 'NULL'));
+                $this->line('      - notes: '.($reg->techInspection->notes ?? 'NULL'));
 
                 // Check if history exists for this tech inspection
                 $historyExists = CarTechInspectionHistory::where('tech_inspection_id', $reg->techInspection->id)->exists();
-                $this->line("      - Has CarTechInspectionHistory: " . ($historyExists ? 'YES' : 'NO'));
+                $this->line('      - Has CarTechInspectionHistory: '.($historyExists ? 'YES' : 'NO'));
             } else {
-                $this->line("    - TechInspection: NONE");
+                $this->line('    - TechInspection: NONE');
             }
 
             // Check TECH_CHECK passage
@@ -72,9 +72,9 @@ class DebugCarTechHistory extends Command
             });
             if ($techPassage) {
                 $this->line("    - TECH_CHECK passage: YES (at {$techPassage->scanned_at})");
-                $this->line("      - staff_note: " . ($techPassage->meta['staff_note'] ?? 'NULL'));
+                $this->line('      - staff_note: '.($techPassage->meta['staff_note'] ?? 'NULL'));
             } else {
-                $this->line("    - TECH_CHECK passage: NO");
+                $this->line('    - TECH_CHECK passage: NO');
             }
         }
 

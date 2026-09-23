@@ -5,11 +5,11 @@
         <div class="absolute bottom-0 left-0 w-48 h-48 bg-checkered-yellow-500/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
 
         <div class="relative">
-            <h1 class="text-3xl font-bold text-white flex items-center justify-center gap-3">
+            <h1 class="text-2xl sm:text-3xl font-bold text-white flex items-center justify-center gap-3">
                 <span>🏁</span> Résultats : {{ $race->name }}
             </h1>
             <p class="mt-2 text-lg text-gray-400">
-                {{ $race->race_date->format('d F Y') }}
+                {{ $race->race_date->translatedFormat('d F Y') }}
                 @if($race->season)
                     — <span class="text-checkered-yellow-500">{{ $race->season->name }}</span>
                 @endif
@@ -22,40 +22,40 @@
         <x-racing.card class="mb-6 overflow-hidden">
             <div class="bg-gradient-to-r from-checkered-yellow-500/10 via-carbon-800 to-checkered-yellow-500/10 -mx-6 -mt-6 px-6 pt-6 pb-8">
                 <h2 class="text-xl font-bold text-center text-white mb-8">🏆 Podium</h2>
-                <div class="flex justify-center items-end gap-4 sm:gap-8">
+                <div class="grid grid-cols-3 items-end gap-2 sm:gap-4 lg:gap-8">
                     {{-- 2nd place --}}
-                    <div class="text-center">
-                        <div class="w-20 h-20 sm:w-24 sm:h-24 mx-auto bg-gradient-to-br from-gray-300 to-gray-500 rounded-2xl flex items-center justify-center mb-3 shadow-lg shadow-gray-400/30">
+                    <div class="min-w-0 text-center">
+                        <div class="w-12 h-12 sm:w-24 sm:h-24 mx-auto bg-gradient-to-br from-gray-300 to-gray-500 rounded-2xl flex items-center justify-center mb-3 shadow-lg shadow-gray-400/30">
                             <span class="text-2xl sm:text-3xl font-black text-gray-900">2</span>
                         </div>
-                        <div class="bg-carbon-700/50 backdrop-blur rounded-xl px-3 sm:px-4 py-6 sm:py-8 min-w-[100px] sm:min-w-[120px] border border-carbon-600/50">
-                            <p class="font-bold text-white text-sm truncate">{{ $this->podium[1]->pilot_name }}</p>
+                        <div class="bg-carbon-700/50 backdrop-blur rounded-xl px-1 sm:px-4 py-4 sm:py-8 min-w-0 border border-carbon-600/50">
+                            <p class="font-bold text-white text-xs sm:text-sm truncate">{{ $this->podium[1]->pilot_name }}</p>
                             <p class="text-xs text-racing-red-500 mt-1 font-bold">#{{ $this->podium[1]->bib }}</p>
-                            <p class="text-sm font-mono text-checkered-yellow-500 mt-2 font-semibold">{{ $this->podium[1]->formatted_time }}</p>
+                            <p class="text-xs sm:text-sm font-mono text-checkered-yellow-500 mt-2 font-semibold">{{ $this->podium[1]->formatted_time }}</p>
                         </div>
                     </div>
 
                     {{-- 1st place --}}
-                    <div class="text-center -mt-4">
-                        <div class="w-24 h-24 sm:w-32 sm:h-32 mx-auto bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-2xl flex items-center justify-center mb-3 shadow-xl shadow-yellow-500/40 ring-4 ring-yellow-400/30">
+                    <div class="min-w-0 text-center -mt-4">
+                        <div class="w-16 h-16 sm:w-32 sm:h-32 mx-auto bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-2xl flex items-center justify-center mb-3 shadow-xl shadow-yellow-500/40 ring-4 ring-yellow-400/30">
                             <span class="text-3xl sm:text-4xl font-black text-yellow-900">1</span>
                         </div>
-                        <div class="bg-gradient-to-b from-yellow-500/20 to-carbon-700/50 backdrop-blur rounded-xl px-4 sm:px-6 py-8 sm:py-12 min-w-[120px] sm:min-w-[160px] border border-yellow-500/30">
-                            <p class="font-bold text-white text-base sm:text-lg">{{ $this->podium[0]->pilot_name }}</p>
+                        <div class="bg-gradient-to-b from-yellow-500/20 to-carbon-700/50 backdrop-blur rounded-xl px-1 sm:px-6 py-5 sm:py-12 min-w-0 border border-yellow-500/30">
+                            <p class="font-bold text-white text-xs sm:text-lg truncate">{{ $this->podium[0]->pilot_name }}</p>
                             <p class="text-sm text-racing-red-500 mt-1 font-bold">#{{ $this->podium[0]->bib }}</p>
-                            <p class="text-lg sm:text-xl font-mono font-black text-checkered-yellow-500 mt-3">{{ $this->podium[0]->formatted_time }}</p>
+                            <p class="text-xs sm:text-xl font-mono font-black text-checkered-yellow-500 mt-3">{{ $this->podium[0]->formatted_time }}</p>
                         </div>
                     </div>
 
                     {{-- 3rd place --}}
-                    <div class="text-center">
-                        <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-amber-500 to-amber-700 rounded-2xl flex items-center justify-center mb-3 shadow-lg shadow-amber-500/30">
+                    <div class="min-w-0 text-center">
+                        <div class="w-10 h-10 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-amber-500 to-amber-700 rounded-2xl flex items-center justify-center mb-3 shadow-lg shadow-amber-500/30">
                             <span class="text-xl sm:text-2xl font-black text-white">3</span>
                         </div>
-                        <div class="bg-carbon-700/50 backdrop-blur rounded-xl px-3 sm:px-4 py-4 sm:py-6 min-w-[90px] sm:min-w-[100px] border border-carbon-600/50">
+                        <div class="bg-carbon-700/50 backdrop-blur rounded-xl px-1 sm:px-4 py-4 sm:py-6 min-w-0 border border-carbon-600/50">
                             <p class="font-bold text-white text-xs sm:text-sm truncate">{{ $this->podium[2]->pilot_name }}</p>
                             <p class="text-xs text-racing-red-500 mt-1 font-bold">#{{ $this->podium[2]->bib }}</p>
-                            <p class="text-sm font-mono text-checkered-yellow-500 mt-2 font-semibold">{{ $this->podium[2]->formatted_time }}</p>
+                            <p class="text-xs sm:text-sm font-mono text-checkered-yellow-500 mt-2 font-semibold">{{ $this->podium[2]->formatted_time }}</p>
                         </div>
                     </div>
                 </div>
