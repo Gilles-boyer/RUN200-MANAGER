@@ -20,6 +20,7 @@ class RaceRegistration extends Model
         'race_id',
         'pilot_id',
         'car_id',
+        'car_category_id',
         'status',
         'reason',
         'paddock',
@@ -31,6 +32,15 @@ class RaceRegistration extends Model
     protected $casts = [
         'validated_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $registration): void {
+            if ($registration->car_category_id === null && $registration->car_id !== null) {
+                $registration->car_category_id = Car::find($registration->car_id)?->car_category_id;
+            }
+        });
+    }
 
     // =========================================================================
     // Status Constants
@@ -52,6 +62,11 @@ class RaceRegistration extends Model
             RegistrationStatus::RESULTS_IMPORTED->value,
             RegistrationStatus::PUBLISHED->value,
         ];
+    }
+
+    public static function notificationRecipientStatuses(): array
+    {
+        return [RegistrationStatus::PENDING_VALIDATION->value, ...self::engagedStatuses()];
     }
 
     // =========================================================================
@@ -112,6 +127,11 @@ class RaceRegistration extends Model
     public function car(): BelongsTo
     {
         return $this->belongsTo(Car::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(CarCategory::class, 'car_category_id');
     }
 
     public function validator(): BelongsTo

@@ -117,11 +117,9 @@
                                             @endif
                                         "
                                     >
-                                        <option value="DRAFT" @selected($race->status === 'DRAFT')>Brouillon</option>
-                                        <option value="OPEN" @selected($race->status === 'OPEN')>Ouvert</option>
-                                        <option value="CLOSED" @selected($race->status === 'CLOSED')>Fermé</option>
-                                        <option value="COMPLETED" @selected($race->status === 'COMPLETED')>Terminé</option>
-                                        <option value="CANCELLED" @selected($race->status === 'CANCELLED')>Annulé</option>
+                                        @foreach(\App\Domain\Registration\Enums\RaceStatus::cases() as $raceStatus)
+                                            <option value="{{ $raceStatus->value }}" @selected($race->status === $raceStatus->value)>{{ $raceStatus->label() }}</option>
+                                        @endforeach
                                     </select>
                                 </td>
                                 <td class="px-4 py-4">
@@ -195,11 +193,9 @@
                                     @endif
                                 "
                             >
-                                <option value="DRAFT" @selected($race->status === 'DRAFT')>Brouillon</option>
-                                <option value="OPEN" @selected($race->status === 'OPEN')>Ouvert</option>
-                                <option value="CLOSED" @selected($race->status === 'CLOSED')>Fermé</option>
-                                <option value="COMPLETED" @selected($race->status === 'COMPLETED')>Terminé</option>
-                                <option value="CANCELLED" @selected($race->status === 'CANCELLED')>Annulé</option>
+                                @foreach(\App\Domain\Registration\Enums\RaceStatus::cases() as $raceStatus)
+                                    <option value="{{ $raceStatus->value }}" @selected($race->status === $raceStatus->value)>{{ $raceStatus->label() }}</option>
+                                @endforeach
                             </select>
                         </div>
 

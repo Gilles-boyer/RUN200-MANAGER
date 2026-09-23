@@ -5,6 +5,8 @@ namespace App\Livewire\Admin\Races;
 use App\Mail\CustomRaceNotification;
 use App\Models\Race;
 use App\Models\RaceNotification;
+use App\Models\RaceRegistration;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -44,7 +46,7 @@ class Notifications extends Component
 
         $scheduledAt = null;
         if ($this->scheduledDate && $this->scheduledTime) {
-            $scheduledAt = \Carbon\Carbon::parse($this->scheduledDate.' '.$this->scheduledTime);
+            $scheduledAt = Carbon::parse($this->scheduledDate.' '.$this->scheduledTime);
         }
 
         $notification = RaceNotification::create([
@@ -72,7 +74,7 @@ class Notifications extends Component
     {
         $registrations = $this->race->registrations()
             ->with(['pilot.user'])
-            ->whereIn('status', ['ACCEPTED', 'PENDING_VALIDATION', 'TECH_CHECKED_OK', 'RACE_READY'])
+            ->whereIn('status', RaceRegistration::notificationRecipientStatuses())
             ->get();
 
         // Collecter toutes les adresses email valides
@@ -148,7 +150,7 @@ class Notifications extends Component
             ->paginate(10);
 
         $registrationsCount = $this->race->registrations()
-            ->whereIn('status', ['ACCEPTED', 'PENDING_VALIDATION', 'TECH_CHECKED_OK', 'RACE_READY'])
+            ->whereIn('status', RaceRegistration::notificationRecipientStatuses())
             ->count();
 
         return view('livewire.admin.races.notifications', [

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Races;
 
+use App\Domain\Registration\Enums\RaceStatus;
 use App\Events\RaceCancelled;
 use App\Events\RaceOpened;
 use App\Models\Race;
@@ -48,6 +49,15 @@ class Index extends Component
     {
         $race = Race::findOrFail($raceId);
         $previousStatus = $race->status;
+
+        if (! RaceStatus::tryFrom($status)
+            || ($race->isPublished() && ! in_array($status, RaceStatus::publishedResultsStatuses(), true))
+            || ($status === RaceStatus::COMPLETED->value && ! $race->isPublished())
+            || ($status === RaceStatus::PUBLISHED->value && ! $race->isPublished())) {
+            session()->flash('error', 'Transition de statut impossible. Publiez ou dépubliez les résultats depuis leur page avant de modifier le statut de la course.');
+
+            return;
+        }
 
         $race->update(['status' => $status]);
 

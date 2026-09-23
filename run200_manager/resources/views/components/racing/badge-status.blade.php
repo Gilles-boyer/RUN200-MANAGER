@@ -6,6 +6,15 @@
 ])
 
 @php
+    $registrationStatus = is_string($status) ? \App\Domain\Registration\Enums\RegistrationStatus::tryFrom($status) : null;
+    $registrationBadgeClasses = [
+        'yellow' => 'badge-racing-pending',
+        'green' => 'badge-racing-success',
+        'red' => 'badge-racing-danger',
+        'blue' => 'badge-racing-info',
+        'purple' => 'badge-racing-info',
+        'gray' => 'badge-racing-neutral',
+    ];
     $statusClasses = match($status) {
         'pending' => 'badge-racing-pending',
         'success' => 'badge-racing-success',
@@ -19,6 +28,9 @@
         'REFUSED', 'REJECTED', 'CANCELLED' => 'badge-racing-danger',
         default => 'badge-racing-neutral',
     };
+    if ($registrationStatus) {
+        $statusClasses = $registrationBadgeClasses[$registrationStatus->badgeColor()] ?? 'badge-racing-neutral';
+    }
 
     $sizeClasses = match($size) {
         'sm' => 'text-[0.625rem] px-2 py-0.5',
@@ -52,5 +64,5 @@
     @if($displayIcon)
         <span>{{ $displayIcon }}</span>
     @endif
-    <span>{{ $slot }}</span>
+    <span>{{ $slot->isEmpty() && $registrationStatus ? $registrationStatus->label() : $slot }}</span>
 </span>

@@ -3,18 +3,21 @@
 use App\Application\Registrations\UseCases\SubmitRegistration;
 use App\Models\Car;
 use App\Models\CarCategory;
+use App\Models\Payment;
 use App\Models\Pilot;
 use App\Models\Race;
 use App\Models\RaceRegistration;
 use App\Models\Season;
 use App\Models\User;
+use Database\Seeders\CarCategoriesSeeder;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\RolesAndPermissionsSeeder::class);
-    $this->seed(\Database\Seeders\CarCategoriesSeeder::class);
+    $this->seed(RolesAndPermissionsSeeder::class);
+    $this->seed(CarCategoriesSeeder::class);
 });
 
 test('season can have multiple races', function () {
@@ -178,4 +181,52 @@ test('registration status methods work correctly', function () {
 
     $registration->update(['status' => 'REFUSED']);
     expect($registration->isRefused())->toBeTrue();
+});
+
+test('a refused registration is reactivated on the same row and preserves its paid payment', function () {
+    $pilot = Pilot::factory()->create();
+    $category = CarCategory::first();
+    $car = Car::factory()->for($pilot)->for($category, 'category')->create();
+    $race = Race::factory()->open()->create();
+    $registration = RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create([
+        'status' => 'REFUSED',
+        'reason' => 'Document manquant',
+    ]);
+    $payment = Payment::create([
+        'race_registration_id' => $registration->id,
+        'user_id' => $pilot->user_id,
+        'amount' => 50,
+        'amount_cents' => 5000,
+        'method' => 'manual',
+        'status' => 'paid',
+    ]);
+
+    $reactivated = (new SubmitRegistration)->execute($race, $pilot, $car);
+
+    expect($reactivated->id)->toBe($registration->id)
+        ->and($reactivated->status)->toBe('PENDING_VALIDATION')
+        ->and($reactivated->reason)->toBeNull()
+        ->and($reactivated->car_category_id)->toBe($category->id)
+        ->and($payment->fresh()->status->value)->toBe('paid')
+        ->and(RaceRegistration::where('race_id', $race->id)->where('car_id', $car->id)->count())->toBe(1);
+});
+
+test('a cancelled registration with a refunded payment requires payment again', function () {
+    $pilot = Pilot::factory()->create();
+    $car = Car::factory()->for($pilot)->for(CarCategory::first(), 'category')->create();
+    $race = Race::factory()->open()->create();
+    $registration = RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create(['status' => 'CANCELLED']);
+    Payment::create([
+        'race_registration_id' => $registration->id,
+        'user_id' => $pilot->user_id,
+        'amount' => 50,
+        'amount_cents' => 5000,
+        'method' => 'manual',
+        'status' => 'refunded',
+    ]);
+
+    $reactivated = (new SubmitRegistration)->execute($race, $pilot, $car);
+
+    expect($reactivated->id)->toBe($registration->id)
+        ->and($reactivated->status)->toBe('PENDING_PAYMENT');
 });

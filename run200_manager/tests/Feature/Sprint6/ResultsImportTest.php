@@ -341,8 +341,17 @@ describe('PublishRaceResults Use Case', function () {
         $race = Race::factory()->for($season)->resultsReady()->create();
         $user = User::factory()->create();
 
-        // Add some results
-        RaceResult::factory()->forRace($race)->count(5)->create();
+        // Each championship result must be linked to a registration.
+        $category = CarCategory::factory()->create();
+        for ($position = 1; $position <= 5; $position++) {
+            $pilot = Pilot::factory()->create();
+            $car = Car::factory()->for($pilot)->for($category, 'category')->create();
+            $registration = RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create();
+            RaceResult::factory()->forRace($race)->create([
+                'position' => $position,
+                'race_registration_id' => $registration->id,
+            ]);
+        }
 
         $useCase = new PublishRaceResults;
         $result = $useCase->execute($race, $user);
@@ -358,6 +367,22 @@ describe('PublishRaceResults Use Case', function () {
 
         expect(fn () => $useCase->execute($race, $user))
             ->toThrow(InvalidArgumentException::class, 'pas de résultats');
+    });
+
+    it('blocks publication of unlinked results unless they are explicitly excluded', function () {
+        $race = Race::factory()->resultsReady()->create();
+        $user = User::factory()->create();
+        $result = RaceResult::factory()->forRace($race)->create();
+        $useCase = new PublishRaceResults;
+
+        expect(fn () => $useCase->execute($race, $user))
+            ->toThrow(InvalidArgumentException::class, 'sans inscription liée');
+
+        $result->update([
+            'excluded_from_championship' => true,
+            'exclusion_reason' => 'Résultat invité hors championnat',
+        ]);
+        expect($useCase->execute($race->fresh(), $user)->status)->toBe('PUBLISHED');
     });
 
     it('throws exception for invalid race status', function () {

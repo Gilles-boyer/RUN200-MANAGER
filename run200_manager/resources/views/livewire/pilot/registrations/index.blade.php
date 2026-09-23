@@ -40,14 +40,9 @@
                     label="Filtrer par statut"
                 >
                     <option value="">Tous les statuts</option>
-                    <option value="PENDING_PAYMENT">💳 En attente de paiement</option>
-                    <option value="PENDING_VALIDATION">⏳ En attente de validation</option>
-                    <option value="ACCEPTED">✅ Acceptée</option>
-                    <option value="REFUSED">❌ Refusée</option>
-                    <option value="CANCELLED">🚫 Annulée</option>
-                    <option value="TECH_CHECKED_OK">🔧 Contrôle technique OK</option>
-                    <option value="TECH_CHECKED_FAIL">⚠️ Contrôle technique refusé</option>
-                    <option value="RACE_READY">🏁 Prêt à courir</option>
+                    @foreach(\App\Domain\Registration\Enums\RegistrationStatus::cases() as $registrationStatus)
+                        <option value="{{ $registrationStatus->value }}">{{ $registrationStatus->label() }}</option>
+                    @endforeach
                 </x-racing.form.select>
             </div>
         </x-racing.card>
@@ -82,6 +77,16 @@
                                     </h3>
                                     <x-racing.badge-status :status="$registration->status" />
                                 </div>
+                                <p class="text-sm text-carbon-400 mb-3">
+                                    @if(in_array($registration->status, ['REFUSED', 'CANCELLED'], true) && !$registration->race?->isOpen())
+                                        Contactez le staff si vous souhaitez réactiver cette inscription ; les inscriptions à cette course sont fermées.
+                                    @else
+                                        {{ \App\Domain\Registration\Enums\RegistrationStatus::tryFrom($registration->status)?->nextStep() }}
+                                    @endif
+                                </p>
+                                @if($registration->reason && in_array($registration->status, ['REFUSED', 'CANCELLED', 'TECH_CHECKED_FAIL'], true))
+                                    <p class="text-sm text-status-danger mb-3">Motif : {{ $registration->reason }}</p>
+                                @endif
 
                                 {{-- Détails --}}
                                 <div class="flex flex-wrap items-center gap-4 text-sm text-carbon-500 dark:text-carbon-400">
@@ -235,13 +240,18 @@
 
                             {{-- Actions --}}
                             <div class="flex flex-wrap lg:flex-col gap-2 lg:items-end">
+                                @if(in_array($registration->status, ['REFUSED', 'CANCELLED'], true) && $registration->race?->isOpen())
+                                    <x-racing.button href="{{ route('pilot.registrations.create', $registration->race) }}" size="sm" variant="secondary">
+                                        Réactiver l’inscription
+                                    </x-racing.button>
+                                @endif
                                 @if($registration->status === 'PENDING_PAYMENT' && !$paidPayment)
                                     <x-racing.button href="{{ route('pilot.registrations.payment', $registration) }}" size="sm" variant="warning">
                                         💳 Payer maintenant
                                     </x-racing.button>
                                 @endif
 
-                                @if(in_array($registration->status, ['ACCEPTED', 'TECH_CHECKED_OK', 'RACE_READY']))
+                                @if($registration->canAccessEcard())
                                     <x-racing.button href="{{ route('pilot.registrations.paddock.select', $registration) }}" size="sm" variant="secondary">
                                         📍 {{ $registration->paddockSpot ? 'Changer paddock' : 'Choisir paddock' }}
                                     </x-racing.button>
