@@ -56,7 +56,7 @@ class EngagedListPdfService
         ];
 
         return Pdf::loadView('pdf.engaged-list', $data)
-            ->setPaper('a4', 'portrait');
+            ->setPaper('a4', 'landscape');
     }
 
     /**
