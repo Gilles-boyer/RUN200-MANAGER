@@ -41,6 +41,7 @@ class RaceCalendar extends Component
         return $this->season->races()
             ->whereIn('status', ['PUBLISHED', 'RESULTS_READY', 'COMPLETED'])
             ->where('race_date', '<', now()->startOfDay())
+            ->withCount('results')
             ->orderByDesc('race_date')
             ->get();
     }
