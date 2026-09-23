@@ -9,6 +9,7 @@
     'season' => null,
     'isRegistered' => false,
     'canRegister' => true,
+    'regulationAvailable' => true,
     'registerUrl' => null,
     'showRegisterButton' => true,
     'registerRoute' => null,
@@ -139,6 +140,10 @@
             @if($isRegistered)
                 <span class="w-full text-center py-2 text-status-success font-medium">
                     ✓ Vous êtes inscrit à cette course
+                </span>
+            @elseif($isOpen && ! $regulationAvailable)
+                <span class="w-full text-center py-2 text-status-warning font-medium">
+                    Règlement à publier avant inscription
                 </span>
             @elseif($canRegister && $isOpen && $daysUntil >= 0)
                 <x-racing.button

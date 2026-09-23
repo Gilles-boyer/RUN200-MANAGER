@@ -160,6 +160,30 @@ class Race extends Model
     }
 
     /**
+     * Règlement que le pilote peut consulter avant de s'inscrire.
+     */
+    public function registrationRegulation(): ?RaceDocument
+    {
+        $documents = $this->documents()
+            ->published()
+            ->public()
+            ->whereHas('category', fn ($query) => $query->where('slug', 'reglement-particulier'))
+            ->whereHas('versions')
+            ->with('latestVersion')
+            ->orderByDesc('published_at')
+            ->get();
+
+        foreach ($documents as $document) {
+            $version = $document->latestVersion;
+            if ($version instanceof RaceDocumentVersion && $version->fileExists()) {
+                return $document;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * URL publique du tableau d'affichage
      */
     public function getBoardUrlAttribute(): string

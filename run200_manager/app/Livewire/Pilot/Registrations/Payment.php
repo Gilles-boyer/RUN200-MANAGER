@@ -3,7 +3,10 @@
 namespace App\Livewire\Pilot\Registrations;
 
 use App\Application\Payments\UseCases\CreateStripeCheckout;
+use App\Models\Pilot;
 use App\Models\RaceRegistration;
+use App\Models\User;
+use App\Support\UserFacingError;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -21,9 +24,9 @@ class Payment extends Component
     public function mount(RaceRegistration $registration): void
     {
         // Check authorization
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
-        /** @var \App\Models\Pilot|null $pilot */
+        /** @var Pilot|null $pilot */
         $pilot = $user->pilot;
 
         if (! $pilot || $registration->pilot_id !== $pilot->id) {
@@ -32,7 +35,11 @@ class Payment extends Component
 
         // An already paid registration may still be awaiting organiser validation.
         if (! in_array($registration->status, ['PENDING_PAYMENT', 'ACCEPTED'], true) && ! $registration->isPaid()) {
-            abort(403, 'Cette inscription ne permet pas de paiement.');
+            session()->flash('warning', 'Cette inscription ne peut plus être payée dans son état actuel. Consultez son statut dans Mes inscriptions.');
+
+            $this->redirect(route('pilot.registrations.index'));
+
+            return;
         }
 
         $this->registration = $registration->load(['race', 'car', 'pilot', 'payments']);
@@ -96,8 +103,11 @@ class Payment extends Component
 
             // Redirect to Stripe Checkout
             $this->redirect($result['checkout_url']);
-        } catch (\Exception $e) {
+        } catch (\InvalidArgumentException $e) {
             $this->errorMessage = $e->getMessage();
+            $this->isProcessing = false;
+        } catch (\Exception $e) {
+            $this->errorMessage = UserFacingError::message($e, 'Impossible de lancer le paiement.');
             $this->isProcessing = false;
         }
     }
@@ -107,7 +117,7 @@ class Payment extends Component
         $pending = $this->pendingPayment;
 
         if (! $pending || ! isset($pending->metadata['session_url'])) {
-            $this->errorMessage = 'Impossible de reprendre le paiement.';
+            $this->errorMessage = 'La session de paiement n’est plus disponible. Consultez Mes inscriptions pour vérifier le statut avant de réessayer.';
 
             return;
         }

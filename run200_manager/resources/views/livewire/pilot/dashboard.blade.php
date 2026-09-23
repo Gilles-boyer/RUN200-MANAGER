@@ -150,9 +150,13 @@
                                     </span>
                                 </div>
                             </div>
-                            <x-racing.button href="{{ route('pilot.registrations.create', $race) }}" size="sm" class="ml-4 flex-shrink-0">
-                                S'inscrire
-                            </x-racing.button>
+                            @if($race->regulation_available)
+                                <x-racing.button href="{{ route('pilot.registrations.create', $race) }}" size="sm" class="ml-4 flex-shrink-0">
+                                    S'inscrire
+                                </x-racing.button>
+                            @else
+                                <span class="ml-4 text-xs text-status-warning text-right">Règlement à publier</span>
+                            @endif
                         </div>
                     @empty
                         <x-racing.empty-state
@@ -184,7 +188,7 @@
                             <div class="min-w-0 flex-1">
                                 <p class="font-medium text-carbon-900 dark:text-white truncate">{{ $registration->race->name ?? 'Course inconnue' }}</p>
                                 <div class="flex items-center gap-3 mt-1 text-sm text-carbon-500 dark:text-carbon-400">
-                                    <span>🚗 {{ $registration->car->brand ?? '' }} {{ $registration->car->model ?? '' }}</span>
+                                    <span>🚗 {{ $registration->car->make ?? '' }} {{ $registration->car->model ?? '' }}</span>
                                     <span>{{ $registration->created_at->format('d/m/Y') }}</span>
                                 </div>
                             </div>
@@ -255,6 +259,10 @@
                 ]"
                 :currentStep="$hasProfile ? ($stats['cars_count'] > 0 ? 3 : 2) : 1"
             />
+
+            <p class="mt-5 text-sm text-carbon-600 dark:text-carbon-300">
+                Ensuite : lisez le règlement de la course, inscrivez votre voiture, réglez les frais, puis suivez la validation et les vérifications administrative et technique dans « Mes inscriptions ».
+            </p>
 
             <div class="mt-8 flex justify-center">
                 @if(!$hasProfile)

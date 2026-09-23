@@ -47,6 +47,13 @@
             {{-- Main Content --}}
             <div class="lg:col-span-3">
                 <x-racing.card>
+                    @if($errorMessage)
+                        <x-racing.alert type="danger" class="mb-6">
+                            {{ $errorMessage }}
+                            <a href="{{ route('pilot.registrations.index') }}" class="font-semibold underline">Voir mes inscriptions</a>
+                        </x-racing.alert>
+                    @endif
+
                     {{-- Payment Content --}}
                     @if($this->hasPaidPayment)
                         {{-- Already Paid --}}
@@ -129,14 +136,6 @@
                             <p class="mt-6 text-4xl font-bold text-racing-red-500">
                                 {{ $this->formattedFee }}
                             </p>
-
-                            @if($errorMessage)
-                                <div class="mt-6">
-                                    <x-racing.alert type="danger">
-                                        {{ $errorMessage }}
-                                    </x-racing.alert>
-                                </div>
-                            @endif
 
                             <div class="mt-8">
                                 <x-racing.button

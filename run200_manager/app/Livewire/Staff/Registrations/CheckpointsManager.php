@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Livewire\Staff\Registrations;
 
 use App\Application\Registrations\UseCases\UpdateEngagementFormValidation;
+use App\Events\TechInspectionCompleted;
 use App\Models\CarTechInspectionHistory;
 use App\Models\Checkpoint;
 use App\Models\CheckpointPassage;
 use App\Models\RaceRegistration;
 use App\Models\TechInspection;
 use App\Models\User;
+use App\Support\UserFacingError;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -139,7 +142,7 @@ class CheckpointsManager extends Component
             'passageTime' => 'required|date_format:H:i',
         ]);
 
-        $scannedAt = \Carbon\Carbon::parse($this->passageDate.' '.$this->passageTime);
+        $scannedAt = Carbon::parse($this->passageDate.' '.$this->passageTime);
 
         try {
             DB::beginTransaction();
@@ -270,7 +273,7 @@ class CheckpointsManager extends Component
                         $this->registration->update(['status' => 'TECH_CHECKED_OK']);
 
                         // Dispatch event for email notification
-                        \App\Events\TechInspectionCompleted::dispatch($techInspection);
+                        TechInspectionCompleted::dispatch($techInspection);
                     }
                 }
 
@@ -294,7 +297,7 @@ class CheckpointsManager extends Component
             $this->closePassageModal();
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Erreur: '.$e->getMessage());
+            session()->flash('error', UserFacingError::message($e, 'Impossible d’enregistrer ce passage.'));
         }
     }
 
@@ -369,7 +372,7 @@ class CheckpointsManager extends Component
             $this->closeDeleteModal();
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Erreur: '.$e->getMessage());
+            session()->flash('error', UserFacingError::message($e, 'Impossible de supprimer ce passage.'));
         }
     }
 

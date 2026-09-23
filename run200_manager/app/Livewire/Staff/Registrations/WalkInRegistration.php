@@ -15,6 +15,7 @@ use App\Models\Pilot;
 use App\Models\Race;
 use App\Models\RaceRegistration;
 use App\Models\User;
+use App\Support\UserFacingError;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Computed;
@@ -374,7 +375,7 @@ class WalkInRegistration extends Component
 
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->errorMessage = 'Erreur lors de la création de l\'inscription : '.$e->getMessage();
+            $this->errorMessage = UserFacingError::message($e, 'Impossible de créer cette inscription. Vérifiez les informations saisies.');
         }
     }
 

@@ -4,6 +4,7 @@ namespace App\Livewire\Pilot\Registrations;
 
 use App\Application\Payments\UseCases\CreateStripeCheckout;
 use App\Models\RaceRegistration;
+use App\Support\UserFacingError;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -91,9 +92,8 @@ class Checkout extends Component
             $this->errorMessage = $e->getMessage();
             $this->isProcessing = false;
         } catch (\Exception $e) {
-            $this->errorMessage = 'Une erreur est survenue lors de la création du paiement. Veuillez réessayer.';
+            $this->errorMessage = UserFacingError::message($e, 'Impossible de créer le paiement.');
             $this->isProcessing = false;
-            report($e);
         }
     }
 

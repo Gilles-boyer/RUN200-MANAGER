@@ -44,6 +44,10 @@ class Index extends Component
         }
 
         $races = $query->orderBy('race_date', 'asc')->paginate(10);
+        $regulationAvailableRaceIds = $races->getCollection()
+            ->filter(fn (Race $race) => $race->isOpen() && $race->registrationRegulation() !== null)
+            ->pluck('id')
+            ->all();
 
         // Get IDs of races where pilot is already registered
         $registeredRaceIds = [];
@@ -57,6 +61,7 @@ class Index extends Component
             'races' => $races,
             'pilot' => $pilot,
             'registeredRaceIds' => $registeredRaceIds,
+            'regulationAvailableRaceIds' => $regulationAvailableRaceIds,
         ])->layout('layouts.pilot');
     }
 }

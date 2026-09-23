@@ -181,6 +181,16 @@
             </div>
         @endif
 
+        @foreach (['warning' => ['bg-amber-50 dark:bg-amber-900/20', 'border-amber-400', 'text-amber-800 dark:text-amber-200', '⚠'], 'info' => ['bg-blue-50 dark:bg-blue-900/20', 'border-blue-400', 'text-blue-800 dark:text-blue-200', 'ℹ']] as $flashType => $style)
+            @if (session($flashType))
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+                    <div class="{{ $style[0] }} border-l-4 {{ $style[1] }} p-4 rounded" role="status">
+                        <p class="text-sm {{ $style[2] }}"><span aria-hidden="true">{{ $style[3] }}</span> {{ session($flashType) }}</p>
+                    </div>
+                </div>
+            @endif
+        @endforeach
+
         <!-- Page Content -->
         <main class="py-6">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

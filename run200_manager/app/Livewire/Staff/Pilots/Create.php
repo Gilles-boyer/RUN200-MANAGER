@@ -6,6 +6,8 @@ namespace App\Livewire\Staff\Pilots;
 
 use App\Models\Pilot;
 use App\Models\User;
+use App\Support\UserFacingError;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -166,7 +168,7 @@ class Create extends Component
             $this->redirect(route('staff.pilots.edit', $pilot), navigate: true);
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Erreur lors de la création: '.$e->getMessage());
+            session()->flash('error', UserFacingError::message($e, 'Impossible de créer ce pilote. Vérifiez les informations saisies.'));
         }
     }
 
@@ -176,7 +178,7 @@ class Create extends Component
             return false;
         }
 
-        return \Carbon\Carbon::parse($this->birth_date)->age < 18;
+        return Carbon::parse($this->birth_date)->age < 18;
     }
 
     public function render()

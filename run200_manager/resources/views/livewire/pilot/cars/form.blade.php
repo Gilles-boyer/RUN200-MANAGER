@@ -55,7 +55,7 @@
                             <span class="hidden sm:inline">Générer</span>
                         </button>
                     </div>
-                    <p class="mt-1.5 text-xs text-carbon-500 dark:text-carbon-400">Numéro attribué à vie, unique (0-999)</p>
+                    <p class="mt-1.5 text-xs text-carbon-500 dark:text-carbon-400">Choisissez un numéro disponible entre 0 et 999, ou utilisez « Générer ». Il est lié à cette voiture ; après une inscription, la voiture ne peut plus être supprimée.</p>
                     @error('race_number') <span class="text-sm text-status-danger mt-1">{{ $message }}</span> @enderror
                 </div>
 

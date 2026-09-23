@@ -154,7 +154,7 @@
                 <span>📸</span> Photo de profil <span class="text-racing-red-500">*</span>
             </h2>
             <p class="text-sm text-carbon-500 dark:text-carbon-400 mb-6">
-                Une photo de profil est obligatoire pour vous inscrire aux courses.
+                Vous pouvez enregistrer votre profil sans photo, mais une photo JPG, PNG ou WebP est nécessaire pour atteindre 100 % et vous inscrire à une course.
             </p>
 
             <div class="flex flex-col sm:flex-row items-start gap-6">
