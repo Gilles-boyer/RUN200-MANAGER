@@ -312,22 +312,21 @@
                             {{-- Montant --}}
                             <div>
                                 <label for="manualAmount" class="block text-sm font-medium text-carbon-300 mb-2">
-                                    Montant
+                                    Montant en euros
                                 </label>
                                 <div class="relative">
-                                    <input type="number"
-                                           wire:model.live="manualAmount"
+                                    <input type="text"
+                                           wire:model="manualAmount"
                                            id="manualAmount"
-                                           min="100"
-                                           step="100"
+                                           inputmode="decimal"
+                                           autocomplete="off"
+                                           placeholder="Ex. 50,00"
                                            class="block w-full rounded-lg border-carbon-600 bg-carbon-900 text-white placeholder-carbon-500 focus:ring-racing-red-500 focus:border-racing-red-500 pr-20">
                                     <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                        <span class="text-carbon-400 text-sm">centimes</span>
+                                        <span class="text-carbon-400 text-sm">€</span>
                                     </div>
                                 </div>
-                                <p class="mt-2 text-sm text-racing-red-500 font-medium">
-                                    = {{ number_format(($manualAmount ?? 0) / 100, 2, ',', ' ') }} €
-                                </p>
+                                <p class="mt-2 text-xs text-carbon-400">Saisissez le montant en euros, par exemple 50 ou 50,50.</p>
                                 @error('manualAmount')
                                     <p class="mt-1 text-sm text-status-danger">{{ $message }}</p>
                                 @enderror

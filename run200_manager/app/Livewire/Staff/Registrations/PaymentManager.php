@@ -9,8 +9,11 @@ use App\Application\Payments\UseCases\RefundStripePayment;
 use App\Domain\Payment\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Models\RaceRegistration;
+use App\Models\User;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -24,7 +27,7 @@ class PaymentManager extends Component
 
     public bool $showRefundModal = false;
 
-    public int $manualAmount = 5000;
+    public string $manualAmount = '50,00';
 
     public string $manualMethod = 'cash';
 
@@ -40,7 +43,7 @@ class PaymentManager extends Component
     }
 
     #[Computed]
-    public function payments(): \Illuminate\Database\Eloquent\Collection
+    public function payments(): Collection
     {
         return $this->registration->payments()->orderByDesc('created_at')->get();
     }
@@ -65,7 +68,7 @@ class PaymentManager extends Component
 
     public function openManualPaymentModal(): void
     {
-        $this->manualAmount = (int) config('stripe.default_registration_fee', 5000);
+        $this->manualAmount = number_format($this->registration->race->entry_fee_cents / 100, 2, ',', '');
         $this->manualMethod = 'cash';
         $this->manualNotes = '';
         $this->showManualPaymentModal = true;
@@ -79,18 +82,29 @@ class PaymentManager extends Component
     public function recordManualPayment(RecordManualPayment $useCase): void
     {
         $this->validate([
-            'manualAmount' => ['required', 'integer', 'min:100'],
+            'manualAmount' => ['required', 'string', 'regex:/^\d{1,6}(?:[.,]\d{1,2})?$/'],
             'manualMethod' => ['required', 'string', 'in:cash,card_onsite,bank_transfer,manual'],
             'manualNotes' => ['nullable', 'string', 'max:1000'],
+        ], [
+            'manualAmount.required' => 'Saisissez un montant en euros.',
+            'manualAmount.regex' => 'Saisissez un montant en euros avec au maximum deux décimales (ex. 50 ou 50,50).',
         ]);
 
-        /** @var \App\Models\User $user */
+        [$euros, $cents] = array_pad(explode('.', str_replace(',', '.', $this->manualAmount), 2), 2, '0');
+        $amountCents = ((int) $euros * 100) + (int) str_pad($cents, 2, '0');
+        if ($amountCents < 100) {
+            throw ValidationException::withMessages([
+                'manualAmount' => 'Le montant doit être d’au moins 1 €.',
+            ]);
+        }
+
+        /** @var User $user */
         $user = auth()->user();
 
         $useCase->execute(
             $this->registration,
             $user,
-            (float) ($this->manualAmount / 100),
+            $amountCents / 100,
             'EUR',
             $this->manualNotes ?: null,
             $this->manualMethod
@@ -129,7 +143,7 @@ class PaymentManager extends Component
             return;
         }
 
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = auth()->user();
 
         $useCase->execute($payment, $user, null, $this->refundReason);
