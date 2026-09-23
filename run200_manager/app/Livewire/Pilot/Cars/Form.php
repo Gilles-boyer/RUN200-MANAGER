@@ -4,6 +4,7 @@ namespace App\Livewire\Pilot\Cars;
 
 use App\Models\Car;
 use App\Models\CarCategory;
+use Illuminate\Database\QueryException;
 use Livewire\Component;
 
 class Form extends Component
@@ -95,7 +96,22 @@ class Form extends Component
             return redirect()->route('pilot.cars.index');
         }
 
-        $this->car->delete();
+        try {
+            $this->car->delete();
+        } catch (\DomainException $e) {
+            $this->addError('delete', $e->getMessage());
+
+            return;
+        } catch (QueryException $e) {
+            if (! $this->car->raceRegistrations()->exists()) {
+                throw $e;
+            }
+
+            $this->addError('delete', Car::DELETION_BLOCKED_MESSAGE);
+
+            return;
+        }
+
         session()->flash('success', 'Voiture supprimée avec succès');
 
         return redirect()->route('pilot.cars.index');

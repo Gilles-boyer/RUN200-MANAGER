@@ -4,6 +4,7 @@ namespace App\Livewire\Pilot\Cars;
 
 use App\Models\Car;
 use App\Models\CarCategory;
+use Illuminate\Database\QueryException;
 use Livewire\Component;
 
 class Index extends Component
@@ -11,6 +12,8 @@ class Index extends Component
     public $search = '';
 
     public $categoryFilter = '';
+
+    public ?string $deleteError = null;
 
     public function mount()
     {
@@ -24,6 +27,7 @@ class Index extends Component
 
     public function deleteCar($carId)
     {
+        $this->deleteError = null;
         $car = Car::findOrFail($carId);
 
         // Vérifier que l'utilisateur est propriétaire
@@ -33,7 +37,22 @@ class Index extends Component
             return;
         }
 
-        $car->delete();
+        try {
+            $car->delete();
+        } catch (\DomainException $e) {
+            $this->deleteError = $e->getMessage();
+
+            return;
+        } catch (QueryException $e) {
+            if (! $car->raceRegistrations()->exists()) {
+                throw $e;
+            }
+
+            $this->deleteError = Car::DELETION_BLOCKED_MESSAGE;
+
+            return;
+        }
+
         session()->flash('success', 'Voiture supprimée avec succès.');
     }
 
@@ -41,7 +60,7 @@ class Index extends Component
     {
         $pilot = auth()->user()->pilot;
 
-        $carsQuery = $pilot->cars()->with('category');
+        $carsQuery = $pilot->cars()->with('category')->withExists(['raceRegistrations as has_registrations']);
 
         if ($this->search) {
             $carsQuery->where(function ($q) {

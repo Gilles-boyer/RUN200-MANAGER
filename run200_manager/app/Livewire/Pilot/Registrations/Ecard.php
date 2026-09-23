@@ -25,12 +25,7 @@ class Ecard extends Component
         }
 
         // Only accepted registrations can have an e-card
-        if (! $this->registration->isAccepted() && ! in_array($this->registration->status, [
-            'ADMIN_CHECKED',
-            'TECH_CHECKED_OK',
-            'ENTRY_SCANNED',
-            'BRACELET_GIVEN',
-        ])) {
+        if (! $this->registration->canAccessEcard()) {
             session()->flash('error', 'Votre inscription doit être acceptée pour obtenir une e-carte');
 
             return $this->redirect(route('pilot.dashboard'));

@@ -18,6 +18,10 @@
         </div>
     </div>
 
+    @if($deleteError)
+        <p role="alert" class="mb-6 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">{{ $deleteError }}</p>
+    @endif
+
     {{-- Filtres --}}
     <x-racing.card class="mb-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -89,16 +93,23 @@
                         <x-racing.button href="{{ route('pilot.cars.edit', $car) }}" variant="outline" size="sm" class="flex-1">
                             ✏️ Modifier
                         </x-racing.button>
-                        <x-racing.button
-                            wire:click="deleteCar({{ $car->id }})"
-                            wire:confirm="Êtes-vous sûr de vouloir supprimer cette voiture ?"
-                            variant="danger"
-                            size="sm"
-                            class="flex-1"
-                        >
-                            🗑️ Supprimer
-                        </x-racing.button>
+                        @unless($car->has_registrations)
+                            <x-racing.button
+                                wire:click="deleteCar({{ $car->id }})"
+                                wire:confirm="Êtes-vous sûr de vouloir supprimer cette voiture ?"
+                                variant="danger"
+                                size="sm"
+                                class="flex-1"
+                            >
+                                🗑️ Supprimer
+                            </x-racing.button>
+                        @endunless
                     </div>
+                    @if($car->has_registrations)
+                        <p class="mt-3 text-sm text-carbon-500 dark:text-carbon-400">
+                            Cette voiture est liée à une course et reste conservée dans votre historique.
+                        </p>
+                    @endif
                 </x-racing.card>
             @endforeach
         </div>

@@ -186,6 +186,17 @@ class RaceRegistration extends Model
         return $this->status === 'ACCEPTED';
     }
 
+    public function canAccessEcard(): bool
+    {
+        return in_array($this->status, [
+            'ACCEPTED',
+            'ADMIN_CHECKED',
+            'TECH_CHECKED_OK',
+            'ENTRY_SCANNED',
+            'BRACELET_GIVEN',
+        ], true);
+    }
+
     public function isRefused(): bool
     {
         return $this->status === 'REFUSED';

@@ -17,6 +17,17 @@ class Car extends Model
 {
     use HasFactory, LogsActivity;
 
+    public const DELETION_BLOCKED_MESSAGE = 'Cette voiture a déjà été inscrite à une course. Elle doit être conservée pour préserver les inscriptions, paiements et résultats.';
+
+    protected static function booted(): void
+    {
+        static::deleting(function (self $car): void {
+            if ($car->raceRegistrations()->exists()) {
+                throw new \DomainException(self::DELETION_BLOCKED_MESSAGE);
+            }
+        });
+    }
+
     /**
      * The attributes that are mass assignable.
      *
@@ -60,6 +71,11 @@ class Car extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(CarCategory::class, 'car_category_id');
+    }
+
+    public function raceRegistrations(): HasMany
+    {
+        return $this->hasMany(RaceRegistration::class);
     }
 
     /**
