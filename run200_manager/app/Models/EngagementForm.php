@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Events\EngagementFormSigned;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -171,15 +173,15 @@ class EngagementForm extends Model
         ?string $deviceInfo = null,
         array $vehicleDetails = []
     ): self {
-        /** @var \App\Models\Pilot $pilot */
+        /** @var Pilot $pilot */
         $pilot = $registration->pilot;
-        /** @var \App\Models\Car $car */
+        /** @var Car $car */
         $car = $registration->car;
-        /** @var \App\Models\Race $race */
+        /** @var Race $race */
         $race = $registration->race;
-        /** @var \App\Models\User|null $user */
+        /** @var User|null $user */
         $user = $pilot->user;
-        /** @var \App\Models\CarCategory|null $category */
+        /** @var CarCategory|null $category */
         $category = $car->category;
 
         $form = self::create([
@@ -215,7 +217,7 @@ class EngagementForm extends Model
         ]);
 
         // Dispatch event for email notification
-        \App\Events\EngagementFormSigned::dispatch($form);
+        DB::afterCommit(fn () => EngagementFormSigned::dispatch($form));
 
         return $form;
     }

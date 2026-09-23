@@ -2,11 +2,21 @@
 
 namespace App\Livewire\Staff\Registrations;
 
+use App\Application\Registrations\UseCases\ScanCheckpoint;
+use App\Application\Registrations\UseCases\UpdateEngagementFormValidation;
+use App\Domain\Registration\Enums\RegistrationStatus;
 use App\Infrastructure\Pdf\EngagementFormPdfService;
+use App\Models\Checkpoint;
+use App\Models\CheckpointPassage;
 use App\Models\EngagementForm;
+use App\Models\Pilot;
 use App\Models\Race;
 use App\Models\RaceRegistration;
+use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -170,11 +180,11 @@ class EngagementSign extends Component
         $this->guardianSignatureData = '';
 
         // Pre-fill pilot details
-        /** @var \App\Models\Pilot $pilot */
+        /** @var Pilot $pilot */
         $pilot = $this->registration->pilot;
         $this->pilotPermitNumber = $pilot->permit_number ?? null;
         $this->pilotPermitDate = $pilot->permit_date?->format('Y-m-d');
-        /** @var \App\Models\User|null $user */
+        /** @var User|null $user */
         $user = $pilot->user;
         $this->pilotEmail = $user->email ?? null;
 
@@ -227,7 +237,7 @@ class EngagementSign extends Component
     /**
      * Submit the engagement form
      */
-    public function submitEngagement(): void
+    public function submitEngagement(ScanCheckpoint $scanCheckpoint): void
     {
         if (! $this->registration) {
             $this->addError('registration', 'Aucune inscription sélectionnée.');
@@ -260,18 +270,50 @@ class EngagementSign extends Component
             $vehicleDetails = [
                 'pilot_email' => $this->pilotEmail ?: null,
                 'pilot_permit_number' => $this->pilotPermitNumber ?: null,
-                'pilot_permit_date' => $this->pilotPermitDate ? \Carbon\Carbon::parse($this->pilotPermitDate) : null,
+                'pilot_permit_date' => $this->pilotPermitDate ? Carbon::parse($this->pilotPermitDate) : null,
             ];
 
-            $engagement = EngagementForm::createFromRegistration(
-                $this->registration,
-                $this->signatureData,
-                auth()->id(),
-                $this->registration->pilot->is_minor ? $this->guardianSignatureData : null,
-                request()->ip(),
-                request()->userAgent(),
-                $vehicleDetails
-            );
+            $engagement = DB::transaction(function () use ($scanCheckpoint, $vehicleDetails) {
+                $registration = RaceRegistration::whereKey($this->registration->id)->lockForUpdate()->firstOrFail();
+                if (! in_array($registration->status, RaceRegistration::engagedStatuses(), true)) {
+                    throw new InvalidArgumentException('Cette inscription doit être acceptée avant la signature.');
+                }
+                if ($registration->engagementForm()->exists()) {
+                    throw new InvalidArgumentException('Une feuille d’engagement existe déjà pour cette inscription.');
+                }
+
+                $form = EngagementForm::createFromRegistration(
+                    $registration,
+                    $this->signatureData,
+                    auth()->id(),
+                    $registration->pilot->is_minor ? $this->guardianSignatureData : null,
+                    request()->ip(),
+                    request()->userAgent(),
+                    $vehicleDetails
+                );
+
+                if ($registration->status === RegistrationStatus::ACCEPTED->value) {
+                    $scanCheckpoint->scanWithRegistration($registration, 'ADMIN_CHECK', auth()->user(), 'engagement_signature');
+                } elseif ($registration->hasPassedCheckpoint('ADMIN_CHECK')) {
+                    (new UpdateEngagementFormValidation)->recordAdminValidation($registration, auth()->user());
+                } else {
+                    // An older registration may have advanced without a recorded admin passage.
+                    $checkpoint = Checkpoint::where('code', 'ADMIN_CHECK')->firstOrFail();
+                    if (! $checkpoint->is_active || ! $checkpoint->userCanScan(auth()->user())) {
+                        throw new InvalidArgumentException('La vérification administrative est indisponible pour ce compte.');
+                    }
+                    CheckpointPassage::create([
+                        'race_registration_id' => $registration->id,
+                        'checkpoint_id' => $checkpoint->id,
+                        'scanned_by' => auth()->id(),
+                        'scanned_at' => now(),
+                        'meta' => ['source' => 'engagement_signature', 'reason' => 'Synchronisation d’une étape déjà franchie'],
+                    ]);
+                    (new UpdateEngagementFormValidation)->recordAdminValidation($registration, auth()->user());
+                }
+
+                return $form;
+            });
 
             Log::info('Engagement form signed', [
                 'engagement_id' => $engagement->id,
@@ -285,8 +327,11 @@ class EngagementSign extends Component
             $this->signatureData = '';
             $this->guardianSignatureData = '';
             $this->resetPilotFields();
+            unset($this->pendingRegistrations, $this->signedEngagements, $this->stats);
 
-            session()->flash('success', 'Feuille d\'engagement signée avec succès !');
+            session()->flash('success', 'Feuille d’engagement signée et vérification administrative enregistrée.');
+        } catch (InvalidArgumentException $e) {
+            $this->addError('registration', $e->getMessage());
         } catch (\Exception $e) {
             Log::error('Error creating engagement form', [
                 'error' => $e->getMessage(),

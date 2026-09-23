@@ -3,6 +3,7 @@
 namespace App\Application\Registrations\UseCases;
 
 use App\Domain\Registration\Rules\CheckpointTransitions;
+use App\Events\TechInspectionCompleted;
 use App\Infrastructure\Qr\QrTokenService;
 use App\Models\CarTechInspectionHistory;
 use App\Models\Checkpoint;
@@ -43,7 +44,7 @@ class ScanCheckpoint
     /**
      * Scan a checkpoint directly with a registration (for testing or internal use)
      */
-    public function scanWithRegistration(RaceRegistration $registration, string $checkpointCode, User $scanner): CheckpointPassage
+    public function scanWithRegistration(RaceRegistration $registration, string $checkpointCode, User $scanner, string $source = 'qr'): CheckpointPassage
     {
         // Find checkpoint
         $checkpoint = Checkpoint::where('code', $checkpointCode)->first();
@@ -78,7 +79,7 @@ class ScanCheckpoint
             throw new InvalidArgumentException($errorMessage);
         }
 
-        return DB::transaction(function () use ($registration, $checkpoint, $scanner, $checkpointCode) {
+        return DB::transaction(function () use ($registration, $checkpoint, $scanner, $checkpointCode, $source) {
             // Create passage
             $passage = CheckpointPassage::create([
                 'race_registration_id' => $registration->id,
@@ -86,6 +87,7 @@ class ScanCheckpoint
                 'scanned_by' => $scanner->id,
                 'scanned_at' => now(),
                 'meta' => [
+                    'source' => $source,
                     'user_agent' => request()->userAgent(),
                     'ip' => request()->ip(),
                 ],
@@ -132,7 +134,7 @@ class ScanCheckpoint
                     $engagementValidation->recordTechValidation($registration, $scanner, 'OK', null);
 
                     // Dispatch event for email notification
-                    \App\Events\TechInspectionCompleted::dispatch($techInspection);
+                    DB::afterCommit(fn () => TechInspectionCompleted::dispatch($techInspection));
                 }
             }
 
