@@ -30,9 +30,9 @@ class Payment extends Component
             abort(403);
         }
 
-        // Check registration status - allow PENDING_PAYMENT (new) or ACCEPTED (for additional payments)
-        if (! in_array($registration->status, ['PENDING_PAYMENT', 'ACCEPTED'])) {
-            abort(403, 'Cette inscription n\'est pas en attente de paiement ou acceptée.');
+        // An already paid registration may still be awaiting organiser validation.
+        if (! in_array($registration->status, ['PENDING_PAYMENT', 'ACCEPTED'], true) && ! $registration->isPaid()) {
+            abort(403, 'Cette inscription ne permet pas de paiement.');
         }
 
         $this->registration = $registration->load(['race', 'car', 'pilot', 'payments']);
@@ -41,22 +41,23 @@ class Payment extends Component
     #[Computed]
     public function hasPaidPayment(): bool
     {
-        return $this->registration->payments->where('status', 'paid')->isNotEmpty();
+        return $this->registration->payments()->where('status', 'paid')->exists();
     }
 
     #[Computed]
     public function pendingPayment()
     {
-        return $this->registration->payments
+        return $this->registration->payments()
             ->where('status', 'pending')
             ->where('method', 'stripe')
+            ->latest()
             ->first();
     }
 
     #[Computed]
     public function paidPayment()
     {
-        return $this->registration->payments->where('status', 'paid')->first();
+        return $this->registration->payments()->where('status', 'paid')->latest()->first();
     }
 
     #[Computed]
