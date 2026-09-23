@@ -95,3 +95,16 @@ test('a different pilot cannot inspect the Stripe return page', function () {
         ->get(stripeReturnUrl($this->registration))
         ->assertForbidden();
 });
+
+test('an incomplete profile can still access an existing registration and payment return', function () {
+    $pilot = $this->user->pilot;
+    $pilot->update(['photo_path' => null]);
+    expect($pilot->fresh()->canRegisterForRace())->toBeFalse();
+
+    $this->get(route('pilot.registrations.index'))->assertOk();
+    $this->get(route('pilot.registrations.payment', $this->registration))->assertOk();
+    $this->get(stripeReturnUrl($this->registration))->assertOk();
+
+    $this->get(route('pilot.registrations.create', $this->registration->race))
+        ->assertRedirect(route('pilot.profile.edit'));
+});
