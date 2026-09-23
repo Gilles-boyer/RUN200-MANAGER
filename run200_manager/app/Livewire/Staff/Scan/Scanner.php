@@ -10,11 +10,17 @@ use App\Models\Race;
 use App\Models\RaceRegistration;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class Scanner extends Component
 {
+    use WithPagination;
+
     public string $checkpointCode;
 
     public ?Checkpoint $checkpoint = null;
@@ -33,9 +39,11 @@ class Scanner extends Component
 
     public bool $alreadyScanned = false;
 
-    public string $scanMode = 'camera'; // 'camera' or 'manual'
+    public string $scanMode = 'camera'; // 'list', 'camera' or 'manual'
 
     public ?int $selectedRaceId = null;
+
+    public string $readySearch = '';
 
     public array $raceStats = [];
 
@@ -64,6 +72,10 @@ class Scanner extends Component
             $this->selectedRaceId = $latestRace->id;
             $this->computeRaceStats();
         }
+
+        if ($this->checkpointCode === 'TECH_CHECK') {
+            $this->scanMode = 'list';
+        }
     }
 
     /**
@@ -71,7 +83,73 @@ class Scanner extends Component
      */
     public function updatedSelectedRaceId(): void
     {
+        $this->resetPage();
         $this->computeRaceStats();
+    }
+
+    public function updatingReadySearch(): void
+    {
+        $this->resetPage();
+    }
+
+    #[Computed]
+    public function readyForTechnicalCheck()
+    {
+        if ($this->checkpointCode !== 'TECH_CHECK' || ! $this->selectedRaceId) {
+            return RaceRegistration::query()->whereRaw('1 = 0')->paginate(12);
+        }
+
+        return RaceRegistration::query()
+            ->where('race_id', $this->selectedRaceId)
+            ->where('status', RegistrationStatus::ADMIN_CHECKED->value)
+            ->whereHas('passages', fn ($query) => $query->whereHas('checkpoint', fn ($checkpoint) => $checkpoint->where('code', 'ADMIN_CHECK')))
+            ->whereDoesntHave('passages', fn ($query) => $query->whereHas('checkpoint', fn ($checkpoint) => $checkpoint->where('code', 'TECH_CHECK')))
+            ->whereDoesntHave('techInspection')
+            ->when(trim($this->readySearch) !== '', function ($query) {
+                $search = trim($this->readySearch);
+                $query->where(function ($query) use ($search) {
+                    $query->whereHas('pilot', fn ($pilot) => $pilot->where('first_name', 'like', "%{$search}%")
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('license_number', 'like', "%{$search}%"))
+                        ->orWhereHas('car', fn ($car) => $car->where('race_number', 'like', "%{$search}%"));
+                });
+            })
+            ->with(['pilot', 'car.category'])
+            ->orderBy('created_at')
+            ->paginate(12);
+    }
+
+    public function validateTechnicalCheck(int $registrationId, ScanCheckpoint $scanUseCase): void
+    {
+        if ($this->checkpointCode !== 'TECH_CHECK' || ! $this->checkpoint?->userCanScan(Auth::user())) {
+            abort(403);
+        }
+
+        $this->reset(['registrationInfo', 'scanResult', 'errorMessage', 'showSuccess', 'alreadyScanned']);
+
+        try {
+            DB::transaction(function () use ($registrationId, $scanUseCase) {
+                $registration = RaceRegistration::query()->lockForUpdate()->find($registrationId);
+                if (! $registration || $registration->race_id !== $this->selectedRaceId) {
+                    throw new InvalidArgumentException('Cette inscription ne fait pas partie de la course sélectionnée.');
+                }
+                if ($registration->hasPassedCheckpoint('TECH_CHECK') || $registration->techInspection()->exists()) {
+                    throw new InvalidArgumentException('Ce contrôle technique est déjà enregistré.');
+                }
+                if ($registration->status !== RegistrationStatus::ADMIN_CHECKED->value) {
+                    throw new InvalidArgumentException('La vérification administrative doit être terminée avant le contrôle technique.');
+                }
+
+                $scanUseCase->scanWithRegistration($registration, 'TECH_CHECK', Auth::user(), 'tech_list');
+            });
+
+            $this->showSuccess = true;
+            $this->scanResult = 'Contrôle technique validé. Le statut et le suivi des étapes sont à jour.';
+            $this->computeRaceStats();
+            unset($this->readyForTechnicalCheck);
+        } catch (InvalidArgumentException $e) {
+            $this->errorMessage = $e->getMessage();
+        }
     }
 
     /**
@@ -81,6 +159,7 @@ class Scanner extends Component
     {
         if (! $this->selectedRaceId) {
             $this->raceStats = [];
+
             return;
         }
 
@@ -212,10 +291,15 @@ class Scanner extends Component
             $this->scanResult = 'Scan effectué avec succès !';
             $this->registrationInfo = $scanUseCase->getRegistrationFromToken($this->token);
 
+            if ($this->checkpointCode === 'TECH_CHECK') {
+                $this->computeRaceStats();
+                unset($this->readyForTechnicalCheck);
+            }
+
             // Dispatch browser event for sound/vibration feedback
             $this->dispatch('scan-success');
 
-        } catch (\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             $this->errorMessage = $e->getMessage();
             $this->dispatch('scan-error');
         }
@@ -223,6 +307,9 @@ class Scanner extends Component
 
     public function setScanMode(string $mode): void
     {
+        if (! in_array($mode, $this->checkpointCode === 'TECH_CHECK' ? ['list', 'camera', 'manual'] : ['camera', 'manual'], true)) {
+            return;
+        }
         $this->scanMode = $mode;
     }
 
@@ -238,6 +325,7 @@ class Scanner extends Component
     {
         if (empty($this->registrationCode)) {
             $this->errorMessage = 'Veuillez entrer un code d\'inscription';
+
             return;
         }
 
@@ -250,7 +338,7 @@ class Scanner extends Component
         if (preg_match('/^([A-Z]{2,5})-([0-9]+)-([0-9]+)$/', $code, $matches)) {
             $registrationId = (int) $matches[3];
 
-            $registration = \App\Models\RaceRegistration::with(['pilot', 'car.category', 'race', 'passages.checkpoint'])
+            $registration = RaceRegistration::with(['pilot', 'car.category', 'race', 'passages.checkpoint'])
                 ->find($registrationId);
 
             if ($registration) {

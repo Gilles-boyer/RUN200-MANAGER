@@ -1,4 +1,4 @@
-<div class="max-w-2xl mx-auto" x-data="qrScannerComponent()" x-init="initScanner()">
+<div class="{{ $checkpointCode === 'TECH_CHECK' ? 'max-w-4xl' : 'max-w-2xl' }} mx-auto" x-data="qrScannerComponent()" x-init="initScanner()">
     <!-- Racing Header -->
     <div class="mb-8">
         <div class="flex items-center gap-3 mb-2">
@@ -9,7 +9,7 @@
             </div>
             <div>
                 <h1 class="text-2xl font-bold text-white">{{ $checkpoint->name }}</h1>
-                <p class="text-sm text-gray-400">Scannez le QR code du pilote pour valider ce checkpoint</p>
+                <p class="text-sm text-gray-400">{{ $checkpointCode === 'TECH_CHECK' ? 'Validez les pilotes prêts pour le contrôle, ou utilisez le scanner QR.' : 'Scannez le QR code du pilote pour valider ce checkpoint' }}</p>
             </div>
         </div>
     </div>
@@ -86,25 +86,74 @@
     <!-- Scan Mode Selector - Racing Style -->
     <div class="mb-6">
         <div class="flex rounded-xl bg-carbon-800 border border-carbon-700/50 p-1">
-            <button wire:click="setScanMode('camera')"
-                    class="flex-1 px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2
+            @if($checkpointCode === 'TECH_CHECK')
+                <button type="button" wire:click="setScanMode('list')"
+                        class="flex-1 px-2 sm:px-3 py-3 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 {{ $scanMode === 'list' ? 'bg-racing-gradient text-white' : 'text-gray-400 hover:text-white hover:bg-carbon-700/50' }}">
+                    Pilotes prêts
+                </button>
+            @endif
+            <button type="button" wire:click="setScanMode('camera')"
+                    class="flex-1 px-2 sm:px-4 py-3 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-1 sm:gap-2
                     {{ $scanMode === 'camera' ? 'bg-racing-gradient text-white shadow-lg shadow-racing-red-500/25' : 'text-gray-400 hover:text-white hover:bg-carbon-700/50' }}">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="hidden sm:block w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
                 Caméra
             </button>
-            <button wire:click="setScanMode('manual')"
-                    class="flex-1 px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2
+            <button type="button" wire:click="setScanMode('manual')"
+                    class="flex-1 px-2 sm:px-4 py-3 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-1 sm:gap-2
                     {{ $scanMode === 'manual' ? 'bg-racing-gradient text-white shadow-lg shadow-racing-red-500/25' : 'text-gray-400 hover:text-white hover:bg-carbon-700/50' }}">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="hidden sm:block w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                 </svg>
                 Saisie manuelle
             </button>
         </div>
     </div>
+
+    @if($checkpointCode === 'TECH_CHECK' && $scanMode === 'list')
+        <x-racing.card class="mb-6">
+            <div class="space-y-4">
+                <div>
+                    <h2 class="text-lg font-semibold text-white">Pilotes prêts pour le contrôle technique</h2>
+                    <p class="text-sm text-gray-400">Leur vérification administrative est terminée. Un pilote disparaît de cette liste après validation.</p>
+                </div>
+
+                @if($selectedRaceId)
+                    <label class="block" for="readySearch">
+                        <span class="block text-sm font-medium text-gray-300 mb-2">Rechercher un pilote ou un numéro de voiture</span>
+                        <input id="readySearch" type="search" wire:model.live.debounce.300ms="readySearch"
+                               placeholder="Nom, licence ou numéro de voiture"
+                               class="w-full rounded-xl bg-carbon-700 border-carbon-600 text-white placeholder-gray-500 focus:ring-racing-red-500 focus:border-racing-red-500">
+                    </label>
+
+                    <p class="text-sm text-gray-400">{{ $this->readyForTechnicalCheck->total() }} pilote(s) prêt(s)</p>
+
+                    @forelse($this->readyForTechnicalCheck as $registration)
+                        <div wire:key="ready-tech-{{ $registration->id }}" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-carbon-700 bg-carbon-900/40 p-4">
+                            <div class="min-w-0">
+                                <p class="font-semibold text-white">{{ $registration->pilot->last_name }} {{ $registration->pilot->first_name }}</p>
+                                <p class="text-sm text-gray-400">Voiture #{{ $registration->car->race_number }} · {{ $registration->car->make }} {{ $registration->car->model }}</p>
+                                <p class="text-xs text-gray-500">Licence {{ $registration->pilot->license_number }} · {{ $registration->car->category?->name ?? 'Sans catégorie' }}</p>
+                            </div>
+                            <button type="button" wire:click="validateTechnicalCheck({{ $registration->id }})"
+                                    wire:loading.attr="disabled" wire:target="validateTechnicalCheck({{ $registration->id }})"
+                                    class="shrink-0 rounded-lg bg-status-success px-4 py-2.5 text-sm font-semibold text-white hover:bg-status-success/80 disabled:opacity-50">
+                                Valider contrôle technique
+                            </button>
+                        </div>
+                    @empty
+                        <p class="rounded-xl border border-carbon-700 bg-carbon-900/40 p-5 text-sm text-gray-400">Aucun pilote en attente de contrôle technique pour cette course.</p>
+                    @endforelse
+
+                    {{ $this->readyForTechnicalCheck->links() }}
+                @else
+                    <p class="text-sm text-gray-400">Sélectionnez une course pour afficher les pilotes prêts.</p>
+                @endif
+            </div>
+        </x-racing.card>
+    @endif
 
     <!-- Camera Scanner -->
     @if($scanMode === 'camera')
@@ -283,8 +332,8 @@
     @if($showSuccess)
         <x-racing.alert type="success" class="mb-6">
             <p class="font-semibold">{{ $scanResult }}</p>
-            <button wire:click="resetScanner" @click="resumeScanning()" class="mt-2 text-sm text-status-success hover:underline font-medium">
-                📷 Scanner un autre pilote
+            <button wire:click="resetScanner" @if($scanMode !== 'list') @click="resumeScanning()" @endif class="mt-2 text-sm text-status-success hover:underline font-medium">
+                {{ $scanMode === 'list' ? 'Continuer les contrôles' : '📷 Scanner un autre pilote' }}
             </button>
         </x-racing.alert>
     @endif
