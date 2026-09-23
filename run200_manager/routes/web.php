@@ -138,17 +138,17 @@ Route::middleware(['auth', 'role:PILOTE'])->prefix('pilot')->name('pilot.')->gro
         Route::get('/', App\Livewire\Pilot\Races\Index::class)->name('index');
     });
 
-    // Registrations Routes - require complete profile + at least one car
-    Route::middleware([EnsurePilotCanRegisterForRace::class])->group(function () {
-        Route::prefix('registrations')->name('registrations.')->group(function () {
-            Route::get('/', App\Livewire\Pilot\Registrations\Index::class)->name('index');
-            Route::get('/create/{race}', Create::class)->name('create');
-            Route::get('/{registration}/ecard', Ecard::class)->name('ecard');
-            Route::get('/{registration}/payment', Payment::class)->name('payment');
-            Route::get('/{registration}/payment/success', PaymentSuccess::class)->name('payment.success');
-            Route::get('/{registration}/payment/cancel', PaymentCancel::class)->name('payment.cancel');
-            Route::get('/{registration}/paddock', PaddockSelection::class)->name('paddock.select');
-        });
+    // Existing registrations and Stripe returns remain accessible if profile details change.
+    Route::prefix('registrations')->name('registrations.')->group(function () {
+        Route::get('/', App\Livewire\Pilot\Registrations\Index::class)->name('index');
+        Route::get('/create/{race}', Create::class)
+            ->middleware(EnsurePilotCanRegisterForRace::class)
+            ->name('create');
+        Route::get('/{registration}/ecard', Ecard::class)->name('ecard');
+        Route::get('/{registration}/payment', Payment::class)->name('payment');
+        Route::get('/{registration}/payment/success', PaymentSuccess::class)->name('payment.success');
+        Route::get('/{registration}/payment/cancel', PaymentCancel::class)->name('payment.cancel');
+        Route::get('/{registration}/paddock', PaddockSelection::class)->name('paddock.select');
     });
 
     // Results Routes (public published results)

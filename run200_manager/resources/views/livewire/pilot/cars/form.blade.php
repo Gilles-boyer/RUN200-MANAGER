@@ -100,9 +100,12 @@
         </x-racing.card>
 
         {{-- Actions --}}
+        @error('delete')
+            <p role="alert" class="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">{{ $message }}</p>
+        @enderror
         <div class="flex flex-col sm:flex-row justify-between gap-4">
             <div>
-                @if($car)
+                @if($car && ! $car->raceRegistrations()->exists())
                     <x-racing.button
                         type="button"
                         wire:click="delete"
@@ -111,6 +114,10 @@
                     >
                         🗑️ Supprimer
                     </x-racing.button>
+                @elseif($car)
+                    <p class="text-sm text-carbon-500 dark:text-carbon-400">
+                        Cette voiture est liée à une course et ne peut plus être supprimée.
+                    </p>
                 @endif
             </div>
             <div class="flex flex-col sm:flex-row gap-3">
