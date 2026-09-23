@@ -101,6 +101,44 @@ class StripeWebhookIdempotencyTest extends TestCase
         $this->assertTrue($duplicateExists, 'Duplicate event ID check should return true');
     }
 
+    public function test_replayed_checkout_and_late_expiration_cannot_change_a_paid_payment(): void
+    {
+        $sessionData = [
+            'id' => 'cs_test_123456',
+            'payment_intent' => 'pi_test_123',
+            'payment_status' => 'paid',
+        ];
+
+        $first = $this->webhookHandler->handleCheckoutCompleted($sessionData, 'evt_first');
+        $paidAt = $first->paid_at;
+
+        $replayed = $this->webhookHandler->handleCheckoutCompleted($sessionData, 'evt_replayed');
+        $expired = $this->webhookHandler->handleCheckoutExpired($sessionData);
+
+        $this->assertTrue($replayed->isPaid());
+        $this->assertTrue($expired->isPaid());
+        $this->assertEquals('evt_first', $this->payment->fresh()->stripe_event_id);
+        $this->assertEquals($paidAt, $this->payment->fresh()->paid_at);
+    }
+
+    public function test_late_payment_failure_cannot_replace_a_confirmed_payment(): void
+    {
+        $this->webhookHandler->handleCheckoutCompleted([
+            'id' => 'cs_test_123456',
+            'payment_intent' => 'pi_test_123',
+            'payment_status' => 'paid',
+        ], 'evt_paid');
+
+        $result = $this->webhookHandler->handlePaymentFailed([
+            'id' => 'pi_test_123',
+            'last_payment_error' => ['message' => 'Late failure'],
+        ]);
+
+        $this->assertTrue($result->isPaid());
+        $this->assertTrue($this->payment->fresh()->isPaid());
+        $this->assertEquals('evt_paid', $this->payment->fresh()->stripe_event_id);
+    }
+
     public function test_stripe_event_id_unique_constraint(): void
     {
         // Update payment with event ID

@@ -37,7 +37,7 @@ final class HandleStripeWebhook
         }
 
         // Already processed
-        if ($payment->status === 'paid') {
+        if ($payment->isPaid()) {
             return $payment;
         }
 
@@ -100,7 +100,7 @@ final class HandleStripeWebhook
         }
 
         // Already processed
-        if (in_array($payment->status, ['paid', 'cancelled'])) {
+        if ($payment->isPaid() || $payment->isCancelled()) {
             return $payment;
         }
 
@@ -215,7 +215,7 @@ final class HandleStripeWebhook
         }
 
         // Already processed
-        if ($payment->status === 'paid') {
+        if ($payment->isPaid()) {
             Log::info('Payment already marked as paid', ['payment_id' => $payment->id]);
             return $payment;
         }
@@ -321,6 +321,10 @@ final class HandleStripeWebhook
                 'metadata' => $metadata,
             ]);
             return null;
+        }
+
+        if ($payment->isPaid()) {
+            return $payment;
         }
 
         return DB::transaction(function () use ($payment, $paymentIntentData, $paymentIntentId) {

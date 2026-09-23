@@ -58,16 +58,24 @@
                                 Inscription payée
                             </h3>
                             <p class="mt-2 text-sm text-carbon-500 dark:text-carbon-400">
-                                Votre inscription a été payée le {{ $this->paidPayment->paid_at->format('d/m/Y à H:i') }}
+                                @if($this->paidPayment->paid_at)
+                                    Votre inscription a été payée le {{ $this->paidPayment->paid_at->format('d/m/Y à H:i') }}
+                                @else
+                                    Votre paiement est confirmé.
+                                @endif
                             </p>
                             <p class="mt-4 text-3xl font-bold text-status-success">
                                 {{ $this->paidPayment->formatted_amount }}
                             </p>
-                            <div class="mt-8">
-                                <x-racing.button href="{{ route('pilot.registrations.ecard', $registration) }}" variant="primary" icon="🎫">
-                                    Voir ma e-carte
-                                </x-racing.button>
-                            </div>
+                            @if($registration->canAccessEcard())
+                                <div class="mt-8">
+                                    <x-racing.button href="{{ route('pilot.registrations.ecard', $registration) }}" variant="primary" icon="🎫">
+                                        Voir ma e-carte
+                                    </x-racing.button>
+                                </div>
+                            @else
+                                <p class="mt-6 text-sm text-carbon-600 dark:text-carbon-300">Votre e-carte sera disponible après validation de votre inscription.</p>
+                            @endif
                         </div>
 
                     @elseif($this->pendingPayment)
@@ -80,7 +88,7 @@
                                 Paiement en attente
                             </h3>
                             <p class="mt-2 text-sm text-carbon-500 dark:text-carbon-400">
-                                Vous avez un paiement en cours. Cliquez ci-dessous pour le finaliser.
+                                Vous avez un paiement en cours. Reprenez cette session pour le finaliser. Si elle a expiré, attendez la mise à jour de son statut avant de réessayer.
                             </p>
                             <p class="mt-4 text-3xl font-bold text-racing-red-500">
                                 {{ $this->formattedFee }}
@@ -94,15 +102,6 @@
                                 >
                                     <span wire:loading.remove wire:target="resumePayment">Reprendre le paiement</span>
                                     <span wire:loading wire:target="resumePayment">Redirection...</span>
-                                </x-racing.button>
-                                <x-racing.button
-                                    wire:click="initiateStripePayment"
-                                    wire:loading.attr="disabled"
-                                    variant="secondary"
-                                    class="w-full justify-center"
-                                >
-                                    <span wire:loading.remove wire:target="initiateStripePayment">Créer un nouveau paiement</span>
-                                    <span wire:loading wire:target="initiateStripePayment">Création...</span>
                                 </x-racing.button>
                             </div>
                         </div>

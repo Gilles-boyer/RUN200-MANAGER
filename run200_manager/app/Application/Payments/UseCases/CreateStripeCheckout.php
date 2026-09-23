@@ -34,33 +34,24 @@ final class CreateStripeCheckout
         ?int $amountCents = null,
         ?string $currency = null
     ): array {
-        // Validate registration status - allow PENDING_PAYMENT for new online registrations
-        // or ACCEPTED for additional payments
-        if (! in_array($registration->status, ['PENDING_PAYMENT', 'ACCEPTED'])) {
-            throw new InvalidArgumentException(
-                'Le paiement ne peut être effectué que pour une inscription en attente de paiement ou acceptée.'
-            );
-        }
-
-        // Check if there's already a pending/paid payment
-        $existingPayment = $registration->payments()
-            ->whereIn('status', ['pending', 'processing', 'paid'])
-            ->where('method', 'stripe')
-            ->first();
-
-        if ($existingPayment && $existingPayment->status === 'paid') {
-            throw new InvalidArgumentException(
-                'Cette inscription a déjà été payée.'
-            );
-        }
-
         $amountCents = $amountCents ?? $this->stripeService->getDefaultFee();
         $currency = $currency ?? $this->stripeService->getDefaultCurrency();
 
-        return DB::transaction(function () use ($registration, $user, $amountCents, $currency, $existingPayment) {
-            // Cancel existing pending payment if any
-            if ($existingPayment && $existingPayment->status === 'pending') {
-                $existingPayment->update(['status' => 'cancelled']);
+        return DB::transaction(function () use ($registration, $user, $amountCents, $currency) {
+            $registration = RaceRegistration::query()->lockForUpdate()->findOrFail($registration->id);
+
+            if (! in_array($registration->status, ['PENDING_PAYMENT', 'ACCEPTED'], true)) {
+                throw new InvalidArgumentException(
+                    'Le paiement ne peut être effectué que pour une inscription en attente de paiement ou acceptée.'
+                );
+            }
+
+            if ($registration->payments()->where('status', 'paid')->exists()) {
+                throw new InvalidArgumentException('Cette inscription a déjà été payée.');
+            }
+
+            if ($registration->payments()->whereIn('status', ['pending', 'processing'])->where('method', 'stripe')->exists()) {
+                throw new InvalidArgumentException('Un paiement est déjà en cours. Reprenez-le depuis votre inscription ou attendez sa confirmation.');
             }
 
             // Create Stripe checkout session
