@@ -197,10 +197,11 @@
                     <span>🏆</span>
                     Voitures par catégorie
                 </h3>
-                @if(count($this->carsByCategory['labels']) > 0)
+                @php($carCategoryStats = $this->carsByCategory)
+                @if(count($carCategoryStats['labels']) > 0)
                     <p class="text-sm text-carbon-400 mb-3">
-                        {{ $this->carsByCategory['total'] }} voitures dans {{ $this->carsByCategory['category_count'] }} catégories.
-                        @if($this->carsByCategory['category_count'] > 8)
+                        {{ $carCategoryStats['total'] ?? array_sum($carCategoryStats['data']) }} voitures dans {{ $carCategoryStats['category_count'] ?? count($carCategoryStats['labels']) }} catégories.
+                        @if(($carCategoryStats['category_count'] ?? count($carCategoryStats['labels'])) > 8)
                             Le graphique regroupe les catégories après la huitième dans « Autres catégories ».
                         @endif
                     </p>
@@ -208,12 +209,12 @@
                         id="cars-category"
                         type="doughnut"
                         height="280px"
-                        :labels="$this->carsByCategory['labels']"
-                        :datasets="$this->carsByCategory['data']"
+                        :labels="$carCategoryStats['labels']"
+                        :datasets="$carCategoryStats['data']"
                         :colors="['#ef4444', '#eab308', '#3b82f6', '#22c55e', '#a855f7', '#f97316', '#06b6d4', '#ec4899', '#6b7280']"
                     />
                     <div class="mt-4 max-h-64 overflow-y-auto divide-y divide-carbon-700/50" aria-label="Détail des voitures par catégorie">
-                        @foreach($this->carsByCategory['breakdown'] as $category)
+                        @foreach(($carCategoryStats['breakdown'] ?? []) as $category)
                             <div class="flex items-center gap-3 py-2 text-sm">
                                 <span class="min-w-0 flex-1 truncate text-carbon-300" title="{{ $category['name'] }}">{{ $category['name'] }}</span>
                                 <span class="text-carbon-400">{{ number_format($category['percentage'], 1, ',', ' ') }} %</span>
