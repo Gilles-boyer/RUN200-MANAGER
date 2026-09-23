@@ -89,8 +89,8 @@ test('record manual payment creates payment record', function () {
     expect($payment)->toBeInstanceOf(Payment::class)
         ->and($payment->race_registration_id)->toBe($registration->id)
         ->and($payment->amount_cents)->toBe(5000)
-        ->and($payment->status)->toBe('paid')
-        ->and($payment->method)->toBe('manual');
+        ->and($payment->status->value)->toBe('paid')
+        ->and($payment->method->value)->toBe('manual');
 });
 
 test('record manual payment rejects non-accepted registration', function () {

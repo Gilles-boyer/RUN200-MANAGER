@@ -73,7 +73,6 @@ class ProductionSeeder extends Seeder
         $this->command->info('👤 Création du compte administrateur...');
 
         $adminEmail = config('app.admin_email', env('ADMIN_EMAIL', 'admin@run200.re'));
-        $adminPassword = env('ADMIN_PASSWORD', 'ChangeMeOnFirstLogin!2026');
         $adminName = env('ADMIN_NAME', 'Administrateur RUN200');
 
         // Vérifier si l'admin existe déjà
@@ -89,6 +88,11 @@ class ProductionSeeder extends Seeder
             }
 
             return;
+        }
+
+        $adminPassword = env('ADMIN_PASSWORD');
+        if (! is_string($adminPassword) || strlen($adminPassword) < 16) {
+            throw new \RuntimeException('ADMIN_PASSWORD doit contenir au moins 16 caractères avant de créer le compte administrateur.');
         }
 
         // Créer le compte admin

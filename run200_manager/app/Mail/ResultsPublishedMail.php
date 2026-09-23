@@ -22,7 +22,7 @@ class ResultsPublishedMail extends Mailable
         public ?RaceResult $pilotResult = null
     ) {
         $this->race->load('season');
-        $this->pilotResult?->load(['pilot.user', 'car']);
+        $this->pilotResult?->load('registration.pilot.user');
     }
 
     public function envelope(): Envelope

@@ -40,7 +40,7 @@
             {{-- CTA Buttons --}}
             <div class="flex flex-col sm:flex-row gap-4 justify-center animate-[fade-in-up_0.8s_ease-out_0.6s_both]">
                 @guest
-                    <a href="{{ route('register') }}" class="btn-racing-primary btn-lg group">
+                    <a href="{{ route('register') }}" class="btn-racing btn-racing-primary btn-lg group">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
                         </svg>
@@ -49,7 +49,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                         </svg>
                     </a>
-                    <a href="{{ route('login') }}" class="btn-racing-secondary btn-lg">
+                    <a href="{{ route('login') }}" class="btn-racing btn-racing-secondary btn-lg">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
                         </svg>
@@ -64,7 +64,7 @@
                             $dashboardRoute = 'staff.dashboard';
                         }
                     @endphp
-                    <a href="{{ route($dashboardRoute) }}" class="btn-racing-primary btn-lg group">
+                    <a href="{{ route($dashboardRoute) }}" class="btn-racing btn-racing-primary btn-lg group">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
                         </svg>
@@ -76,12 +76,12 @@
                 @endguest
             </div>
 
-            {{-- Scroll Indicator --}}
-            <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-                <svg class="w-8 h-8 text-carbon-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
-                </svg>
-            </div>
+        </div>
+        {{-- Scroll Indicator --}}
+        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+            <svg class="w-8 h-8 text-carbon-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+            </svg>
         </div>
     </section>
 

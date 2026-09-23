@@ -13,7 +13,7 @@
         </h1>
         @if($this->season)
             <p class="mt-3 text-lg text-racing-red-600 dark:text-racing-red-400 font-semibold">
-                Saison {{ $this->season->name }}
+                {{ $this->season->name }}
             </p>
             <p class="mt-1 text-sm text-carbon-500 dark:text-carbon-400">
                 Classement provisoire basé sur {{ $this->seasonStats['published_races'] }} course(s) disputée(s)
@@ -74,10 +74,10 @@
         {{-- View Tabs --}}
         <div class="racing-card overflow-hidden mb-8">
             <div class="border-b border-carbon-200 dark:border-carbon-700">
-                <nav class="flex flex-wrap -mb-px">
+                <nav class="flex flex-nowrap overflow-x-auto -mb-px" aria-label="Catégories du classement">
                     <button
                         wire:click="switchView('general')"
-                        class="px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 {{ $view === 'general' ? 'border-racing-red-500 text-racing-red-600 dark:text-racing-red-400 bg-racing-red-50/50 dark:bg-racing-red-900/10' : 'border-transparent text-carbon-500 dark:text-carbon-400 hover:text-carbon-700 dark:hover:text-carbon-300 hover:border-carbon-300' }}"
+                        class="shrink-0 whitespace-nowrap px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 {{ $view === 'general' ? 'border-racing-red-500 text-racing-red-600 dark:text-racing-red-400 bg-racing-red-50/50 dark:bg-racing-red-900/10' : 'border-transparent text-carbon-500 dark:text-carbon-400 hover:text-carbon-700 dark:hover:text-carbon-300 hover:border-carbon-300' }}"
                     >
                         <span class="flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,7 +90,7 @@
                     @foreach($this->categories as $category)
                         <button
                             wire:click="switchView('{{ $category->id }}')"
-                            class="px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 {{ $view === (string)$category->id ? 'border-racing-red-500 text-racing-red-600 dark:text-racing-red-400 bg-racing-red-50/50 dark:bg-racing-red-900/10' : 'border-transparent text-carbon-500 dark:text-carbon-400 hover:text-carbon-700 dark:hover:text-carbon-300 hover:border-carbon-300' }}"
+                            class="shrink-0 whitespace-nowrap px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 {{ $view === (string)$category->id ? 'border-racing-red-500 text-racing-red-600 dark:text-racing-red-400 bg-racing-red-50/50 dark:bg-racing-red-900/10' : 'border-transparent text-carbon-500 dark:text-carbon-400 hover:text-carbon-700 dark:hover:text-carbon-300 hover:border-carbon-300' }}"
                         >
                             {{ $category->name }}
                         </button>

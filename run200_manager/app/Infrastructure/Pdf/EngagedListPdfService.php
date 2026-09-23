@@ -14,7 +14,7 @@ class EngagedListPdfService
 
     public function __construct(?QrTokenService $qrTokenService = null)
     {
-        $this->qrTokenService = $qrTokenService ?? new QrTokenService();
+        $this->qrTokenService = $qrTokenService ?? new QrTokenService;
     }
 
     /**
@@ -35,16 +35,16 @@ class EngagedListPdfService
 
         // Générer les codes d'inscription et les QR codes
         $registrations->each(function ($registration) use ($race) {
-            $registration->registration_code = sprintf(
+            $registration->setAttribute('registration_code', sprintf(
                 '%s-%s-%04d',
                 strtoupper(substr($race->name, 0, 3)),
                 str_pad($registration->pilot->license_number ?? $registration->pilot_id, 6, '0', STR_PAD_LEFT),
                 $registration->id
-            );
+            ));
 
             // Générer le QR code (token sécurisé)
             $token = $this->qrTokenService->getOrGenerateToken($registration);
-            $registration->qr_code_data_uri = $this->qrTokenService->generateQrCodeDataUri($token, 80);
+            $registration->setAttribute('qr_code_data_uri', $this->qrTokenService->generateQrCodeDataUri($token, 80));
         });
 
         $data = [

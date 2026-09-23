@@ -41,7 +41,7 @@ describe('ResultsCsvImporter', function () {
                 ->for($race)
                 ->for($pilot)
                 ->for($car)
-                ->create(['status' => 'CONFIRMED']);
+                ->create(['status' => 'ACCEPTED']);
             $registrations->push($registration);
         }
 
@@ -84,7 +84,7 @@ describe('ResultsCsvImporter', function () {
         $race = Race::factory()->for($season)->closed()->create();
         $pilot = Pilot::factory()->create();
         $car = Car::factory()->for($pilot)->create(['race_number' => 42]);
-        RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create(['status' => 'CONFIRMED']);
+        RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create(['status' => 'ACCEPTED']);
 
         $csv = "position;bib;pilote;voiture;catégorie;temps\n";
         $csv .= "1;42;John Doe;Test Car;Sport;1:23.456\n";
@@ -106,7 +106,7 @@ describe('ResultsCsvImporter', function () {
         $race = Race::factory()->for($season)->closed()->create();
         $pilot = Pilot::factory()->create();
         $car = Car::factory()->for($pilot)->create(['race_number' => 99]);
-        RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create(['status' => 'CONFIRMED']);
+        RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create(['status' => 'ACCEPTED']);
 
         $csv = "pos,dossard,driver,vehicle,class,time\n";
         $csv .= "1,99,Jane Doe,Fast Car,Racing,3:00.000\n";
@@ -128,11 +128,11 @@ describe('ResultsCsvImporter', function () {
 
         $pilot1 = Pilot::factory()->create();
         $car1 = Car::factory()->for($pilot1)->create(['race_number' => 10]);
-        RaceRegistration::factory()->for($race)->for($pilot1)->for($car1)->create(['status' => 'CONFIRMED']);
+        RaceRegistration::factory()->for($race)->for($pilot1)->for($car1)->create(['status' => 'ACCEPTED']);
 
         $pilot2 = Pilot::factory()->create();
         $car2 = Car::factory()->for($pilot2)->create(['race_number' => 20]);
-        RaceRegistration::factory()->for($race)->for($pilot2)->for($car2)->create(['status' => 'CONFIRMED']);
+        RaceRegistration::factory()->for($race)->for($pilot2)->for($car2)->create(['status' => 'ACCEPTED']);
 
         $csv = "position,bib,pilote,voiture,catégorie,temps\n";
         $csv .= "1,10,Pilot A,Car A,Cat,2:00.000\n";
@@ -160,7 +160,7 @@ describe('ResultsCsvImporter', function () {
 
         $pilot = Pilot::factory()->create();
         $car = Car::factory()->for($pilot)->create(['race_number' => 10]);
-        RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create(['status' => 'CONFIRMED']);
+        RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create(['status' => 'ACCEPTED']);
 
         $csv = "position,bib,pilote,voiture,catégorie,temps\n";
         $csv .= "1,10,Pilot A,Car A,Cat,2:00.000\n";
@@ -208,7 +208,7 @@ describe('ResultsCsvImporter', function () {
 
         $pilot = Pilot::factory()->create();
         $car = Car::factory()->for($pilot)->create(['race_number' => 10]);
-        RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create(['status' => 'CONFIRMED']);
+        RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create(['status' => 'ACCEPTED']);
 
         $csv = "position,bib,pilote,voiture,catégorie,temps\n";
         $csv .= "1,10,Pilot,Car,Cat,invalid_time\n";
@@ -236,7 +236,7 @@ describe('ResultsCsvImporter', function () {
         for ($i = 1; $i <= 4; $i++) {
             $pilot = Pilot::factory()->create();
             $car = Car::factory()->for($pilot)->create(['race_number' => $i]);
-            RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create(['status' => 'CONFIRMED']);
+            RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create(['status' => 'ACCEPTED']);
         }
 
         // Use semicolon delimiter to allow comma in time values
@@ -269,7 +269,7 @@ describe('ResultsCsvImporter', function () {
 
         $pilot = Pilot::factory()->create();
         $car = Car::factory()->for($pilot)->create(['race_number' => 10]);
-        RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create(['status' => 'CONFIRMED']);
+        RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create(['status' => 'ACCEPTED']);
 
         // Create existing result
         RaceResult::factory()->forRace($race)->create(['position' => 1, 'bib' => 10]);
@@ -303,7 +303,7 @@ describe('ImportRaceResults Use Case', function () {
 
         $pilot = Pilot::factory()->create();
         $car = Car::factory()->for($pilot)->create(['race_number' => 42]);
-        RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create(['status' => 'CONFIRMED']);
+        RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create(['status' => 'ACCEPTED']);
 
         $csv = "position,bib,pilote,voiture,catégorie,temps\n";
         $csv .= "1,42,Test Pilot,Test Car,Cat,2:00.000\n";
@@ -329,7 +329,7 @@ describe('ImportRaceResults Use Case', function () {
         $useCase = app(ImportRaceResults::class);
 
         expect(fn () => $useCase->execute($race, $file, $user))
-            ->toThrow(\InvalidArgumentException::class);
+            ->toThrow(InvalidArgumentException::class);
     });
 
 });
@@ -357,7 +357,7 @@ describe('PublishRaceResults Use Case', function () {
         $useCase = new PublishRaceResults;
 
         expect(fn () => $useCase->execute($race, $user))
-            ->toThrow(\InvalidArgumentException::class, 'pas de résultats');
+            ->toThrow(InvalidArgumentException::class, 'pas de résultats');
     });
 
     it('throws exception for invalid race status', function () {
@@ -367,7 +367,7 @@ describe('PublishRaceResults Use Case', function () {
         $useCase = new PublishRaceResults;
 
         expect(fn () => $useCase->execute($race, $user))
-            ->toThrow(\InvalidArgumentException::class);
+            ->toThrow(InvalidArgumentException::class);
     });
 
     it('unpublishes results', function () {

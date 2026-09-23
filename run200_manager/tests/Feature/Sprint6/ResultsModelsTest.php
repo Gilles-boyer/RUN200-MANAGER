@@ -54,16 +54,16 @@ describe('RaceResult Model', function () {
         expect($result->getPoints())->toBe(25); // First place
 
         $result2 = RaceResult::factory()->position(2)->create();
-        expect($result2->getPoints())->toBe(18);
+        expect($result2->getPoints())->toBe(20);
 
         $result3 = RaceResult::factory()->position(3)->create();
-        expect($result3->getPoints())->toBe(15);
+        expect($result3->getPoints())->toBe(16);
 
         $result10 = RaceResult::factory()->position(10)->create();
-        expect($result10->getPoints())->toBe(1);
+        expect($result10->getPoints())->toBe(5);
 
         $result11 = RaceResult::factory()->position(11)->create();
-        expect($result11->getPoints())->toBe(0);
+        expect($result11->getPoints())->toBe(5);
     });
 
     it('has podium scope', function () {

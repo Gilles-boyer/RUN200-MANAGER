@@ -1,5 +1,44 @@
 <?php
 
+use App\Http\Controllers\RaceBoardController;
+use App\Http\Controllers\Staff\ExportEngagedCsvController;
+use App\Http\Controllers\Webhook\StripeWebhookController;
+use App\Http\Middleware\EnsurePilotCanRegisterForRace;
+use App\Infrastructure\Pdf\EngagedListPdfService;
+use App\Infrastructure\Pdf\EngagementFormPdfService;
+use App\Livewire\Admin\Championship;
+use App\Livewire\Admin\PaddockSpots\PaddockMap;
+use App\Livewire\Admin\Races\Documents;
+use App\Livewire\Admin\Races\Notifications;
+use App\Livewire\Admin\Seasons\PointsRules;
+use App\Livewire\Pilot\Cars\Form;
+use App\Livewire\Pilot\Cars\Index;
+use App\Livewire\Pilot\ChampionshipStanding;
+use App\Livewire\Pilot\Dashboard;
+use App\Livewire\Pilot\Profile\Edit;
+use App\Livewire\Pilot\Profile\Show;
+use App\Livewire\Pilot\RaceResults;
+use App\Livewire\Pilot\Registrations\Create;
+use App\Livewire\Pilot\Registrations\Ecard;
+use App\Livewire\Pilot\Registrations\PaddockSelection;
+use App\Livewire\Pilot\Registrations\Payment;
+use App\Livewire\Pilot\Registrations\PaymentCancel;
+use App\Livewire\Pilot\Registrations\PaymentSuccess;
+use App\Livewire\Public\BoardIndex;
+use App\Livewire\Public\ChampionshipStandings;
+use App\Livewire\Public\RaceBoard;
+use App\Livewire\Public\RaceCalendar;
+use App\Livewire\Staff\Cars\TechInspectionHistory;
+use App\Livewire\Staff\Paddock\ManagePaddock;
+use App\Livewire\Staff\Registrations\CheckpointsManager;
+use App\Livewire\Staff\Registrations\EngagementSign;
+use App\Livewire\Staff\Registrations\PaymentManager;
+use App\Livewire\Staff\Registrations\TechInspectionForm;
+use App\Livewire\Staff\Registrations\WalkInRegistration;
+use App\Livewire\Staff\Results\ResultsManager;
+use App\Livewire\Staff\Scan\Scanner;
+use App\Models\EngagementForm;
+use App\Models\Race;
 use Illuminate\Support\Facades\Route;
 
 // Design System Preview (dev only)
@@ -8,7 +47,7 @@ if (app()->environment('local')) {
 }
 
 // Stripe Webhook (must be outside auth middleware)
-Route::post('/stripe/webhook', App\Http\Controllers\Webhook\StripeWebhookController::class)
+Route::post('/stripe/webhook', StripeWebhookController::class)
     ->name('stripe.webhook')
     ->withoutMiddleware(['web', 'csrf']);
 
@@ -16,9 +55,10 @@ Route::post('/stripe/webhook', App\Http\Controllers\Webhook\StripeWebhookControl
 // Public Routes (no authentication required)
 // =========================================================================
 Route::prefix('public')->name('public.')->group(function () {
-    Route::get('/calendrier', App\Livewire\Public\RaceCalendar::class)->name('calendar');
-    Route::get('/classement', App\Livewire\Public\ChampionshipStandings::class)->name('standings');
-    Route::get('/tableaux-affichage', App\Livewire\Public\BoardIndex::class)->name('boards');
+    Route::get('/calendrier', RaceCalendar::class)->name('calendar');
+    Route::get('/classement', ChampionshipStandings::class)->name('standings');
+    Route::get('/resultats/{race}', RaceResults::class)->name('results.race');
+    Route::get('/tableaux-affichage', BoardIndex::class)->name('boards');
 });
 
 // =========================================================================
@@ -31,9 +71,9 @@ Route::get('/confidentialite', fn () => view('pages.privacy'))->name('privacy');
 // Tableau d'affichage numérique (Public - accessible sans authentification)
 // =========================================================================
 Route::prefix('board')->name('board.')->middleware('throttle:60,1')->group(function () {
-    Route::get('/{race:slug}', App\Livewire\Public\RaceBoard::class)->name('show');
-    Route::get('/doc/{slug}', [App\Http\Controllers\RaceBoardController::class, 'view'])->name('view');
-    Route::get('/doc/{slug}/download', [App\Http\Controllers\RaceBoardController::class, 'download'])->name('download');
+    Route::get('/{race:slug}', RaceBoard::class)->name('show');
+    Route::get('/doc/{slug}', [RaceBoardController::class, 'view'])->name('view');
+    Route::get('/doc/{slug}/download', [RaceBoardController::class, 'download'])->name('download');
 });
 
 Route::get('/', function () {
@@ -78,19 +118,19 @@ Route::get('dashboard', function () {
 
 // Pilot Routes
 Route::middleware(['auth', 'role:PILOTE'])->prefix('pilot')->name('pilot.')->group(function () {
-    Route::get('/dashboard', App\Livewire\Pilot\Dashboard::class)->name('dashboard');
+    Route::get('/dashboard', Dashboard::class)->name('dashboard');
 
     // Profile Routes (always accessible for pilots)
     Route::prefix('profile')->name('profile.')->group(function () {
-        Route::get('/', App\Livewire\Pilot\Profile\Show::class)->name('show');
-        Route::get('/edit', App\Livewire\Pilot\Profile\Edit::class)->name('edit');
+        Route::get('/', Show::class)->name('show');
+        Route::get('/edit', Edit::class)->name('edit');
     });
 
     // Cars Routes (always accessible for pilots)
     Route::prefix('cars')->name('cars.')->group(function () {
-        Route::get('/', App\Livewire\Pilot\Cars\Index::class)->name('index');
-        Route::get('/create', App\Livewire\Pilot\Cars\Form::class)->name('create');
-        Route::get('/{car}/edit', App\Livewire\Pilot\Cars\Form::class)->name('edit');
+        Route::get('/', Index::class)->name('index');
+        Route::get('/create', Form::class)->name('create');
+        Route::get('/{car}/edit', Form::class)->name('edit');
     });
 
     // Races Routes (browse open races)
@@ -99,26 +139,26 @@ Route::middleware(['auth', 'role:PILOTE'])->prefix('pilot')->name('pilot.')->gro
     });
 
     // Registrations Routes - require complete profile + at least one car
-    Route::middleware([App\Http\Middleware\EnsurePilotCanRegisterForRace::class])->group(function () {
+    Route::middleware([EnsurePilotCanRegisterForRace::class])->group(function () {
         Route::prefix('registrations')->name('registrations.')->group(function () {
             Route::get('/', App\Livewire\Pilot\Registrations\Index::class)->name('index');
-            Route::get('/create/{race}', App\Livewire\Pilot\Registrations\Create::class)->name('create');
-            Route::get('/{registration}/ecard', App\Livewire\Pilot\Registrations\Ecard::class)->name('ecard');
-            Route::get('/{registration}/payment', App\Livewire\Pilot\Registrations\Payment::class)->name('payment');
-            Route::get('/{registration}/payment/success', App\Livewire\Pilot\Registrations\PaymentSuccess::class)->name('payment.success');
-            Route::get('/{registration}/payment/cancel', App\Livewire\Pilot\Registrations\PaymentCancel::class)->name('payment.cancel');
-            Route::get('/{registration}/paddock', App\Livewire\Pilot\Registrations\PaddockSelection::class)->name('paddock.select');
+            Route::get('/create/{race}', Create::class)->name('create');
+            Route::get('/{registration}/ecard', Ecard::class)->name('ecard');
+            Route::get('/{registration}/payment', Payment::class)->name('payment');
+            Route::get('/{registration}/payment/success', PaymentSuccess::class)->name('payment.success');
+            Route::get('/{registration}/payment/cancel', PaymentCancel::class)->name('payment.cancel');
+            Route::get('/{registration}/paddock', PaddockSelection::class)->name('paddock.select');
         });
     });
 
     // Results Routes (public published results)
     Route::prefix('results')->name('results.')->group(function () {
-        Route::get('/{race}', App\Livewire\Pilot\RaceResults::class)->name('race');
+        Route::get('/{race}', RaceResults::class)->name('race');
     });
 
     // Championship Routes
-    Route::get('/championship', App\Livewire\Pilot\ChampionshipStanding::class)->name('championship');
-    Route::get('/championship/{season}', App\Livewire\Pilot\ChampionshipStanding::class)->name('championship.season');
+    Route::get('/championship', ChampionshipStanding::class)->name('championship');
+    Route::get('/championship/{season}', ChampionshipStanding::class)->name('championship.season');
 });
 
 // Staff Routes
@@ -128,31 +168,31 @@ Route::middleware(['auth', 'role:ADMIN|STAFF_ADMINISTRATIF|CONTROLEUR_TECHNIQUE|
     // Registration management
     Route::prefix('registrations')->name('registrations.')->group(function () {
         Route::get('/', App\Livewire\Staff\Registrations\Index::class)->name('index');
-        Route::get('/walk-in', App\Livewire\Staff\Registrations\WalkInRegistration::class)
+        Route::get('/walk-in', WalkInRegistration::class)
             ->middleware('permission:registration.manage')
             ->name('walk-in');
-        Route::get('/engagement', App\Livewire\Staff\Registrations\EngagementSign::class)
+        Route::get('/engagement', EngagementSign::class)
             ->middleware('permission:registration.manage')
             ->name('engagement');
-        Route::get('/engagement/{registration}', App\Livewire\Staff\Registrations\EngagementSign::class)
+        Route::get('/engagement/{registration}', EngagementSign::class)
             ->middleware('permission:registration.manage')
             ->name('engagement.registration');
-        Route::get('/engagement-pdf/{engagement}', function (\App\Models\EngagementForm $engagement) {
-            $pdfService = new \App\Infrastructure\Pdf\EngagementFormPdfService;
+        Route::get('/engagement-pdf/{engagement}', function (EngagementForm $engagement) {
+            $pdfService = new EngagementFormPdfService;
 
             return $pdfService->stream($engagement);
         })->middleware('permission:registration.manage')->name('engagement-pdf');
-        Route::get('/engagement-pdf/{engagement}/download', function (\App\Models\EngagementForm $engagement) {
-            $pdfService = new \App\Infrastructure\Pdf\EngagementFormPdfService;
+        Route::get('/engagement-pdf/{engagement}/download', function (EngagementForm $engagement) {
+            $pdfService = new EngagementFormPdfService;
 
             return $pdfService->download($engagement);
         })->middleware('permission:registration.manage')->name('engagement-pdf-download');
-        Route::get('/{registration}/checkpoints', App\Livewire\Staff\Registrations\CheckpointsManager::class)
+        Route::get('/{registration}/checkpoints', CheckpointsManager::class)
             ->name('checkpoints');
-        Route::get('/{registration}/tech', App\Livewire\Staff\Registrations\TechInspectionForm::class)
+        Route::get('/{registration}/tech', TechInspectionForm::class)
             ->middleware('permission:tech_inspection.manage')
             ->name('tech');
-        Route::get('/{registration}/payments', App\Livewire\Staff\Registrations\PaymentManager::class)
+        Route::get('/{registration}/payments', PaymentManager::class)
             ->middleware('permission:payment.manage')
             ->name('payments');
     });
@@ -161,40 +201,40 @@ Route::middleware(['auth', 'role:ADMIN|STAFF_ADMINISTRATIF|CONTROLEUR_TECHNIQUE|
     Route::get('/cars', App\Livewire\Staff\Cars\Index::class)
         ->middleware('permission:tech_inspection.manage')
         ->name('cars.index');
-    Route::get('/cars/{car}/tech-history', App\Livewire\Staff\Cars\TechInspectionHistory::class)
+    Route::get('/cars/{car}/tech-history', TechInspectionHistory::class)
         ->middleware('permission:tech_inspection.manage')
         ->name('cars.tech-history');
 
     // Race management
     Route::prefix('races')->name('races.')->group(function () {
         Route::get('/', App\Livewire\Staff\Races\Index::class)->name('index');
-        Route::get('/{race}/engaged-pdf', function (\App\Models\Race $race) {
-            $pdfService = new \App\Infrastructure\Pdf\EngagedListPdfService;
+        Route::get('/{race}/engaged-pdf', function (Race $race) {
+            $pdfService = new EngagedListPdfService;
 
             return $pdfService->download($race);
         })->name('engaged-pdf');
-        Route::get('/{race}/engaged-csv', App\Http\Controllers\Staff\ExportEngagedCsvController::class)
+        Route::get('/{race}/engaged-csv', ExportEngagedCsvController::class)
             ->name('engaged-csv');
-        Route::get('/{race}/results', App\Livewire\Staff\Results\ResultsManager::class)
+        Route::get('/{race}/results', ResultsManager::class)
             ->middleware('permission:race.manage')
             ->name('results');
     });
 
     // Checkpoint Scanners
     Route::prefix('scan')->name('scan.')->middleware('throttle:scan')->group(function () {
-        Route::get('/admin', App\Livewire\Staff\Scan\Scanner::class)
+        Route::get('/admin', Scanner::class)
             ->defaults('checkpointCode', 'ADMIN_CHECK')
             ->name('admin');
-        Route::get('/tech', App\Livewire\Staff\Scan\Scanner::class)
+        Route::get('/tech', Scanner::class)
             ->defaults('checkpointCode', 'TECH_CHECK')
             ->name('tech');
-        Route::get('/entry', App\Livewire\Staff\Scan\Scanner::class)
+        Route::get('/entry', Scanner::class)
             ->defaults('checkpointCode', 'ENTRY')
             ->name('entry');
-        Route::get('/bracelet', App\Livewire\Staff\Scan\Scanner::class)
+        Route::get('/bracelet', Scanner::class)
             ->defaults('checkpointCode', 'BRACELET')
             ->name('bracelet');
-        Route::get('/assistance', App\Livewire\Staff\Scan\Scanner::class)
+        Route::get('/assistance', Scanner::class)
             ->defaults('checkpointCode', 'ASSISTANCE')
             ->name('assistance');
     });
@@ -207,7 +247,7 @@ Route::middleware(['auth', 'role:ADMIN|STAFF_ADMINISTRATIF|CONTROLEUR_TECHNIQUE|
     });
 
     // Paddock management
-    Route::get('/paddock', App\Livewire\Staff\Paddock\ManagePaddock::class)
+    Route::get('/paddock', ManagePaddock::class)
         ->middleware('permission:registration.manage')
         ->name('paddock.manage');
 });
@@ -221,7 +261,7 @@ Route::middleware(['auth', 'role:ADMIN'])->prefix('admin')->name('admin.')->grou
         Route::get('/', App\Livewire\Admin\Seasons\Index::class)->name('index');
         Route::get('/create', App\Livewire\Admin\Seasons\Form::class)->name('create');
         Route::get('/{season}/edit', App\Livewire\Admin\Seasons\Form::class)->name('edit');
-        Route::get('/{season}/points-rules', App\Livewire\Admin\Seasons\PointsRules::class)->name('points-rules');
+        Route::get('/{season}/points-rules', PointsRules::class)->name('points-rules');
     });
 
     // Races management
@@ -229,8 +269,8 @@ Route::middleware(['auth', 'role:ADMIN'])->prefix('admin')->name('admin.')->grou
         Route::get('/', App\Livewire\Admin\Races\Index::class)->name('index');
         Route::get('/create', App\Livewire\Admin\Races\Form::class)->name('create');
         Route::get('/{race}/edit', App\Livewire\Admin\Races\Form::class)->name('edit');
-        Route::get('/{race}/notifications', App\Livewire\Admin\Races\Notifications::class)->name('notifications');
-        Route::get('/{race}/documents', App\Livewire\Admin\Races\Documents::class)->name('documents');
+        Route::get('/{race}/notifications', Notifications::class)->name('notifications');
+        Route::get('/{race}/documents', Documents::class)->name('documents');
     });
 
     // Users management
@@ -251,16 +291,16 @@ Route::middleware(['auth', 'role:ADMIN'])->prefix('admin')->name('admin.')->grou
     // Paddock Spots management
     Route::prefix('paddock-spots')->name('paddock-spots.')->group(function () {
         Route::get('/', App\Livewire\Admin\PaddockSpots\Index::class)->name('index');
-        Route::get('/map', App\Livewire\Admin\PaddockSpots\PaddockMap::class)->name('map');
+        Route::get('/map', PaddockMap::class)->name('map');
     });
 
     // Registrations management (Admin can register pilots manually)
     Route::prefix('registrations')->name('registrations.')->group(function () {
-        Route::get('/walk-in', App\Livewire\Staff\Registrations\WalkInRegistration::class)->name('walk-in');
+        Route::get('/walk-in', WalkInRegistration::class)->name('walk-in');
     });
 
     // Championship Routes
-    Route::get('/championship/{season}', App\Livewire\Admin\Championship::class)->name('championship');
+    Route::get('/championship/{season}', Championship::class)->name('championship');
 });
 
 require __DIR__.'/settings.php';

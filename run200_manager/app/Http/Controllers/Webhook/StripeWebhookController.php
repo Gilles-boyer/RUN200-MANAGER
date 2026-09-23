@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Webhook;
 
 use App\Application\Payments\UseCases\HandleStripeWebhook;
+use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Log;
 use Stripe\Exception\SignatureVerificationException;
+use Stripe\Webhook;
 
 /**
  * Controller for handling Stripe webhook events.
@@ -35,7 +37,7 @@ class StripeWebhookController extends Controller
         }
 
         try {
-            $event = \Stripe\Webhook::constructEvent(
+            $event = Webhook::constructEvent(
                 $payload,
                 $signature,
                 config('stripe.webhook_secret')
@@ -61,7 +63,7 @@ class StripeWebhookController extends Controller
         $eventTypesWithIdempotency = ['checkout.session.completed', 'payment_intent.succeeded'];
 
         if (in_array($event->type, $eventTypesWithIdempotency)) {
-            if (\App\Models\Payment::where('stripe_event_id', $event->id)->exists()) {
+            if (Payment::where('stripe_event_id', $event->id)->exists()) {
                 Log::info('Stripe webhook already processed', ['event_id' => $event->id]);
 
                 return response('Event already processed', 200);
@@ -96,8 +98,8 @@ class StripeWebhookController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            // Return 200 to prevent Stripe from retrying
-            // (we've logged the error for manual investigation)
+            // Let Stripe retry processing failures instead of silently losing payments.
+            return response('Webhook processing failed', 500);
         }
 
         return response('Webhook handled', 200);
