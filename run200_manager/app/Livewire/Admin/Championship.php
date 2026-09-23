@@ -11,6 +11,7 @@ use App\Models\CarCategory;
 use App\Models\Season;
 use App\Models\SeasonCategoryStanding;
 use App\Models\SeasonStanding;
+use App\Support\UserFacingError;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -131,7 +132,7 @@ class Championship extends Component
             $this->successMessage = "Classement recalculé : {$result['ranked_pilots']} pilotes classés sur {$result['general_standings_count']} participants.";
             $this->errorMessage = null;
         } catch (\Exception $e) {
-            $this->errorMessage = 'Erreur lors du recalcul : '.$e->getMessage();
+            $this->errorMessage = UserFacingError::message($e, 'Impossible de recalculer le classement.');
             $this->successMessage = null;
         }
     }

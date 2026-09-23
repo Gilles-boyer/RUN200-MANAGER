@@ -15,8 +15,15 @@
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                 </svg>
                 <div>
-                    <p class="font-medium">Inscription pilote</p>
-                    <p class="mt-1">Après votre inscription, vous devrez compléter votre profil à 100% et enregistrer au moins une voiture pour pouvoir vous inscrire aux courses.</p>
+                    <p class="font-medium">Les étapes pour participer</p>
+                    <ol class="mt-2 list-decimal pl-5 space-y-1">
+                        <li>Créez votre compte et confirmez votre adresse e-mail.</li>
+                        <li>Complétez votre profil, avec une photo.</li>
+                        <li>Ajoutez une voiture et choisissez son numéro de course.</li>
+                        <li>Choisissez une course, lisez son règlement, puis inscrivez-vous.</li>
+                        <li>Payez l’inscription et attendez sa validation par l’organisateur.</li>
+                        <li>Le jour de la course, suivez les vérifications administrative et technique.</li>
+                    </ol>
                 </div>
             </div>
         </div>

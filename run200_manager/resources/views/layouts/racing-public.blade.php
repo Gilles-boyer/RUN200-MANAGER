@@ -217,6 +217,14 @@
                     </x-racing.alert>
                 </div>
             @endif
+
+            @foreach (['warning', 'info'] as $flashType)
+                @if (session($flashType))
+                    <div class="mt-4">
+                        <x-racing.alert :type="$flashType" dismissible>{{ session($flashType) }}</x-racing.alert>
+                    </div>
+                @endif
+            @endforeach
         </div>
 
         {{ $slot }}

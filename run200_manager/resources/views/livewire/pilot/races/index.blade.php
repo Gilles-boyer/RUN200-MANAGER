@@ -72,6 +72,7 @@
                     :season="$race->season?->name"
                     :isRegistered="in_array($race->id, $registeredRaceIds)"
                     :canRegister="$race->isOpen() && $pilot"
+                    :regulationAvailable="in_array($race->id, $regulationAvailableRaceIds)"
                     :registerUrl="route('pilot.registrations.create', $race)"
                 />
             @endforeach

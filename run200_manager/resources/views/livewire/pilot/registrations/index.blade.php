@@ -106,7 +106,7 @@
                                     @endif
                                     @if($registration->car)
                                         <span class="flex items-center gap-1.5">
-                                            🚗 {{ $registration->car->brand }} {{ $registration->car->model }}
+                                            🚗 {{ $registration->car->make }} {{ $registration->car->model }}
                                         </span>
                                     @endif
                                     <span class="flex items-center gap-1.5 text-carbon-400">

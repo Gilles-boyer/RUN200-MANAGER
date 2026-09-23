@@ -218,6 +218,20 @@
                 </x-slot>
 
                 <div class="space-y-4">
+                    @if($this->regulation)
+                        <div class="rounded-xl border border-status-info/40 bg-status-info/10 p-4 text-sm text-carbon-700 dark:text-carbon-200">
+                            <p class="font-semibold">Règlement de {{ $race->name }}</p>
+                            <a href="{{ route('board.view', $this->regulation->slug) }}" target="_blank" rel="noopener noreferrer" class="mt-2 inline-flex items-center gap-1 font-semibold text-racing-red-600 underline hover:text-racing-red-700 dark:text-racing-red-400">
+                                Lire le règlement avant d’accepter ↗
+                            </a>
+                        </div>
+                    @else
+                        <x-racing.alert type="warning">
+                            Le règlement de cette course n’est pas encore disponible. L’inscription ouvrira dès sa publication.
+                            <a href="{{ route('board.show', $race->slug) }}" target="_blank" rel="noopener noreferrer" class="font-semibold underline">Voir le tableau d’affichage ↗</a>
+                        </x-racing.alert>
+                    @endif
+
                     <div class="bg-carbon-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-carbon-200 dark:border-carbon-700 text-sm text-carbon-600 dark:text-carbon-400">
                         <p>En vous inscrivant à cette course, vous vous engagez à :</p>
                         <ul class="mt-2 space-y-1 list-disc list-inside">
@@ -234,6 +248,7 @@
                                 type="checkbox"
                                 wire:model="confirmTerms"
                                 id="confirmTerms"
+                                @disabled(! $this->regulation)
                                 class="peer sr-only"
                             />
                             <div class="w-5 h-5 rounded-md border-2 transition-all duration-200 ease-out flex items-center justify-center
@@ -252,11 +267,11 @@
                         </div>
                         <div class="flex-1">
                             <span class="text-sm font-medium text-carbon-900 dark:text-carbon-100">
-                                J'accepte les conditions de participation
+                                J'ai consulté le règlement de cette course et j'accepte les conditions de participation
                                 <span class="text-racing-red-500 ml-0.5">*</span>
                             </span>
                             <p class="text-xs text-carbon-500 dark:text-carbon-400 mt-1">
-                                Je confirme avoir pris connaissance du règlement de la course et m'engage à le respecter.
+                                Ouvrez le règlement ci-dessus avant de confirmer votre accord.
                             </p>
                         </div>
                     </label>
@@ -273,7 +288,7 @@
                     variant="primary"
                     icon="✓"
                     wire:click="submit"
-                    :disabled="$this->cars->isEmpty()"
+                    :disabled="$this->cars->isEmpty() || ! $this->regulation"
                     wire:loading.attr="disabled"
                 >
                     <span wire:loading.remove wire:target="submit">Confirmer l'inscription</span>

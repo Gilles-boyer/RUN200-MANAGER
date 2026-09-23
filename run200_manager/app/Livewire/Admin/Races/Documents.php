@@ -6,6 +6,7 @@ use App\Infrastructure\Documents\DocumentUploadService;
 use App\Models\DocumentCategory;
 use App\Models\Race;
 use App\Models\RaceDocument;
+use App\Support\UserFacingError;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -181,7 +182,7 @@ class Documents extends Component
     {
         $this->validate();
 
-        $uploadService = new DocumentUploadService();
+        $uploadService = new DocumentUploadService;
 
         try {
             // Vérifier si un document existe déjà pour cette catégorie (si pas multiple)
@@ -235,7 +236,7 @@ class Documents extends Component
         } catch (\InvalidArgumentException $e) {
             $this->addError('uploadedFile', $e->getMessage());
         } catch (\Exception $e) {
-            $this->addError('uploadedFile', 'Erreur lors de l\'upload : '.$e->getMessage());
+            $this->addError('uploadedFile', UserFacingError::message($e, 'Impossible d’ajouter ce document. Vérifiez son format et sa taille.'));
         }
     }
 
@@ -308,7 +309,7 @@ class Documents extends Component
             return;
         }
 
-        $uploadService = new DocumentUploadService();
+        $uploadService = new DocumentUploadService;
         $uploadService->deleteAllVersions($this->selectedDocument);
 
         $this->selectedDocument->delete();

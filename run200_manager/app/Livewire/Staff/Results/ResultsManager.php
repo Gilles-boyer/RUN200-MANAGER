@@ -9,6 +9,7 @@ use App\Application\Results\UseCases\PublishRaceResults;
 use App\Models\Race;
 use App\Models\RaceRegistration;
 use App\Models\RaceResult;
+use App\Support\UserFacingError;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -220,7 +221,7 @@ class ResultsManager extends Component
                 }
             }
         } catch (\Exception $e) {
-            $this->errorMessage = "Erreur lors de l'import : ".$e->getMessage();
+            $this->errorMessage = UserFacingError::message($e, 'Impossible d’importer ce fichier. Vérifiez son format et ses colonnes.');
         }
 
         $this->closeUploadModal();
@@ -248,8 +249,10 @@ class ResultsManager extends Component
 
             $this->successMessage = 'Résultats publiés avec succès !';
             $this->race->refresh();
+        } catch (\InvalidArgumentException $e) {
+            $this->errorMessage = $e->getMessage();
         } catch (\Exception $e) {
-            $this->errorMessage = 'Erreur lors de la publication : '.$e->getMessage();
+            $this->errorMessage = UserFacingError::message($e, 'Impossible de publier les résultats. Vérifiez que chaque résultat est relié à une inscription ou exclu du championnat.');
         }
     }
 
@@ -275,8 +278,10 @@ class ResultsManager extends Component
 
             $this->successMessage = 'Résultats dépubliés. Ils ne sont plus visibles par les pilotes.';
             $this->race->refresh();
+        } catch (\InvalidArgumentException $e) {
+            $this->errorMessage = 'Cette course n’est pas publiée. Actualisez la page avant de réessayer.';
         } catch (\Exception $e) {
-            $this->errorMessage = 'Erreur lors de la dépublication : '.$e->getMessage();
+            $this->errorMessage = UserFacingError::message($e, 'Impossible de retirer les résultats publiés.');
         }
     }
 

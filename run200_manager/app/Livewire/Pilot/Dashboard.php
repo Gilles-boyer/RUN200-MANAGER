@@ -38,6 +38,7 @@ class Dashboard extends Component
             ->orderBy('race_date')
             ->take(3)
             ->get();
+        $openRaces->each(fn (Race $race) => $race->setAttribute('regulation_available', $race->registrationRegulation() !== null));
 
         // Inscriptions récentes du pilote
         $recentRegistrations = $pilot

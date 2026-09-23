@@ -9,6 +9,8 @@ use App\Infrastructure\Qr\QrTokenService;
 use App\Models\Checkpoint;
 use App\Models\Race;
 use App\Models\RaceRegistration;
+use App\Support\UserFacingError;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -183,8 +185,12 @@ class Index extends Component
                 $useCase->refuse($this->selectedRegistration, $this->refusalReason);
                 session()->flash('success', 'Inscription refusée.');
             }
-        } catch (\Exception $e) {
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\InvalidArgumentException $e) {
             session()->flash('error', $e->getMessage());
+        } catch (\Exception $e) {
+            session()->flash('error', UserFacingError::message($e, 'Impossible de valider cette inscription.'));
         }
 
         $this->closeValidationModal();
@@ -220,8 +226,10 @@ class Index extends Component
             $useCase = new AssignPaddock;
             $useCase->execute($this->selectedRegistration, $this->paddockNumber);
             session()->flash('success', 'Paddock assigné avec succès.');
-        } catch (\Exception $e) {
+        } catch (\InvalidArgumentException $e) {
             session()->flash('error', $e->getMessage());
+        } catch (\Exception $e) {
+            session()->flash('error', UserFacingError::message($e, 'Impossible d’attribuer ce paddock.'));
         }
 
         $this->closePaddockModal();
@@ -277,7 +285,7 @@ class Index extends Component
             $statusLabel = RegistrationStatus::from($this->newStatus)->label();
             session()->flash('success', "Statut modifié avec succès : {$statusLabel}");
         } catch (\Exception $e) {
-            session()->flash('error', 'Erreur lors de la modification du statut : '.$e->getMessage());
+            session()->flash('error', UserFacingError::message($e, 'Impossible de modifier le statut de cette inscription.'));
         }
 
         $this->closeStatusModal();
@@ -289,9 +297,9 @@ class Index extends Component
 
         // Jointures pour le tri (avant les filtres pour éviter les ambiguïtés)
         $query->join('pilots', 'race_registrations.pilot_id', '=', 'pilots.id')
-              ->join('cars', 'race_registrations.car_id', '=', 'cars.id')
-              ->join('races', 'race_registrations.race_id', '=', 'races.id')
-              ->select('race_registrations.*');
+            ->join('cars', 'race_registrations.car_id', '=', 'cars.id')
+            ->join('races', 'race_registrations.race_id', '=', 'races.id')
+            ->select('race_registrations.*');
 
         if ($this->raceId) {
             $query->where('race_registrations.race_id', $this->raceId);
@@ -311,9 +319,9 @@ class Index extends Component
                         ->orWhere('license_number', 'like', '%'.$searchTerm.'%');
                 })
                 // Recherche par numéro de voiture
-                ->orWhereHas('car', function ($cq) use ($searchTerm) {
-                    $cq->where('race_number', 'like', '%'.$searchTerm.'%');
-                });
+                    ->orWhereHas('car', function ($cq) use ($searchTerm) {
+                        $cq->where('race_number', 'like', '%'.$searchTerm.'%');
+                    });
             });
         }
 
@@ -321,7 +329,7 @@ class Index extends Component
         switch ($this->sortBy) {
             case 'pilot_name':
                 $query->orderBy('pilots.last_name', $this->sortDirection)
-                      ->orderBy('pilots.first_name', $this->sortDirection);
+                    ->orderBy('pilots.first_name', $this->sortDirection);
                 break;
             case 'race_number':
                 $query->orderBy('cars.race_number', $this->sortDirection);
@@ -337,7 +345,7 @@ class Index extends Component
                 break;
             default:
                 $query->orderBy('pilots.last_name', 'asc')
-                      ->orderBy('pilots.first_name', 'asc');
+                    ->orderBy('pilots.first_name', 'asc');
         }
 
         $registrations = $query->paginate(15);

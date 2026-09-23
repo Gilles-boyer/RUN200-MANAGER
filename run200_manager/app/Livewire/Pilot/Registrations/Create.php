@@ -5,6 +5,8 @@ namespace App\Livewire\Pilot\Registrations;
 use App\Application\Registrations\UseCases\SubmitRegistration;
 use App\Models\Car;
 use App\Models\Race;
+use App\Models\RaceDocument;
+use App\Support\UserFacingError;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -81,9 +83,21 @@ class Create extends Component
         return Car::find($this->selectedCarId);
     }
 
+    #[Computed]
+    public function regulation(): ?RaceDocument
+    {
+        return $this->race->registrationRegulation();
+    }
+
     public function submit(SubmitRegistration $submitRegistration)
     {
         $this->errorMessage = '';
+
+        if (! $this->regulation) {
+            $this->errorMessage = 'Le règlement de cette course n’est pas encore disponible. Consultez le tableau d’affichage ou contactez l’organisateur avant de vous inscrire.';
+
+            return;
+        }
 
         // Validation
         if (! $this->selectedCarId) {
@@ -93,7 +107,7 @@ class Create extends Component
         }
 
         if (! $this->confirmTerms) {
-            $this->errorMessage = 'Vous devez accepter les conditions pour vous inscrire.';
+            $this->errorMessage = 'Consultez le règlement de la course, puis cochez la case pour confirmer votre accord.';
 
             return;
         }
@@ -139,8 +153,7 @@ class Create extends Component
         } catch (\InvalidArgumentException $e) {
             $this->errorMessage = $e->getMessage();
         } catch (\Exception $e) {
-            $this->errorMessage = 'Une erreur est survenue lors de l\'inscription. Veuillez réessayer.';
-            report($e);
+            $this->errorMessage = UserFacingError::message($e, 'Impossible d’enregistrer votre inscription.');
         }
     }
 

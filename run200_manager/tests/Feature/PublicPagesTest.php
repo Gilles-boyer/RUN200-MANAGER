@@ -3,6 +3,7 @@
 use App\Models\CarCategory;
 use App\Models\Pilot;
 use App\Models\Race;
+use App\Models\RaceResult;
 use App\Models\Season;
 use App\Models\SeasonCategoryStanding;
 use App\Models\SeasonStanding;
@@ -51,11 +52,12 @@ describe('Public Race Calendar', function () {
             'location' => 'ANCIEN CIRCUIT',
             'status' => 'PUBLISHED',
         ]);
+        RaceResult::factory()->forRace($pastRace)->create();
 
         $this->get(route('public.calendar'))
             ->assertOk()
             ->assertSee('Course Passee Test')
-            ->assertSee('Résultats publiés');
+            ->assertSee('Voir les résultats');
     });
 
     it('shows season statistics', function () {
