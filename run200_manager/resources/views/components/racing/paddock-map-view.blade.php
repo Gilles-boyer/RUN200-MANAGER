@@ -36,11 +36,14 @@
                         $isOccupied = isset($spot['is_occupied_for_race']) ? $spot['is_occupied_for_race'] : !($spot['is_available'] ?? true);
                         $isAvailable = !$isOccupied && ($spot['is_available'] ?? true);
                     @endphp
-                    <div
+                    <button type="button"
+                        wire:key="paddock-map-{{ $spot['id'] }}"
                         class="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-150 z-10
-                            {{ $interactive ? 'cursor-pointer hover:scale-110' : '' }}
+                            {{ $interactive ? 'cursor-pointer hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white' : '' }}
                             {{ $isSelected || $isHighlighted ? 'z-20 scale-125' : '' }}"
                         style="left: {{ $spot['position_x'] }}px; top: {{ $spot['position_y'] }}px;"
+                        aria-label="Emplacement {{ $spot['spot_number'] ?? 'sans numéro' }}, zone {{ $spot['zone'] ?? '?' }}, {{ $isOccupied ? 'occupé' : ($isAvailable ? 'disponible' : 'hors service') }}"
+                        @disabled(!$interactive)
                         @if($interactive && isset($attributes['wire:click']))
                             wire:click="{{ $attributes['wire:click'] }}({{ $spot['id'] }})"
                         @endif
@@ -85,7 +88,7 @@
                                 <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-carbon-800"></div>
                             </div>
                         </div>
-                    </div>
+                    </button>
                 @endforeach
             </div>
         </div>

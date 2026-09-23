@@ -1,7 +1,7 @@
 <div>
     <!-- Header -->
     <div class="mb-6">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
                 <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
                     Sélection d'Emplacement Paddock
@@ -20,7 +20,7 @@
 
         @if($registration->paddockSpot)
             <div class="mt-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                         <h3 class="text-sm font-medium text-green-800 dark:text-green-300">
                             Emplacement actuel: {{ $registration->paddockSpot->full_name }}
@@ -42,6 +42,14 @@
             </div>
         @endif
     </div>
+
+    @if($errors->any())
+        <div role="alert" class="mb-6 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+            @foreach($errors->all() as $error)
+                <p>{{ $error }}</p>
+            @endforeach
+        </div>
+    @endif
 
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -181,9 +189,10 @@
             @foreach($spots as $spot)
                 @php
                     $isAvailable = !$spot->is_occupied_for_race;
-                    $currentRegistration = $spot->registration_for_race;
                 @endphp
                 <button
+                    type="button"
+                    wire:key="pilot-paddock-{{ $spot->id }}"
                     wire:click="selectSpot({{ $spot->id }})"
                     class="relative h-20 rounded-lg border-2 transition-all duration-200 flex flex-col items-center justify-center
                         {{ $isAvailable
@@ -192,7 +201,7 @@
                         }}
                         {{ $selectedSpotId === $spot->id ? 'ring-4 ring-indigo-500 scale-105' : '' }}
                         {{ $registration->paddock_spot_id === $spot->id ? 'ring-4 ring-green-500' : '' }}"
-                    title="{{ $spot->full_name }}{{ !$isAvailable && $currentRegistration ? ' - Réservé par ' . $currentRegistration->pilot->first_name . ' ' . $currentRegistration->pilot->last_name : '' }}"
+                    title="{{ $spot->full_name }} — {{ $isAvailable ? 'disponible' : 'réservé' }}"
                 >
                     <!-- Spot Number -->
                     <span class="text-lg font-bold
@@ -248,22 +257,25 @@
     @endif {{-- Fin vue grille --}}
 
     <!-- Confirm Selection Button -->
-    @if($selectedSpotId && !$registration->paddockSpot)
+    @if($selectedSpotId && $selectedSpotId !== $registration->paddock_spot_id)
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="flex items-center justify-between">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                     <h3 class="text-lg font-medium text-gray-900 dark:text-white">
                         Confirmer la sélection
                     </h3>
                     <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                        Emplacement sélectionné: {{ \App\Models\PaddockSpot::find($selectedSpotId)->full_name }}
+                        Emplacement sélectionné: {{ \App\Models\PaddockSpot::find($selectedSpotId)?->full_name }}
                     </p>
                 </div>
                 <button
+                    type="button"
                     wire:click="confirmSelection"
+                    wire:loading.attr="disabled"
+                    wire:target="confirmSelection"
                     class="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-medium"
                 >
-                    Confirmer et Réserver
+                    {{ $registration->paddock_spot_id ? 'Confirmer le changement' : 'Confirmer et réserver' }}
                 </button>
             </div>
         </div>
@@ -273,10 +285,9 @@
     @if($showSpotDetails && $spotDetails)
         @php
             $isOccupiedForRace = $spotDetails->isOccupiedForRace($registration->race_id);
-            $registrationForRace = $spotDetails->registrationForRace($registration->race_id);
         @endphp
         <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" wire:click="closeSpotDetails">
-            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800" wire:click.stop>
+            <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-sm shadow-lg rounded-md bg-white dark:bg-gray-800" wire:click.stop>
                 <div class="mt-3">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-medium text-gray-900 dark:text-white">
@@ -293,23 +304,13 @@
                         Pour la course: <strong>{{ $registration->race->name }}</strong>
                     </p>
 
-                    @if($isOccupiedForRace && $registrationForRace)
+                    @if($isOccupiedForRace)
                         <div class="space-y-3">
                             <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
                                 <p class="text-sm font-medium text-red-800 dark:text-red-300 mb-2">
                                     Emplacement réservé pour cette course
                                 </p>
-                                <div class="text-sm text-gray-700 dark:text-gray-300">
-                                    <p><strong>Pilote:</strong>
-                                        {{ $registrationForRace->pilot->first_name }}
-                                        {{ $registrationForRace->pilot->last_name }}
-                                    </p>
-                                    <p><strong>Voiture:</strong>
-                                        #{{ $registrationForRace->car->race_number }} -
-                                        {{ $registrationForRace->car->make }}
-                                        {{ $registrationForRace->car->model }}
-                                    </p>
-                                </div>
+                                <p class="text-sm text-gray-700 dark:text-gray-300">Choisissez un emplacement vert pour continuer.</p>
                             </div>
                         </div>
                     @else

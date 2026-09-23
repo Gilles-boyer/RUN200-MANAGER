@@ -87,7 +87,7 @@ class RaceRegistrationPolicy
     }
 
     /**
-     * Pilote peut choisir son emplacement de paddock si inscription acceptée
+     * Pilote peut choisir ou changer son emplacement après validation de l'inscription
      * Staff/Admin peuvent toujours assigner
      */
     public function selectPaddockSpot(User $user, RaceRegistration $registration): bool
@@ -99,11 +99,10 @@ class RaceRegistrationPolicy
 
         // Pilote peut choisir uniquement si:
         // 1. C'est son inscription
-        // 2. L'inscription est acceptée
-        // 3. Il n'a pas déjà un emplacement
+        // 2. L'inscription est validée, même après les contrôles
         return $user->pilot
             && $registration->pilot_id === $user->pilot->id
-            && $registration->isAccepted();
+            && in_array($registration->status, RaceRegistration::engagedStatuses(), true);
     }
 
     /**

@@ -28,6 +28,8 @@ class ReleasePaddockSpot
         User $releasedBy
     ): RaceRegistration {
         return DB::transaction(function () use ($registration, $releasedBy) {
+            $registration = RaceRegistration::query()->lockForUpdate()->findOrFail($registration->id);
+
             // Si pas d'emplacement assigné, rien à faire
             if (! $registration->paddock_spot_id) {
                 return $registration;
@@ -57,7 +59,7 @@ class ReleasePaddockSpot
                     ->log('Emplacement de paddock libéré pour cette course');
 
                 // Déclencher l'événement
-                event(new PaddockSpotReleased($registration, $spot, $releasedBy));
+                DB::afterCommit(fn () => event(new PaddockSpotReleased($registration, $spot, $releasedBy)));
             }
 
             return $registration->fresh(['paddockSpot', 'pilot', 'car', 'race']);

@@ -157,9 +157,9 @@
             {{-- Search Pilot (pour la grille) --}}
             @if($viewMode === 'grid' && $selectedRaceId)
                 <x-racing.form.input
-                    wire:model.live.debounce.300ms="searchPilot"
-                    label="Rechercher"
-                    placeholder="Nom du pilote..."
+                    wire:model.live.debounce.300ms="searchSpot"
+                    label="Rechercher un emplacement"
+                    placeholder="Numéro de place..."
                     icon='<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>'
                 />
             @endif
@@ -216,7 +216,7 @@
                                 $isOccupied = $selectedRaceId ? $spot->is_occupied_for_race : false;
                                 $registration = $selectedRaceId ? $spot->registration_for_race : null;
                             @endphp
-                            <div class="relative group">
+                            <div wire:key="staff-paddock-{{ $spot->id }}" class="relative group">
                                 <button
                                     @if($selectedRaceId)
                                         wire:click="openAssignModal({{ $spot->id }})"
@@ -262,7 +262,7 @@
                                     <button
                                         wire:click="releaseSpot({{ $registration->id }})"
                                         wire:confirm="Libérer l'emplacement {{ $spot->spot_number }} ?"
-                                        class="absolute -top-2 -right-2 bg-status-danger text-white rounded-lg p-1.5 hover:bg-status-danger/80 shadow-lg transition-all opacity-0 group-hover:opacity-100"
+                                        class="absolute -top-2 -right-2 bg-status-danger text-white rounded-lg p-1.5 hover:bg-status-danger/80 shadow-lg transition-all sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
                                         title="Libérer cet emplacement"
                                     >
                                         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -421,10 +421,14 @@
                             $currentRegistration = $spotToAssign->registrationForRace($selectedRaceId);
                         @endphp
 
+                        @error('assignment')
+                            <p role="alert" class="mb-4 rounded-lg border border-status-danger/30 bg-status-danger/10 p-3 text-sm text-status-danger">{{ $message }}</p>
+                        @enderror
+
                         {{-- Emplacement déjà occupé --}}
                         @if($currentRegistration)
                             <div class="mb-6 p-4 rounded-xl bg-status-warning/10 border border-status-warning/30">
-                                <p class="text-sm text-status-warning font-medium mb-2">⚠️ Cet emplacement est actuellement occupé</p>
+                                <p class="text-sm text-status-warning font-medium mb-2">⚠️ Cet emplacement est occupé. Libérez-le avant de l’assigner à un autre pilote.</p>
                                 <div class="flex items-center gap-3">
                                     <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-racing-red-500/20 text-racing-red-500 flex items-center justify-center font-bold">
                                         #{{ $currentRegistration->car->race_number }}
@@ -447,7 +451,7 @@
                         {{-- Search Pilot --}}
                         <div class="mb-4">
                             <x-racing.form.input
-                                wire:model.live.debounce.300ms="searchPilot"
+                                wire:model.live.debounce.300ms="assignmentSearch"
                                 label="Rechercher un pilote à assigner"
                                 placeholder="Nom du pilote..."
                                 icon='<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>'
@@ -457,9 +461,10 @@
                         {{-- Registrations List --}}
                         <div class="max-h-80 overflow-y-auto space-y-2 rounded-xl border border-carbon-700 p-2 bg-carbon-900/50">
                             @forelse($registrationsForAssignment as $registration)
-                                <div
+                                <button type="button"
+                                    wire:key="assignment-registration-{{ $registration->id }}"
                                     wire:click="$set('registrationToAssignId', {{ $registration->id }})"
-                                    class="p-3 rounded-xl border-2 cursor-pointer transition-all
+                                    class="w-full text-left p-3 rounded-xl border-2 cursor-pointer transition-all
                                         {{ $registrationToAssignId === $registration->id
                                             ? 'border-racing-red-500 bg-racing-red-500/10'
                                             : 'border-carbon-700 hover:border-carbon-600 hover:bg-carbon-700/50'
@@ -487,7 +492,7 @@
                                             </span>
                                         @endif
                                     </div>
-                                </div>
+                                </button>
                             @empty
                                 <div class="py-8">
                                     <x-racing.empty-state
@@ -506,7 +511,9 @@
                             </x-racing.button>
                             <x-racing.button
                                 wire:click="assignSpotToRegistration"
-                                :disabled="!$registrationToAssignId"
+                                wire:loading.attr="disabled"
+                                wire:target="assignSpotToRegistration"
+                                :disabled="!$registrationToAssignId || ($currentRegistration && $currentRegistration->id !== $registrationToAssignId)"
                             >
                                 Assigner l'emplacement
                             </x-racing.button>
