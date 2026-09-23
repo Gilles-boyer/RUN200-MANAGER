@@ -7,6 +7,7 @@ namespace App\Livewire\Staff\Results;
 use App\Application\Results\UseCases\ImportRaceResults;
 use App\Application\Results\UseCases\PublishRaceResults;
 use App\Models\Race;
+use App\Models\RaceRegistration;
 use App\Models\RaceResult;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -34,6 +35,8 @@ class ResultsManager extends Component
     public ?string $errorMessage = null;
 
     public ?string $successMessage = null;
+
+    public string $exclusionReason = '';
 
     protected array $rules = [
         'csvFile' => 'required|file|mimes:csv,txt|max:5120|extensions:csv,txt',
@@ -86,7 +89,76 @@ class ResultsManager extends Component
     #[Computed]
     public function canPublish(): bool
     {
-        return $this->race->canPublishResults() && $this->race->results()->count() > 0;
+        return $this->race->canPublishResults()
+            && $this->race->results()->exists()
+            && $this->unresolvedResultsCount === 0;
+    }
+
+    #[Computed]
+    public function unresolvedResultsCount(): int
+    {
+        return $this->race->results()->whereNull('race_registration_id')
+            ->where('excluded_from_championship', false)->count();
+    }
+
+    public function linkResultByBib(int $resultId): void
+    {
+        $this->errorMessage = null;
+        $result = $this->race->results()->whereKey($resultId)->firstOrFail();
+        if ($this->race->isPublished() || $result->race_registration_id) {
+            return;
+        }
+
+        $matches = RaceRegistration::query()->where('race_id', $this->race->id)
+            ->whereHas('car', fn ($query) => $query->where('race_number', $result->bib))
+            ->get();
+        if ($matches->count() !== 1) {
+            $this->errorMessage = "Dossard #{$result->bib} : ".$matches->count().' inscription(s) trouvée(s). Corrigez le dossard ou l’inscription, puis réimportez le CSV.';
+
+            return;
+        }
+
+        $result->update(['race_registration_id' => $matches->first()->id]);
+        activity()->performedOn($result)->causedBy(Auth::user())
+            ->withProperties(['race_registration_id' => $matches->first()->id])
+            ->log('result.linked');
+        $this->successMessage = "Résultat #{$result->bib} associé à l’inscription.";
+    }
+
+    public function excludeResult(int $resultId): void
+    {
+        $this->validate(['exclusionReason' => 'required|string|min:10|max:255'], [
+            'exclusionReason.required' => 'Indiquez le motif de l’exclusion.',
+            'exclusionReason.min' => 'Le motif doit contenir au moins 10 caractères.',
+        ]);
+
+        $result = $this->race->results()->whereKey($resultId)->firstOrFail();
+        if ($this->race->isPublished() || $result->race_registration_id) {
+            return;
+        }
+
+        $result->update([
+            'excluded_from_championship' => true,
+            'exclusion_reason' => $this->exclusionReason,
+        ]);
+        activity()->performedOn($result)->causedBy(Auth::user())
+            ->withProperties(['reason' => $this->exclusionReason])->log('result.excluded_from_championship');
+        $this->exclusionReason = '';
+        $this->successMessage = "Résultat #{$result->bib} exclu du championnat ; il restera visible au classement de la course.";
+        $this->errorMessage = null;
+    }
+
+    public function restoreResult(int $resultId): void
+    {
+        $result = $this->race->results()->whereKey($resultId)->firstOrFail();
+        if ($this->race->isPublished() || ! $result->excluded_from_championship) {
+            return;
+        }
+
+        $result->update(['excluded_from_championship' => false, 'exclusion_reason' => null]);
+        activity()->performedOn($result)->causedBy(Auth::user())
+            ->log('result.restored_to_championship');
+        $this->successMessage = "Résultat #{$result->bib} remis en attente d’association.";
     }
 
     #[Computed]
@@ -214,7 +286,7 @@ class ResultsManager extends Component
         $this->successMessage = null;
 
         $result = RaceResult::find($resultId);
-        if ($result && $result->race_id === $this->race->id) {
+        if ($result && $result->race_id === $this->race->id && ! $this->race->isPublished()) {
             $result->delete();
             $this->successMessage = 'Résultat supprimé.';
         }

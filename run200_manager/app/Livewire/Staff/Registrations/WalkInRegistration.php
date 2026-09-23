@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Livewire\Staff\Registrations;
 
+use App\Events\PaymentConfirmed;
+use App\Events\RegistrationAccepted;
+use App\Events\RegistrationCreated;
 use App\Infrastructure\Qr\QrTokenService;
 use App\Models\Car;
 use App\Models\CarCategory;
@@ -14,7 +17,6 @@ use App\Models\RaceRegistration;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -215,6 +217,7 @@ class WalkInRegistration extends Component
 
         if (empty($availableNumbers)) {
             $this->errorMessage = 'Aucun numéro de course disponible.';
+
             return;
         }
 
@@ -318,6 +321,7 @@ class WalkInRegistration extends Component
                 $carId = $this->selectedCarId;
                 if ($carId && RaceRegistration::where('race_id', $this->selectedRaceId)
                     ->where('car_id', $carId)
+                    ->whereNotIn('status', ['REFUSED', 'CANCELLED'])
                     ->exists()) {
                     $this->errorMessage = 'Cette voiture est déjà inscrite à cette course.';
 
@@ -352,7 +356,9 @@ class WalkInRegistration extends Component
             $registration = $this->createRegistration($pilot, $car);
 
             // Step 4: Create payment
-            $this->createPayment($registration);
+            if (! $registration->isPaid()) {
+                $this->createPayment($registration);
+            }
 
             // Generate QR token
             $qrService = new QrTokenService;
@@ -361,7 +367,9 @@ class WalkInRegistration extends Component
             DB::commit();
 
             $this->createdRegistration = $registration->fresh(['pilot', 'car', 'race', 'payments']);
-            $this->successMessage = 'Inscription créée avec succès !';
+            $this->successMessage = $registration->wasRecentlyCreated
+                ? 'Inscription créée avec succès !'
+                : 'Inscription réactivée après contrôle du paiement.';
             $this->currentStep = 5; // Success step
 
         } catch (\Exception $e) {
@@ -424,7 +432,7 @@ class WalkInRegistration extends Component
     protected function getOrCreateCar(Pilot $pilot): Car
     {
         if ($this->carMode === 'select' && $this->selectedCarId) {
-            return Car::findOrFail($this->selectedCarId);
+            return Car::where('pilot_id', $pilot->id)->findOrFail($this->selectedCarId);
         }
 
         return Car::create([
@@ -438,18 +446,46 @@ class WalkInRegistration extends Component
 
     protected function createRegistration(Pilot $pilot, Car $car): RaceRegistration
     {
+        $existing = RaceRegistration::where('race_id', $this->selectedRaceId)
+            ->where('car_id', $car->id)->lockForUpdate()->first();
+        if ($existing) {
+            if ($existing->pilot_id !== $pilot->id || ! in_array($existing->status, ['REFUSED', 'CANCELLED'], true)) {
+                throw new \InvalidArgumentException('Cette voiture est déjà inscrite à cette course.');
+            }
+
+            $paid = $existing->isPaid();
+            $previousStatus = $existing->status;
+            $existing->update([
+                'status' => $paid || $this->paymentReceived ? 'ACCEPTED' : 'PENDING_PAYMENT',
+                'reason' => null,
+                'car_category_id' => $car->car_category_id,
+                'validated_at' => $paid || $this->paymentReceived ? now() : null,
+                'validated_by' => $paid || $this->paymentReceived ? auth()->id() : null,
+            ]);
+
+            activity()->performedOn($existing)->causedBy(auth()->user())
+                ->withProperties(['previous_status' => $previousStatus, 'new_status' => $existing->status, 'paid_payment_found' => $paid])
+                ->log('registration.reactivated');
+            if ($existing->status === 'ACCEPTED') {
+                RegistrationAccepted::dispatch($existing);
+            }
+
+            return $existing;
+        }
+
         $registration = RaceRegistration::create([
             'race_id' => $this->selectedRaceId,
             'pilot_id' => $pilot->id,
             'car_id' => $car->id,
+            'car_category_id' => $car->car_category_id,
             'status' => 'ACCEPTED', // Direct acceptance for walk-in
             'validated_at' => now(),
             'validated_by' => auth()->id(),
         ]);
 
         // Dispatch events for email notifications
-        \App\Events\RegistrationCreated::dispatch($registration);
-        \App\Events\RegistrationAccepted::dispatch($registration);
+        RegistrationCreated::dispatch($registration);
+        RegistrationAccepted::dispatch($registration);
 
         return $registration;
     }
@@ -478,7 +514,7 @@ class WalkInRegistration extends Component
 
         // Dispatch PaymentConfirmed event if payment is already received
         if ($this->paymentReceived) {
-            \App\Events\PaymentConfirmed::dispatch($payment);
+            PaymentConfirmed::dispatch($payment);
         }
 
         return $payment;

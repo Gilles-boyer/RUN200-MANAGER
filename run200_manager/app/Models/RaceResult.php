@@ -22,12 +22,15 @@ class RaceResult extends Model
         'pilot_name',
         'car_description',
         'category_name',
+        'excluded_from_championship',
+        'exclusion_reason',
     ];
 
     protected $casts = [
         'position' => 'integer',
         'bib' => 'integer',
         'time_ms' => 'integer',
+        'excluded_from_championship' => 'boolean',
     ];
 
     // =========================================================================

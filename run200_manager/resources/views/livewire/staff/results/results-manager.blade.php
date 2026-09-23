@@ -53,6 +53,11 @@
     @endif
 
     {{-- Action Buttons --}}
+    @if($this->unresolvedResultsCount > 0 && !$race->isPublished())
+        <x-racing.alert type="warning">
+            {{ $this->unresolvedResultsCount }} résultat(s) sans inscription liée. Associez chaque dossard ou indiquez un motif d’exclusion du championnat avant de publier.
+        </x-racing.alert>
+    @endif
     <div class="flex flex-wrap gap-3">
         @if($this->canImport)
             <x-racing.button wire:click="openUploadModal" variant="secondary">
@@ -172,6 +177,20 @@
                                     <span class="font-mono text-checkered-yellow-500 font-semibold">{{ $result->formatted_time }}</span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right">
+                                    @if(!$result->race_registration_id && !$result->excluded_from_championship && !$race->isPublished())
+                                        <div class="flex flex-col gap-2 items-end">
+                                            <span class="text-status-warning text-xs">Sans inscription liée</span>
+                                            <button wire:click="linkResultByBib({{ $result->id }})" class="text-status-info hover:underline text-sm">Associer le dossard</button>
+                                            <input type="text" wire:model="exclusionReason" placeholder="Motif d’exclusion (10 caractères min.)" aria-label="Motif d’exclusion du championnat" class="w-56 rounded-lg bg-carbon-700 border-carbon-600 text-sm text-white">
+                                            <button wire:click="excludeResult({{ $result->id }})" class="text-status-warning hover:underline text-sm">Exclure du championnat</button>
+                                            @error('exclusionReason') <span class="text-status-danger text-xs">{{ $message }}</span> @enderror
+                                        </div>
+                                    @elseif($result->excluded_from_championship)
+                                        <span class="text-xs text-status-warning" title="{{ $result->exclusion_reason }}">Hors championnat : {{ $result->exclusion_reason }}</span>
+                                        @if(!$race->isPublished())
+                                            <button wire:click="restoreResult({{ $result->id }})" class="text-status-info hover:underline text-sm">Annuler l’exclusion</button>
+                                        @endif
+                                    @endif
                                     @if(!$race->isPublished())
                                         <button
                                             wire:click="deleteResult({{ $result->id }})"

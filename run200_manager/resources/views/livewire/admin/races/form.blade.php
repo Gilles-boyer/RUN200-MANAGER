@@ -131,11 +131,9 @@
                     required
                     :error="$errors->first('status')"
                 >
-                    <option value="DRAFT">🔸 Brouillon</option>
-                    <option value="OPEN">🟢 Ouvert aux inscriptions</option>
-                    <option value="CLOSED">🔴 Fermé</option>
-                    <option value="COMPLETED">✅ Terminé</option>
-                    <option value="CANCELLED">❌ Annulé</option>
+                    @foreach(\App\Domain\Registration\Enums\RaceStatus::cases() as $raceStatus)
+                        <option value="{{ $raceStatus->value }}">{{ $raceStatus->label() }}</option>
+                    @endforeach
                 </x-racing.form.select>
             </div>
 

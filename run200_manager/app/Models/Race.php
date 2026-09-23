@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\TitleCaseCast;
 use App\Casts\UppercaseCast;
+use App\Domain\Registration\Enums\RaceStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -201,7 +202,7 @@ class Race extends Model
 
     public function isPublished(): bool
     {
-        return $this->status === 'PUBLISHED';
+        return RaceStatus::tryFrom($this->status)?->hasPublishedResults() ?? false;
     }
 
     public function canImportResults(): bool

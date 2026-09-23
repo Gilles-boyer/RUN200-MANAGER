@@ -2,6 +2,8 @@
 
 namespace App\Application\Registrations\UseCases;
 
+use App\Domain\Registration\Enums\RegistrationStatus;
+use App\Events\RegistrationCreated;
 use App\Models\Car;
 use App\Models\Pilot;
 use App\Models\Race;
@@ -35,17 +37,43 @@ class SubmitRegistration
         // Note: Un pilote PEUT inscrire plusieurs de ses voitures sur la même course
         // Seule contrainte: une même voiture ne peut pas être inscrite deux fois
 
-        // Vérifier que la voiture n'est pas déjà inscrite
-        $existingCarRegistration = RaceRegistration::where('race_id', $race->id)
-            ->where('car_id', $car->id)
-            ->whereNotIn('status', ['CANCELLED', 'REFUSED'])
-            ->exists();
-
-        if ($existingCarRegistration) {
-            throw new InvalidArgumentException('Cette voiture est déjà inscrite à cette course.');
-        }
-
         return DB::transaction(function () use ($race, $pilot, $car, $requiresPayment) {
+            $existing = RaceRegistration::where('race_id', $race->id)
+                ->where('car_id', $car->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($existing) {
+                if ($existing->pilot_id !== $pilot->id
+                    || ! in_array($existing->status, [RegistrationStatus::REFUSED->value, RegistrationStatus::CANCELLED->value], true)) {
+                    throw new InvalidArgumentException('Cette voiture est déjà inscrite à cette course.');
+                }
+
+                $previousStatus = $existing->status;
+                $hasPaid = $existing->isPaid();
+                $existing->update([
+                    'status' => $hasPaid || ! $requiresPayment
+                        ? RegistrationStatus::PENDING_VALIDATION->value
+                        : RegistrationStatus::PENDING_PAYMENT->value,
+                    'reason' => null,
+                    'validated_at' => null,
+                    'validated_by' => null,
+                    'paddock' => null,
+                    'paddock_spot_id' => null,
+                    'car_category_id' => $car->car_category_id,
+                ]);
+
+                activity()->performedOn($existing)->causedBy(Auth::user())
+                    ->withProperties([
+                        'previous_status' => $previousStatus,
+                        'new_status' => $existing->status,
+                        'paid_payment_found' => $hasPaid,
+                        'requires_payment' => $requiresPayment,
+                    ])->log('registration.reactivated');
+
+                return $existing;
+            }
+
             // Statut initial selon le mode d'inscription
             // - PENDING_PAYMENT : inscription en ligne, nécessite paiement Stripe
             // - PENDING_VALIDATION : inscription sur circuit avec paiement manuel déjà reçu
@@ -55,6 +83,7 @@ class SubmitRegistration
                 'race_id' => $race->id,
                 'pilot_id' => $pilot->id,
                 'car_id' => $car->id,
+                'car_category_id' => $car->car_category_id,
                 'status' => $status,
             ]);
 
@@ -70,7 +99,7 @@ class SubmitRegistration
                 ->log('registration.created');
 
             // Dispatch event for email notification
-            \App\Events\RegistrationCreated::dispatch($registration);
+            RegistrationCreated::dispatch($registration);
 
             return $registration;
         });

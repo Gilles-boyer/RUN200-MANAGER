@@ -11,6 +11,7 @@ use App\Models\Season;
 use App\Models\SeasonCategoryStanding;
 use App\Models\SeasonPointsRule;
 use App\Models\SeasonStanding;
+use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Facades\Activity;
@@ -25,16 +26,18 @@ final class RebuildSeasonStandings
     /**
      * Execute the standings rebuild for a season.
      */
-    public function execute(Season $season, ?\App\Models\User $triggeredBy = null): array
+    public function execute(Season $season, ?User $triggeredBy = null): array
     {
         return DB::transaction(function () use ($season, $triggeredBy) {
             // Get published races for this season (PUBLISHED or COMPLETED status)
             $publishedRaces = $season->races()
                 ->whereIn('status', RaceStatus::publishedResultsStatuses())
-                ->with('results.registration.pilot', 'results.registration.car.category')
+                ->with('results.registration.pilot')
                 ->get();
 
-            $totalRacesInSeason = $publishedRaces->count();
+            $totalRacesInSeason = $season->races()->where('status', '!=', RaceStatus::CANCELLED->value)->count();
+            $seasonFinished = $season->end_date->isBefore(today())
+                && $publishedRaces->count() === $totalRacesInSeason;
 
             // Load points rules (or use defaults)
             $pointsRules = $this->getPointsRules($season);
@@ -50,10 +53,10 @@ final class RebuildSeasonStandings
             $season->categoryStandings()->delete();
 
             // Build general standings
-            $generalStandings = $this->buildGeneralStandings($season, $pilotResults, $totalRacesInSeason);
+            $generalStandings = $this->buildGeneralStandings($season, $pilotResults, $seasonFinished ? $totalRacesInSeason : 0);
 
             // Build category standings
-            $categoryStandings = $this->buildCategoryStandings($season, $categoryResults, $totalRacesInSeason);
+            $categoryStandings = $this->buildCategoryStandings($season, $categoryResults, $seasonFinished ? $totalRacesInSeason : 0);
 
             // Log activity
             if ($triggeredBy) {
@@ -62,7 +65,7 @@ final class RebuildSeasonStandings
 
             return [
                 'season_id' => $season->id,
-                'total_races' => $totalRacesInSeason,
+                'total_races' => $publishedRaces->count(),
                 'general_standings_count' => count($generalStandings),
                 'category_standings_count' => count($categoryStandings),
                 'ranked_pilots' => collect($generalStandings)->whereNotNull('rank')->count(),
@@ -122,6 +125,9 @@ final class RebuildSeasonStandings
             $resultsByPilot = [];
 
             foreach ($race->results as $result) {
+                if ($result->excluded_from_championship) {
+                    continue;
+                }
                 $registration = $result->registration;
                 if (! $registration || ! $registration->pilot_id) {
                     continue;
@@ -143,11 +149,13 @@ final class RebuildSeasonStandings
                     $pilotResults[$pilotId] = [
                         'races_count' => 0,
                         'base_points' => 0,
+                        'best_position' => PHP_INT_MAX,
                     ];
                 }
 
                 $pilotResults[$pilotId]['races_count']++;
                 $pilotResults[$pilotId]['base_points'] += $points;
+                $pilotResults[$pilotId]['best_position'] = min($pilotResults[$pilotId]['best_position'], $result->position);
             }
         }
 
@@ -166,12 +174,15 @@ final class RebuildSeasonStandings
         foreach ($races as $race) {
             // Group results by category for this race
             $resultsByCategory = $race->results->groupBy(function ($result) {
+                if ($result->excluded_from_championship) {
+                    return null;
+                }
                 $registration = $result->registration;
-                if (! $registration || ! $registration->car) {
+                if (! $registration || ! $registration->car_category_id) {
                     return null;
                 }
 
-                return $registration->car->car_category_id;
+                return $registration->car_category_id;
             })->filter(fn ($group, $key) => $key !== null);
 
             foreach ($resultsByCategory as $categoryId => $results) {
@@ -206,11 +217,13 @@ final class RebuildSeasonStandings
                         $categoryResults[$categoryId][$pilotId] = [
                             'races_count' => 0,
                             'base_points' => 0,
+                            'best_position' => PHP_INT_MAX,
                         ];
                     }
 
                     $categoryResults[$categoryId][$pilotId]['races_count']++;
                     $categoryResults[$categoryId][$pilotId]['base_points'] += $points;
+                    $categoryResults[$categoryId][$pilotId]['best_position'] = min($categoryResults[$categoryId][$pilotId]['best_position'], $categoryPosition);
 
                     $categoryPosition++;
                 }
@@ -238,17 +251,19 @@ final class RebuildSeasonStandings
                 'base_points' => $data['base_points'],
                 'bonus_points' => $bonusPoints,
                 'total_points' => $totalPoints,
+                'best_position' => $data['best_position'],
                 'is_eligible' => StandingsRules::isEligibleForRanking($data['races_count']),
             ];
         }
 
-        // Sort by total points descending
-        usort($standings, fn ($a, $b) => $b['total_points'] <=> $a['total_points']);
+        $this->sortStandings($standings);
 
         // Assign ranks only to eligible pilots
-        $rank = 1;
+        $rank = 0;
+        $lastEligible = null;
+        $eligiblePosition = 0;
         foreach ($standings as &$standing) {
-            $standing['rank'] = $standing['is_eligible'] ? $rank++ : null;
+            $standing['rank'] = $this->rankFor($standing, $lastEligible, $rank, $eligiblePosition);
 
             // Persist
             SeasonStanding::create([
@@ -288,17 +303,19 @@ final class RebuildSeasonStandings
                     'base_points' => $data['base_points'],
                     'bonus_points' => $bonusPoints,
                     'total_points' => $totalPoints,
+                    'best_position' => $data['best_position'],
                     'is_eligible' => StandingsRules::isEligibleForRanking($data['races_count']),
                 ];
             }
 
-            // Sort by total points descending
-            usort($categoryStandings, fn ($a, $b) => $b['total_points'] <=> $a['total_points']);
+            $this->sortStandings($categoryStandings);
 
             // Assign ranks only to eligible pilots
-            $rank = 1;
+            $rank = 0;
+            $lastEligible = null;
+            $eligiblePosition = 0;
             foreach ($categoryStandings as &$standing) {
-                $standing['rank'] = $standing['is_eligible'] ? $rank++ : null;
+                $standing['rank'] = $this->rankFor($standing, $lastEligible, $rank, $eligiblePosition);
 
                 // Persist
                 SeasonCategoryStanding::create([
@@ -320,10 +337,37 @@ final class RebuildSeasonStandings
         return $allCategoryStandings;
     }
 
+    private function sortStandings(array &$standings): void
+    {
+        usort($standings, fn ($a, $b) => ($b['total_points'] <=> $a['total_points'])
+            ?: ($b['races_count'] <=> $a['races_count'])
+            ?: ($a['best_position'] <=> $b['best_position'])
+            ?: ($a['pilot_id'] <=> $b['pilot_id']));
+    }
+
+    private function rankFor(array $standing, ?array &$lastEligible, int &$rank, int &$eligiblePosition): ?int
+    {
+        if (! $standing['is_eligible']) {
+            return null;
+        }
+
+        $eligiblePosition++;
+        if ($lastEligible === null
+            || $standing['total_points'] !== $lastEligible['total_points']
+            || $standing['races_count'] !== $lastEligible['races_count']
+            || $standing['best_position'] !== $lastEligible['best_position']) {
+            $rank = $eligiblePosition;
+        }
+
+        $lastEligible = $standing;
+
+        return $rank;
+    }
+
     /**
      * Log the rebuild activity.
      */
-    private function logActivity(Season $season, \App\Models\User $user, array $generalStandings, array $categoryStandings): void
+    private function logActivity(Season $season, User $user, array $generalStandings, array $categoryStandings): void
     {
         $rankedCount = collect($generalStandings)->whereNotNull('rank')->count();
         $topThree = collect($generalStandings)

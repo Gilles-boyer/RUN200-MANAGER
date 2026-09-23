@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Application\Results\UseCases;
 
 use App\Events\ResultsPublished;
+use App\Jobs\RebuildSeasonStandingsJob;
 use App\Models\Race;
+use App\Models\RaceResult;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Spatie\Activitylog\Facades\Activity;
@@ -39,6 +42,16 @@ final class PublishRaceResults
             );
         }
 
+        $unresolved = $race->results()
+            ->whereNull('race_registration_id')
+            ->where('excluded_from_championship', false)
+            ->count();
+        if ($unresolved > 0) {
+            throw new \InvalidArgumentException(
+                "{$unresolved} résultat(s) sans inscription liée. Associez les dossards ou excluez-les du championnat avec un motif avant publication."
+            );
+        }
+
         $publishedRace = DB::transaction(function () use ($race, $publisher) {
             // Update race status to PUBLISHED
             $race->update(['status' => 'PUBLISHED']);
@@ -65,7 +78,7 @@ final class PublishRaceResults
      */
     public function unpublish(Race $race, User $user): Race
     {
-        if ($race->status !== 'PUBLISHED') {
+        if (! $race->isPublished()) {
             throw new \InvalidArgumentException(
                 "Seules les courses publiées peuvent être dépubliées. Statut actuel: {$race->status}"
             );
@@ -126,13 +139,13 @@ final class PublishRaceResults
     private function logActivity(Race $race, User $publisher): void
     {
         $resultsCount = $race->results()->count();
-        /** @var \Illuminate\Support\Collection<int, \App\Models\RaceResult> $topThreeResults */
+        /** @var Collection<int, RaceResult> $topThreeResults */
         $topThreeResults = $race->results()
             ->orderBy('position')
             ->limit(3)
             ->get();
         $topThree = $topThreeResults
-            ->map(fn (\App\Models\RaceResult $r) => "{$r->position}. {$r->pilot_name}")
+            ->map(fn (RaceResult $r) => "{$r->position}. {$r->pilot_name}")
             ->toArray();
 
         Activity::causedBy($publisher)
@@ -157,6 +170,6 @@ final class PublishRaceResults
         }
 
         // Dispatch job to recalculate championship standings
-        \App\Jobs\RebuildSeasonStandingsJob::dispatch($race->season_id);
+        RebuildSeasonStandingsJob::dispatch($race->season_id);
     }
 }

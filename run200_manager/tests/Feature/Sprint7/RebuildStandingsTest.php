@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Application\Championship\UseCases\RebuildSeasonStandings;
+use App\Infrastructure\Cache\StandingsCacheService;
 use App\Jobs\RebuildSeasonStandingsJob;
 use App\Models\Car;
 use App\Models\CarCategory;
@@ -168,7 +169,7 @@ describe('RebuildSeasonStandings Use Case', function () {
     });
 
     it('applies bonus when pilot participates in all races', function () {
-        $season = Season::factory()->create();
+        $season = Season::factory()->create(['end_date' => now()->subDay()]);
         $category = CarCategory::factory()->create();
 
         // Create 3 published races
@@ -235,6 +236,111 @@ describe('RebuildSeasonStandings Use Case', function () {
             ->and($standing->races_count)->toBe(2);
     });
 
+    it('waits for season end and all results before awarding the participation bonus', function () {
+        $season = Season::factory()->create(['end_date' => now()->addDay()]);
+        $category = CarCategory::factory()->create();
+        $pilot = Pilot::factory()->create();
+        $car = Car::factory()->for($pilot)->for($category, 'category')->create();
+        $races = Race::factory()->count(2)->for($season)->create(['status' => 'PUBLISHED']);
+        foreach ($races as $race) {
+            $registration = RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create();
+            RaceResult::factory()->create(['race_id' => $race->id, 'race_registration_id' => $registration->id, 'position' => 1]);
+        }
+
+        $this->useCase->execute($season);
+        expect(SeasonStanding::first()->bonus_points)->toBe(0);
+
+        $season->update(['end_date' => now()->subDay()]);
+        $races->last()->update(['status' => 'RESULTS_READY']);
+        $this->useCase->execute($season);
+        expect(SeasonStanding::first()->bonus_points)->toBe(0);
+
+        $races->last()->update(['status' => 'PUBLISHED']);
+        $this->useCase->execute($season);
+        expect(SeasonStanding::first()->bonus_points)->toBe(20);
+    });
+
+    it('uses the registration category even if the car category changes later', function () {
+        $season = Season::factory()->create();
+        $race = Race::factory()->for($season)->create(['status' => 'PUBLISHED']);
+        $originalCategory = CarCategory::factory()->create();
+        $newCategory = CarCategory::factory()->create();
+        $pilot = Pilot::factory()->create();
+        $car = Car::factory()->for($pilot)->for($originalCategory, 'category')->create();
+        $registration = RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create();
+        RaceResult::factory()->create(['race_id' => $race->id, 'race_registration_id' => $registration->id, 'position' => 1]);
+
+        $car->update(['car_category_id' => $newCategory->id]);
+        $this->useCase->execute($season);
+
+        expect($registration->fresh()->car_category_id)->toBe($originalCategory->id)
+            ->and(SeasonCategoryStanding::first()->car_category_id)->toBe($originalCategory->id);
+    });
+
+    it('uses race count then best result to break equal points', function () {
+        $season = Season::factory()->create();
+        $races = Race::factory()->count(3)->for($season)->create(['status' => 'PUBLISHED']);
+        $category = CarCategory::factory()->create();
+        $pilots = Pilot::factory()->count(3)->create();
+        $positions = [[1, 1, null], [2, 2, 2], [3, 3, null]];
+        // Custom points: every finishing position is worth 10 points, so
+        // two-race pilots tie and the three-race pilot leads on points.
+        $season->pointsRules()->create(['position_from' => 1, 'position_to' => 20, 'points' => 10]);
+
+        foreach ($pilots as $index => $pilot) {
+            $car = Car::factory()->for($pilot)->for($category, 'category')->create();
+            foreach ($races as $raceIndex => $race) {
+                if ($positions[$index][$raceIndex] === null) {
+                    continue;
+                }
+                $registration = RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create();
+                RaceResult::factory()->create([
+                    'race_id' => $race->id,
+                    'race_registration_id' => $registration->id,
+                    'position' => $positions[$index][$raceIndex],
+                ]);
+            }
+        }
+
+        $this->useCase->execute($season);
+        $ranks = SeasonStanding::orderBy('rank')->get()->keyBy('pilot_id');
+        expect($ranks[$pilots[1]->id]->rank)->toBe(1)
+            ->and($ranks[$pilots[0]->id]->rank)->toBe(2)
+            ->and($ranks[$pilots[2]->id]->rank)->toBe(3);
+    });
+
+    it('ranks a pilot with more races first when total points are equal', function () {
+        $season = Season::factory()->create();
+        $races = Race::factory()->count(3)->for($season)->create(['status' => 'PUBLISHED']);
+        $category = CarCategory::factory()->create();
+        $pilots = Pilot::factory()->count(2)->create();
+        $season->pointsRules()->create(['position_from' => 1, 'position_to' => 1, 'points' => 10]);
+        $season->pointsRules()->create(['position_from' => 2, 'position_to' => 2, 'points' => 5]);
+
+        foreach ($pilots as $index => $pilot) {
+            $car = Car::factory()->for($pilot)->for($category, 'category')->create();
+            foreach ($races as $raceIndex => $race) {
+                if ($index === 0 && $raceIndex === 2) {
+                    continue;
+                }
+                $registration = RaceRegistration::factory()->for($race)->for($pilot)->for($car)->create();
+                $position = $index === 0 || $raceIndex === 2 ? 1 : 2;
+                RaceResult::factory()->create([
+                    'race_id' => $race->id,
+                    'race_registration_id' => $registration->id,
+                    'position' => $position,
+                ]);
+            }
+        }
+
+        $this->useCase->execute($season);
+        $ranks = SeasonStanding::orderBy('rank')->get()->keyBy('pilot_id');
+        expect($ranks[$pilots[0]->id]->total_points)->toBe(20)
+            ->and($ranks[$pilots[1]->id]->total_points)->toBe(20)
+            ->and($ranks[$pilots[1]->id]->rank)->toBe(1)
+            ->and($ranks[$pilots[0]->id]->rank)->toBe(2);
+    });
+
     it('creates category standings', function () {
         $season = Season::factory()->create();
         $race = Race::factory()->for($season)->create(['status' => 'PUBLISHED']);
@@ -293,7 +399,7 @@ describe('RebuildSeasonStandings Use Case', function () {
     });
 
     it('ranks pilots correctly by total points', function () {
-        $season = Season::factory()->create();
+        $season = Season::factory()->create(['end_date' => now()->subDay()]);
         $category = CarCategory::factory()->create();
 
         // Create 2 races
@@ -437,7 +543,7 @@ describe('RebuildSeasonStandingsJob', function () {
         // Should not throw, just log warning
         $job->handle(
             new RebuildSeasonStandings,
-            app(\App\Infrastructure\Cache\StandingsCacheService::class)
+            app(StandingsCacheService::class)
         );
 
         expect(true)->toBeTrue(); // Job completed without exception

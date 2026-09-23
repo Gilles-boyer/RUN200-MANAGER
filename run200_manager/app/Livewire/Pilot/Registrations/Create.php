@@ -66,6 +66,7 @@ class Create extends Component
             ->get()
             ->map(function ($car) use ($alreadyRegisteredCarIds) {
                 $car->is_already_registered = in_array($car->id, $alreadyRegisteredCarIds);
+
                 return $car;
             });
     }
@@ -126,10 +127,15 @@ class Create extends Component
         try {
             $registration = $submitRegistration->execute($this->race, $pilot, $car, true);
 
-            session()->flash('info', 'Votre inscription a été créée. Veuillez procéder au paiement pour la valider.');
+            if ($registration->isPendingPayment()) {
+                session()->flash('info', 'Votre inscription est active. Veuillez procéder au paiement pour la valider.');
 
-            // Rediriger vers la page de paiement
-            return $this->redirect(route('pilot.registrations.payment', $registration));
+                return $this->redirect(route('pilot.registrations.payment', $registration));
+            }
+
+            session()->flash('success', 'Votre inscription est réactivée. Le paiement existant a été conservé ; le staff va la vérifier.');
+
+            return $this->redirect(route('pilot.registrations.index'));
         } catch (\InvalidArgumentException $e) {
             $this->errorMessage = $e->getMessage();
         } catch (\Exception $e) {

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Races;
 
+use App\Domain\Registration\Enums\RaceStatus;
 use App\Models\Race;
 use App\Models\Season;
 use Livewire\Component;
@@ -29,7 +30,7 @@ class Form extends Component
             'name' => 'required|string|max:255',
             'race_date' => 'required|date',
             'location' => 'required|string|max:255',
-            'status' => 'required|in:DRAFT,OPEN,CLOSED,COMPLETED,CANCELLED',
+            'status' => 'required|in:'.implode(',', RaceStatus::values()),
             'entry_fee' => 'nullable|numeric|min:0|max:9999.99',
         ];
     }
@@ -62,6 +63,27 @@ class Form extends Component
     public function save()
     {
         $validated = $this->validate();
+
+        if ($this->race && $this->race->isPublished()
+            && ! in_array($validated['status'], RaceStatus::publishedResultsStatuses(), true)) {
+            $this->addError('status', 'Les résultats sont publiés. Dépubliez-les depuis la page des résultats avant de changer ce statut.');
+
+            return;
+        }
+
+        if ($validated['status'] === RaceStatus::PUBLISHED->value
+            && ! ($this->race?->isPublished() ?? false)) {
+            $this->addError('status', 'Publiez les résultats depuis la page des résultats.');
+
+            return;
+        }
+
+        if ($validated['status'] === RaceStatus::COMPLETED->value
+            && ! ($this->race?->isPublished() ?? false)) {
+            $this->addError('status', 'Publiez les résultats avant de marquer la course comme terminée.');
+
+            return;
+        }
 
         // Convertir le prix en centimes
         $data = [
