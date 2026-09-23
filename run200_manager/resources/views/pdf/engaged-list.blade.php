@@ -5,17 +5,19 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Liste des Engagés - {{ $race->name }}</title>
     <style>
+        @page {
+            margin: 14mm 12mm;
+        }
         body {
             font-family: DejaVu Sans, sans-serif;
-            font-size: 10pt;
+            font-size: 9pt;
             margin: 0;
-            padding: 20px;
         }
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 14px;
             border-bottom: 2px solid #333;
-            padding-bottom: 15px;
+            padding-bottom: 9px;
         }
         .header h1 {
             margin: 0;
@@ -29,7 +31,7 @@
             font-weight: normal;
         }
         .race-info {
-            margin-bottom: 20px;
+            margin-bottom: 12px;
             background: #f5f5f5;
             padding: 10px;
             border-radius: 5px;
@@ -38,47 +40,51 @@
             margin: 5px 0;
         }
         .stats {
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
-        .stats-grid {
-            display: table;
-            width: 100%;
-        }
-        .stats-item {
-            display: table-cell;
-            text-align: center;
-            padding: 10px;
-            background: #e9e9e9;
-            border-right: 1px solid #fff;
-        }
-        .stats-item:last-child {
-            border-right: none;
-        }
-        .stats-item .number {
-            font-size: 24pt;
+        .total-engaged {
+            font-size: 12pt;
             font-weight: bold;
             color: #333;
         }
-        .stats-item .label {
+        .category-summary {
+            margin-top: 6px;
+            table-layout: fixed;
+        }
+        .category-summary th,
+        .category-summary td {
+            padding: 4px 6px;
             font-size: 8pt;
-            color: #666;
+        }
+        .category-summary .count {
+            text-align: center;
+            font-weight: bold;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+        }
+        .engaged-table {
+            table-layout: fixed;
+        }
+        .engaged-table thead {
+            display: table-header-group;
+        }
+        .engaged-table tr {
+            page-break-inside: avoid;
         }
         th {
             background: #333;
             color: #fff;
-            padding: 8px 5px;
+            padding: 6px 4px;
             text-align: left;
-            font-size: 9pt;
+            font-size: 8pt;
         }
         td {
-            padding: 6px 5px;
+            padding: 5px 4px;
             border-bottom: 1px solid #ddd;
-            font-size: 9pt;
+            font-size: 8pt;
+            word-wrap: break-word;
         }
         tr:nth-child(even) {
             background: #f9f9f9;
@@ -86,12 +92,10 @@
         .paddock {
             font-weight: bold;
             text-align: center;
-            width: 60px;
         }
         .race-number {
             font-weight: bold;
             text-align: center;
-            width: 50px;
         }
         .category {
             font-size: 8pt;
@@ -104,22 +108,6 @@
             color: #999;
             border-top: 1px solid #ddd;
             padding-top: 10px;
-        }
-        .categories-summary {
-            margin-top: 20px;
-            page-break-inside: avoid;
-        }
-        .categories-summary h3 {
-            font-size: 11pt;
-            margin-bottom: 10px;
-        }
-        .category-badge {
-            display: inline-block;
-            background: #e0e0e0;
-            padding: 3px 8px;
-            margin: 2px;
-            border-radius: 3px;
-            font-size: 8pt;
         }
     </style>
 </head>
@@ -136,24 +124,40 @@
     </div>
 
     <div class="stats">
-        <div class="stats-grid">
-            <div class="stats-item">
-                <div class="number">{{ $totalEngaged }}</div>
-                <div class="label">ENGAGÉS</div>
-            </div>
-            @foreach($categoryCounts as $category => $count)
-            <div class="stats-item">
-                <div class="number">{{ $count }}</div>
-                <div class="label">{{ strtoupper($category) }}</div>
-            </div>
-            @endforeach
-        </div>
+        <div class="total-engaged">{{ $totalEngaged }} engagés</div>
+        @if(count($categoryCounts) > 0)
+            <table class="category-summary">
+                <colgroup>
+                    <col style="width: 40%;"><col style="width: 10%;">
+                    <col style="width: 40%;"><col style="width: 10%;">
+                </colgroup>
+                <thead>
+                    <tr><th>CATÉGORIE</th><th class="count">TOTAL</th><th>CATÉGORIE</th><th class="count">TOTAL</th></tr>
+                </thead>
+                <tbody>
+                    @foreach(array_chunk($categoryCounts, 2, true) as $categories)
+                        <tr>
+                            @foreach($categories as $category => $count)
+                                <td>{{ $category }}</td><td class="count">{{ $count }}</td>
+                            @endforeach
+                            @if(count($categories) === 1)
+                                <td></td><td></td>
+                            @endif
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
     </div>
 
-    <table>
+    <table class="engaged-table">
+        <colgroup>
+            <col style="width: 8%;"><col style="width: 9%;"><col style="width: 6%;">
+            <col style="width: 18%;"><col style="width: 21%;"><col style="width: 21%;"><col style="width: 17%;">
+        </colgroup>
         <thead>
             <tr>
-                <th style="width: 50px; text-align: center;">QR</th>
+                <th style="text-align: center;">QR</th>
                 <th class="paddock">PADDOCK</th>
                 <th class="race-number">N°</th>
                 <th>CODE INSCRIPTION</th>
@@ -167,7 +171,7 @@
             <tr>
                 <td style="text-align: center; padding: 4px;">
                     @if($registration->qr_code_data_uri)
-                        <img src="{{ $registration->qr_code_data_uri }}" alt="QR" style="width: 45px; height: 45px;">
+                        <img src="{{ $registration->qr_code_data_uri }}" alt="QR" style="width: 38px; height: 38px;">
                     @else
                         -
                     @endif
