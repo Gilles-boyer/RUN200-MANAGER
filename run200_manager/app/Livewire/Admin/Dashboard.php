@@ -3,12 +3,13 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Car;
+use App\Models\CarCategory;
 use App\Models\Pilot;
 use App\Models\Race;
 use App\Models\RaceRegistration;
 use App\Models\Season;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -51,7 +52,7 @@ class Dashboard extends Component
             ->sortKeys();
 
         return [
-            'labels' => $registrations->keys()->map(fn ($m) => \Carbon\Carbon::createFromFormat('Y-m', $m)->translatedFormat('M Y'))->toArray(),
+            'labels' => $registrations->keys()->map(fn ($m) => Carbon::createFromFormat('Y-m', $m)->translatedFormat('M Y'))->toArray(),
             'data' => $registrations->values()->toArray(),
         ];
     }
@@ -84,16 +85,34 @@ class Dashboard extends Component
     #[Computed]
     public function carsByCategory(): array
     {
-        $data = Car::select('car_category_id', DB::raw('COUNT(*) as count'))
-            ->groupBy('car_category_id')
-            ->with('category')
+        $categories = CarCategory::query()
+            ->withCount('cars')
             ->get()
-            ->sortByDesc('count')
-            ->take(8);
+            ->filter(fn (CarCategory $category) => $category->cars_count > 0)
+            ->sortByDesc('cars_count')
+            ->values();
+
+        $total = (int) $categories->sum('cars_count');
+        $leading = $categories->take(8)->values();
+        $otherCars = (int) $categories->skip(8)->sum('cars_count');
+
+        $labels = $leading->pluck('name')->all();
+        $counts = $leading->pluck('cars_count')->map(fn ($count) => (int) $count)->all();
+        if ($otherCars > 0) {
+            $labels[] = 'Autres catégories';
+            $counts[] = $otherCars;
+        }
 
         return [
-            'labels' => $data->map(fn ($c) => $c->category?->name ?? 'Non défini')->toArray(),
-            'data' => $data->pluck('count')->toArray(),
+            'labels' => $labels,
+            'data' => $counts,
+            'total' => $total,
+            'category_count' => $categories->count(),
+            'breakdown' => $categories->map(fn (CarCategory $category) => [
+                'name' => $category->name,
+                'count' => (int) $category->cars_count,
+                'percentage' => $total > 0 ? round($category->cars_count * 100 / $total, 1) : 0,
+            ])->all(),
         ];
     }
 
