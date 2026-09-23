@@ -39,6 +39,14 @@ class AssignPaddockSpot
         bool $force = false
     ): RaceRegistration {
         return DB::transaction(function () use ($registration, $spot, $assignedBy, $force) {
+            // Serialize competing reservations for the same spot, then read the latest registration state.
+            $spot = PaddockSpot::query()->lockForUpdate()->findOrFail($spot->id);
+            $registration = RaceRegistration::query()->lockForUpdate()->findOrFail($registration->id);
+
+            if ($registration->paddock_spot_id === $spot->id) {
+                return $registration->load(['paddockSpot', 'pilot', 'car', 'race']);
+            }
+
             // Vérifications préalables
             $this->validateAssignment($registration, $spot, $assignedBy, $force);
 
@@ -96,10 +104,10 @@ class AssignPaddockSpot
                 ->log('Emplacement de paddock assigné pour cette course');
 
             // Déclencher l'événement
-            event(new PaddockSpotAssigned($registration, $spot, $assignedBy));
+            DB::afterCommit(fn () => event(new PaddockSpotAssigned($registration, $spot, $assignedBy)));
 
             return $registration->fresh(['paddockSpot', 'pilot', 'car', 'race']);
-        });
+        }, 3);
     }
 
     /**
@@ -114,9 +122,9 @@ class AssignPaddockSpot
         bool $force
     ): void {
         // L'inscription doit être acceptée (sauf si admin force)
-        if (! $registration->isAccepted() && ! $force) {
+        if (! in_array($registration->status, RaceRegistration::engagedStatuses(), true) && ! $force) {
             throw ValidationException::withMessages([
-                'registration' => 'L\'inscription doit être acceptée pour réserver un emplacement.',
+                'registration' => 'L’inscription doit être validée pour réserver un emplacement.',
             ]);
         }
 
@@ -129,13 +137,8 @@ class AssignPaddockSpot
 
         // L'emplacement doit être disponible pour cette course (sauf si admin force)
         if ($spot->isOccupiedForRace($registration->race_id) && ! $force) {
-            $currentPilot = $spot->getPilotForRace($registration->race_id);
-            $pilotName = $currentPilot
-                ? "{$currentPilot->first_name} {$currentPilot->last_name}"
-                : 'un autre pilote';
-
             throw ValidationException::withMessages([
-                'spot' => "Cet emplacement est déjà réservé par {$pilotName} pour cette course.",
+                'spot' => 'Cet emplacement est déjà réservé pour cette course. Choisissez une autre place.',
             ]);
         }
 

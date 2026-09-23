@@ -115,6 +115,13 @@ class PaddockSpot extends Model
     {
         $validStatuses = array_merge(RaceRegistration::engagedStatuses(), ['PENDING_VALIDATION']);
 
+        if ($this->relationLoaded('registrations')) {
+            return $this->registrations->first(function (RaceRegistration $registration) use ($raceId, $validStatuses): bool {
+                return (int) $registration->race_id === $raceId
+                    && in_array($registration->status, $validStatuses, true);
+            });
+        }
+
         /** @var RaceRegistration|null $registration */
         $registration = $this->registrations()
             ->where('race_id', $raceId)
@@ -166,6 +173,10 @@ class PaddockSpot extends Model
      */
     public function isOccupiedForRace(int $raceId): bool
     {
+        if ($this->relationLoaded('registrations')) {
+            return $this->registrationForRace($raceId) !== null;
+        }
+
         $validStatuses = array_merge(RaceRegistration::engagedStatuses(), ['PENDING_VALIDATION']);
 
         return $this->registrations()
