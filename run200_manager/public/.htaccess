@@ -5,6 +5,9 @@
 
     RewriteEngine On
 
+    # Vite fingerprints these CSS/JS filenames; a new build gets a new URL.
+    RewriteRule ^build/assets/[^/]+-[A-Za-z0-9_-]{8,}\.(css|js)$ - [E=RUN200_VITE_HASHED:1]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
@@ -22,4 +25,8 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header set Cache-Control "public, max-age=31536000, immutable" env=RUN200_VITE_HASHED
 </IfModule>
