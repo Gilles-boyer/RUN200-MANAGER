@@ -1,5 +1,7 @@
 import './qr-scanner.js';
-import './charts.js';
+
+// Chart.js is only needed by pages rendering the racing chart component.
+window.loadCharts = () => import('./charts.js');
 
 /**
  * Unified Theme Management

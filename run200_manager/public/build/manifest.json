@@ -9,9 +9,18 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-COj-1CU7.js",
+    "file": "assets/app-BkubRR6Y.js",
     "name": "app",
     "src": "resources/js/app.js",
-    "isEntry": true
+    "isEntry": true,
+    "dynamicImports": [
+      "resources/js/charts.js"
+    ]
+  },
+  "resources/js/charts.js": {
+    "file": "assets/charts-BkXXYWQH.js",
+    "name": "charts",
+    "src": "resources/js/charts.js",
+    "isDynamicEntry": true
   }
 }

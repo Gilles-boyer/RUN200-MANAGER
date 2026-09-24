@@ -17,6 +17,7 @@
 <div
     x-data="{
         chart: null,
+        chartError: false,
         init() {
             this.$nextTick(() => {
                 this.renderChart();
@@ -29,7 +30,18 @@
                 }
             });
         },
-        renderChart() {
+        async renderChart() {
+            try {
+                await window.loadCharts();
+            } catch (error) {
+                console.error('Unable to load chart module:', error);
+                this.chartError = true;
+                return;
+            }
+
+            if (!this.$el.isConnected) return;
+            this.chartError = false;
+
             const labels = {{ Js::from($labels) }};
             const datasets = {{ Js::from($datasets) }};
             const colors = {{ $colors ? Js::from($colors) : 'null' }};
@@ -51,4 +63,7 @@
     style="height: {{ $height }};"
 >
     <canvas id="{{ $chartId }}" class="w-full h-full"></canvas>
+    <p x-cloak x-show="chartError" class="absolute inset-0 flex items-center justify-center bg-carbon-900/90 text-center text-sm text-carbon-400" role="status">
+        Impossible de charger le graphique. Rechargez la page.
+    </p>
 </div>
