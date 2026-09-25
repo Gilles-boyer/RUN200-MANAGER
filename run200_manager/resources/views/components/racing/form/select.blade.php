@@ -18,7 +18,6 @@
 @php
     $id = $attributes->get('id', $name);
     $hasError = $errors->has($name);
-    $wireModel = $attributes->whereStartsWith('wire:model')->first();
     $currentValue = old($name, $selected);
 
     // Icon SVG paths
@@ -59,7 +58,6 @@
         <select
             name="{{ $name }}"
             id="{{ $id }}"
-            @if($wireModel) wire:model="{{ $wireModel }}" @endif
             @if($required) required @endif
             @if($disabled) disabled @endif
             @if($multiple) multiple @endif
