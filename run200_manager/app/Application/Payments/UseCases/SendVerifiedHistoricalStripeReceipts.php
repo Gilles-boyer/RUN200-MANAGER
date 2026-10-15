@@ -9,6 +9,7 @@ use App\Domain\Payment\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Models\PaymentReceipt;
 use App\Models\User;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -24,20 +25,54 @@ final class SendVerifiedHistoricalStripeReceipts
     /** @return array{examined:int,sent:int,held:int,already_sent:int} */
     public function forUser(User $user): array
     {
+        return $this->sendForUser($user, false);
+    }
+
+    /**
+     * A freshly completed signed verification proves control of the current
+     * address even when the pilot requested the link outside the campaign.
+     * Calls outside that route keep the campaign gate.
+     *
+     * @return array{examined:int,sent:int,held:int,already_sent:int}
+     */
+    public function forVerifiedEvent(Verified $event): array
+    {
+        $user = $event->user;
+        if (! $user instanceof User) {
+            return ['examined' => 0, 'sent' => 0, 'held' => 0, 'already_sent' => 0];
+        }
+
+        $request = request();
+        $fromSignedLink = $request->routeIs('verification.verify')
+            && $request->hasValidSignature()
+            && (string) auth()->id() === (string) $user->getKey()
+            && (string) $request->route('id') === (string) $user->getKey()
+            && hash_equals(sha1($user->getEmailForVerification()), (string) $request->route('hash'));
+
+        return $this->sendForUser($user, $fromSignedLink, $fromSignedLink ? $user->email : null);
+    }
+
+    /** @return array{examined:int,sent:int,held:int,already_sent:int} */
+    private function sendForUser(User $user, bool $fromSignedLink, ?string $signedEmail = null): array
+    {
         $result = ['examined' => 0, 'sent' => 0, 'held' => 0, 'already_sent' => 0];
         $user = $user->fresh();
-        if ($user === null || $user->email_verified_at === null || ! filter_var($user->email, FILTER_VALIDATE_EMAIL)) {
+        if ($user === null || $user->email_verified_at === null || ! filter_var($user->email, FILTER_VALIDATE_EMAIL)
+            || ($signedEmail !== null && $user->email !== $signedEmail)) {
             return $result;
         }
 
-        // A campaign notification must have been accepted for this exact address.
-        $request = DB::table('payment_receipt_verification_requests')
-            ->where('user_id', $user->id)
-            ->where('status', 'sent')
-            ->where('email_hash', HistoricalReceiptEmailHash::of($user->email))
-            ->first();
-        if ($request === null || $request->sent_at === null) {
-            return $result;
+        if (! $fromSignedLink) {
+            // Administrative replay requires an accepted campaign notice for
+            // this exact address, including accounts verified long ago.
+            $campaign = DB::table('payment_receipt_verification_requests')
+                ->where('user_id', $user->id)
+                ->where('status', 'sent')
+                ->where('email_hash', HistoricalReceiptEmailHash::of($user->email))
+                ->first();
+            if ($campaign === null || $campaign->sent_at === null) {
+                return $result;
+            }
         }
 
         Payment::query()

@@ -52,7 +52,7 @@ final class SendPendingPaymentReceiptsAfterVerification
         }
 
         try {
-            $this->historical->forUser($user);
+            $this->historical->forVerifiedEvent($event);
         } catch (Throwable $e) {
             Log::error('Historical Stripe receipts could not be resumed after email verification', [
                 'user_id' => $user->id,

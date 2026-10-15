@@ -1,6 +1,9 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Livewire;
 
 test('profile page is displayed', function () {
@@ -41,6 +44,43 @@ test('email verification status is unchanged when email address is unchanged', f
     $response->assertHasNoErrors();
 
     expect($user->refresh()->email_verified_at)->not->toBeNull();
+});
+
+test('profile verification resend is limited per account and recovers after the window', function () {
+    Notification::fake();
+    $user = User::factory()->unverified()->create();
+    $component = Livewire::actingAs($user)->test('pages::settings.profile');
+
+    for ($attempt = 0; $attempt < 3; $attempt++) {
+        $component->call('resendVerificationNotification');
+    }
+
+    Notification::assertSentTo($user, VerifyEmail::class);
+    Notification::assertCount(3);
+
+    $component->call('resendVerificationNotification')
+        ->assertSee('Trop de demandes de lien.');
+    Notification::assertCount(3);
+
+    $this->travel(11)->minutes();
+    Livewire::actingAs($user)->test('pages::settings.profile')
+        ->call('resendVerificationNotification');
+    Notification::assertCount(4);
+});
+
+test('profile verification resend is also limited across accounts sharing an IP', function () {
+    Notification::fake();
+    $user = User::factory()->unverified()->create();
+    $ipKey = 'verification-resend:ip:'.hash('sha256', '127.0.0.1');
+    for ($attempt = 0; $attempt < 60; $attempt++) {
+        RateLimiter::hit($ipKey, 600);
+    }
+
+    Livewire::actingAs($user)->test('pages::settings.profile')
+        ->call('resendVerificationNotification')
+        ->assertSee('Trop de demandes de lien.');
+
+    Notification::assertNothingSent();
 });
 
 test('user can delete their account', function () {
