@@ -91,7 +91,7 @@
       "title": "Rétablir les contrôles GitHub Actions",
       "owner": "it_devops",
       "priority": 1,
-      "state": "review",
+      "state": "deliver",
       "acceptance": [
         "Workflows détectés à la racine Git, tests et lint non mutatif exécutés sur PR #17"
       ],
@@ -100,7 +100,8 @@
       "author": "ci_workflows",
       "reviewer": "audit_site",
       "evidence": [
-        "Workflows racine vérifiés localement"
+        "Workflows racine vérifiés localement",
+        "PR #17 commit 96cd957: GitHub Actions Pint, PHP 8.2+Vite, PHP 8.4+Vite tous réussis le 15-10-2026"
       ],
       "revision": "working-tree-2026-10-15-ci",
       "review_evidence": "Revue locale indépendante: YAML valide, chemins corrects, Pint 43 PHP OK; GitHub Actions non encore exécuté",

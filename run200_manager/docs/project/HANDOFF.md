@@ -20,11 +20,11 @@ Aucune migration, envoi historique ou déploiement n'a été exécuté sur o2swi
 
 Le dépôt GitHub est public. L'ancien mot de passe SMTP documenté doit être vérifié/révoqué s'il est actif et l'historique Git traité avec coordination. Les conditions d'inscription, la conservation des données et les parcours publics/authentifiés critiques restent à qualifier avant de déclarer le site prêt. Aucun envoi rétroactif ne doit partir avant l'audit agrégé de la base et la vérification des destinataires.
 
-`gh api .../actions/workflows` renvoyait zéro workflow et la PR n'avait aucun check au commit `7afdf90` : les fichiers YAML étaient sous `run200_manager/.github/workflows`. Leur déplacement à la racine et leur adaptation au sous-dossier ont été réalisés et revus localement ; l'exécution réelle sur la PR reste à constater après push.
+`gh api .../actions/workflows` renvoyait zéro workflow et la PR n'avait aucun check au commit `7afdf90` : les fichiers YAML étaient sous `run200_manager/.github/workflows`. Au commit `96cd957`, leur déplacement à la racine et leur adaptation au sous-dossier sont vérifiés sur GitHub : Pint, PHP 8.2 + Vite et PHP 8.4 + Vite passent sur la PR #17.
 
 ## Prochaines étapes
 
-1. Pousser la correction CI et vérifier que les workflows GitHub s'exécutent et réussissent sur la PR ; traiter leurs éventuelles remarques.
+1. Traiter les éventuelles remarques de la PR et recontrôler la CI après chaque nouveau commit ; conserver la PR en brouillon jusqu'à levée des risques de production.
 2. Dès accès cPanel stable : inspecter en lecture seule le SHA, la configuration d'exécution non secrète, la sauvegarde, la version PHP, les migrations, le cron et les agrégats historiques via la simulation de rattrapage après déploiement contrôlé.
 3. Résoudre les anomalies de paiement et les points critiques du site ; vérifier SMTP et effectuer les lots d'envoi autorisés par l'utilisateur, avec bilan et reprise.
 4. Vérifier la version servie et revérifier les contrôles `audit-sites` touchés/critiques en production. Ne pas annoncer « prêt » avant les preuves requises.
