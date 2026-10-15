@@ -32,7 +32,7 @@
       "title": "Reçus de paiement nouveaux et historiques",
       "owner": "it_backend",
       "priority": 1,
-      "state": "review",
+      "state": "deliver",
       "acceptance": [
         "Chaque paiement payé dispose d'un reçu individuel téléchargeable ; nouveaux paiements automatisés ; historique idempotent ; accès autorisé ; tests"
       ],
@@ -51,10 +51,11 @@
       "author": "payments_design",
       "reviewer": "audit_site",
       "evidence": [
-        "34 tests paiements, 162 assertions; PDF A4 inspecté; en attente revue indépendante et production"
+        "Implémentation locale 4a0399f testée",
+        "Revue terminée ; production non vérifiée"
       ],
-      "revision": "working-tree",
-      "review_evidence": "",
+      "revision": "4a0399f",
+      "review_evidence": "QA 68 tests 309 assertions; suite 557 tests 1644 assertions; PDF A4",
       "blocked": ""
     },
     {
@@ -62,7 +63,7 @@
       "title": "Corriger les risques critiques avant publication",
       "owner": "it_backend",
       "priority": 1,
-      "state": "review",
+      "state": "deliver",
       "acceptance": [
         "Aucun compte guichet à mot de passe fixe et aucune attribution de paiement par simple montant ; autorisations de remboursement vérifiées"
       ],
@@ -78,10 +79,11 @@
       "author": "audit_tech",
       "reviewer": "audit_site",
       "evidence": [
-        "35 tests sécurité ciblés, 148 assertions; 16 tests webhook après revue, 59 assertions; en attente QA indépendante"
+        "Implémentation locale 4a0399f testée",
+        "Revue terminée ; rotation secret et production non vérifiées"
       ],
-      "revision": "working-tree",
-      "review_evidence": "",
+      "revision": "4a0399f",
+      "review_evidence": "QA webhook remboursement et permissions ; 68 tests 309 assertions ciblés ; suite 557 tests 1644 assertions",
       "blocked": ""
     }
   ]

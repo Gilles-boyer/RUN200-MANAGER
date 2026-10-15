@@ -2,7 +2,7 @@
 
 ## Source de vérité
 
-`board.json` ; `KANBAN.md` est une vue dérivée. Branche `codex/payment-receipts-audit` créée depuis `main` à `2dc62f2`. Deux documents utilisateur non suivis dans `docs/` sont préservés et exclus des commits.
+`board.json` ; `KANBAN.md` est une vue dérivée. Branche `codex/payment-receipts-audit` créée depuis `main` à `2dc62f2` ; implémentation et rapport commités à `4a0399f`. Deux documents utilisateur non suivis dans `docs/` sont préservés et exclus des commits.
 
 ## Livrables locaux
 
@@ -22,7 +22,7 @@ Le dépôt GitHub est public. L'ancien mot de passe SMTP documenté doit être v
 
 ## Prochaines étapes
 
-1. Finaliser le commit/PR de la branche et lire les vérifications CI.
+1. Pousser la branche, ouvrir une PR de revue et lire les vérifications CI.
 2. Dès accès cPanel stable : inspecter en lecture seule le SHA, la configuration d'exécution non secrète, la sauvegarde, la version PHP, les migrations, le cron et les agrégats historiques via la simulation de rattrapage après déploiement contrôlé.
 3. Résoudre les anomalies de paiement et les points critiques du site ; vérifier SMTP et effectuer les lots d'envoi autorisés par l'utilisateur, avec bilan et reprise.
 4. Vérifier la version servie et revérifier les contrôles `audit-sites` touchés/critiques en production. Ne pas annoncer « prêt » avant les preuves requises.
