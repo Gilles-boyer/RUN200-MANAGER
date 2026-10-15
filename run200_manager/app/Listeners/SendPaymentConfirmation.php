@@ -14,6 +14,10 @@ class SendPaymentConfirmation
 
     public function handle(PaymentConfirmed $event): void
     {
+        if (! config('payment_receipts.auto_send', false)) {
+            return;
+        }
+
         $payment = $event->payment;
 
         try {

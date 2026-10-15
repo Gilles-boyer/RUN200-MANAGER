@@ -80,6 +80,7 @@ test('refunded payments with missing refund history are held for manual review',
 
 test('backfill audits then sends historical email once and retries failed delivery', function () {
     Mail::fake();
+    config()->set('payment_receipts.auto_send', false);
     paidReceiptPayment(['amount' => '25.00', 'amount_cents' => 0]);
 
     $this->artisan('payment-receipts:backfill')->assertSuccessful();
@@ -206,11 +207,17 @@ test('legacy zero cent amount displays decimal fallback', function () {
     expect($payment->formatted_amount)->toContain('50,75');
 });
 
-test('confirmation sends one email with a PDF attachment and ignores replay', function () {
+test('automatic confirmation is disabled until enabled, then sends once despite replay', function () {
     Mail::fake();
     $payment = paidReceiptPayment();
     $listener = app(SendPaymentConfirmation::class);
 
+    config()->set('payment_receipts.auto_send', false);
+    $listener->handle(new PaymentConfirmed($payment));
+    expect(PaymentReceipt::count())->toBe(0);
+    Mail::assertNothingOutgoing();
+
+    config()->set('payment_receipts.auto_send', true);
     $listener->handle(new PaymentConfirmed($payment));
     $listener->handle(new PaymentConfirmed($payment));
 
@@ -222,6 +229,7 @@ test('confirmation sends one email with a PDF attachment and ignores replay', fu
 
 test('missing recipient is recorded without cancelling a confirmed payment', function () {
     Mail::fake();
+    config()->set('payment_receipts.auto_send', true);
     $payment = paidReceiptPayment();
     $payment->registration->pilot->user->update(['email' => 'adresse-invalide']);
 
@@ -243,6 +251,10 @@ test('receipt download allows its pilot and staff with payment view but rejects 
     $staff->assignRole('STAFF_ADMINISTRATIF');
 
     $this->actingAs($other)->get(route('payments.receipt', $payment))->assertForbidden();
+    $this->actingAs($owner)->get(route('payments.receipt', $payment))->assertNotFound();
+    expect(PaymentReceipt::count())->toBe(0);
+
+    app(IssuePaymentReceipt::class)->issue($payment, historical: true);
     $this->actingAs($owner)->get(route('payments.receipt', $payment))
         ->assertOk()->assertHeader('Content-Type', 'application/pdf');
     $this->actingAs($staff)->get(route('payments.receipt', $payment))->assertOk();

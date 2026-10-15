@@ -48,7 +48,7 @@ class PaymentManager extends Component
     #[Computed]
     public function payments(): Collection
     {
-        return $this->registration->payments()->orderByDesc('created_at')->get();
+        return $this->registration->payments()->with('receipt')->orderByDesc('created_at')->get();
     }
 
     #[Computed]

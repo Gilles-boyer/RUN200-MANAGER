@@ -9,10 +9,10 @@ Inspection **en lecture seule** dans le terminal cPanel et JetBackup de l'héber
 | Contrôle | Constat |
 | --- | --- |
 | Révision en service | `2dc62f2fede2ea48c11137952b95b75cec4cb1699` sur `main`, donc antérieure aux reçus ; table `payment_receipts` absente. |
-| Exécution CLI | PHP 8.3.35, Laravel 12.48.1, environnement `production`, mode debug désactivé, maintenance désactivée, MySQL. La version PHP du processus web reste à confirmer séparément. |
+| Exécution CLI et web | PHP CLI 8.3.35, Laravel 12.48.1, environnement `production`, mode debug désactivé, maintenance désactivée, MySQL. Le sélecteur PHP cPanel affiche PHP 8.3 pour `run200cfg.clicksolutions.re` (défaut du compte) ; la version exacte obtenue par une requête PHP web reste à mesurer après déploiement. |
 | Liens applicatifs | `APP_URL` et la route de l'espace pilote génèrent des URL en HTTPS dans le contexte CLI contrôlé. |
 | Arbre Git serveur | Modifications locales sur `.env.production.example` et `public/storage/.gitignore` ; `error_log`, un asset JS et `public/storage` non suivis. Préserver ces fichiers lors du déploiement. Leur contenu n'a pas été lu. |
-| Courriel | Transport `smtp` configuré avec mot de passe présent, file `sync`. L'expéditeur utilise le domaine `run200cfg.clicksolutions.re`, alors que `contact@cfg.re` est l'adresse de contact à faire figurer sur le reçu. Le serveur SMTP configuré n'est pas Mailtrap. Aucune livraison réelle n'a été testée. |
+| Courriel | Transport `smtp` configuré avec mot de passe présent, file `sync`. L'expéditeur utilise le domaine `run200cfg.clicksolutions.re`, alors que `contact@cfg.re` est l'adresse de contact à faire figurer sur le reçu. Le serveur SMTP configuré n'est pas Mailtrap. Un message technique simple a été reçu ; voir ci-dessous. |
 | Planification | Aucune entrée `schedule:run` de Run200 repérée dans `crontab -l`. La file `sync` n'en dépend pas pour les nouveaux reçus ; revoir les autres tâches planifiées si la configuration de file change. |
 
 ## Paiements historiques
@@ -43,6 +43,10 @@ Ce rapprochement va **de la base vers Stripe**. Il ne démontre pas l'absence d'
 
 JetBackup 5 affiche pour la base MySQL active `mepa3308_run200cfg` une sauvegarde du **15 octobre 2026 à 01 h 08**, 46 points de sauvegarde disponibles et une taille affichée de 5,26 Mo. Le nom de cette base a été comparé à la configuration Laravel active. La restauration n'a pas été essayée ; avant une migration, produire ou confirmer un point de sauvegarde récent, identifier le retour arrière et vérifier la récupération sur une cible isolée si possible.
 
+## Essai SMTP contrôlé
+
+Un unique message technique sans donnée de pilote ni de paiement a été envoyé depuis Laravel en production à l'adresse de contrôle `contact@cfg.re` le 15 octobre. Le transport SMTP l'a accepté (`smtp_accepted`) et l'utilisateur a confirmé sa réception. Ce test prouve ce chemin de remise simple ; le reçu PDF joint, le déclenchement par événement de paiement et la délivrabilité vers les adresses des pilotes restent non vérifiés. Aucun autre e-mail de test n'a été envoyé.
+
 ## Décision de mise en service
 
-Le volume, les contrôles internes et le rapprochement des 177 références Stripe rendent un rattrapage par petits lots **préparable**. Les 75 paiements hors Stripe et le contrôle inverse Stripe vers la base restent à rapprocher ; la délivrabilité des e-mails n'est pas prouvée. Déployer seulement après la levée des points critiques du rapport `AUDIT_2026-10-15.md`, la préservation des fichiers locaux du serveur et un plan de retour arrière. Après migration, exécuter la simulation `payment-receipts:backfill` sur des lots de **20**, contrôler un PDF et un envoi maîtrisé, puis traiter les lots suivants en vérifiant la remise et les compteurs `sent`/`failed`/`sending`. Aucun envoi massif ne doit précéder ces contrôles.
+Le volume, les contrôles internes et le rapprochement des 177 références Stripe rendent un rattrapage par petits lots **préparable**. Les 75 paiements hors Stripe et le contrôle inverse Stripe vers la base restent à rapprocher ; la remise d'un reçu PDF aux pilotes n'est pas prouvée. Déployer seulement après la levée des points critiques du rapport `AUDIT_2026-10-15.md`, la préservation des fichiers locaux du serveur et un plan de retour arrière. Après migration, exécuter la simulation `payment-receipts:backfill` sur des lots de **20**, contrôler un PDF et un envoi maîtrisé, puis traiter les lots suivants en vérifiant la remise et les compteurs `sent`/`failed`/`sending`. Aucun envoi massif ne doit précéder ces contrôles.

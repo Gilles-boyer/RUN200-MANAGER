@@ -1,4 +1,4 @@
-<x-layouts::auth>
+<x-layouts::auth title="Créer un compte pilote - RUN200">
     <div class="flex flex-col gap-6">
         <x-auth-header :title="__('Créer un compte pilote')" :description="__('Remplissez les informations ci-dessous pour créer votre compte')" />
 

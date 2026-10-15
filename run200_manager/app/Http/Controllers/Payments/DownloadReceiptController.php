@@ -2,18 +2,16 @@
 
 namespace App\Http\Controllers\Payments;
 
-use App\Application\Payments\UseCases\IssuePaymentReceipt;
 use App\Http\Controllers\Controller;
 use App\Infrastructure\Pdf\PaymentReceiptPdfService;
 use App\Models\Payment;
+use App\Models\PaymentReceipt;
 use Illuminate\Http\Response;
-use InvalidArgumentException;
 
 class DownloadReceiptController extends Controller
 {
     public function __invoke(
         Payment $payment,
-        IssuePaymentReceipt $issuer,
         PaymentReceiptPdfService $pdf
     ): Response {
         $user = auth()->user();
@@ -26,11 +24,9 @@ class DownloadReceiptController extends Controller
 
         abort_unless($payment->canHaveReceipt(), 404);
 
-        try {
-            $receipt = $issuer->issue($payment, historical: true);
-        } catch (InvalidArgumentException) {
-            abort(422, 'Le reçu ne peut pas être généré avec les informations de ce paiement.');
-        }
+        // Reading a receipt must never issue one for an unreviewed historical payment.
+        $receipt = PaymentReceipt::query()->where('payment_id', $payment->id)->first();
+        abort_unless($receipt !== null, 404);
 
         return response($pdf->bytes($receipt), 200, [
             'Content-Type' => 'application/pdf',

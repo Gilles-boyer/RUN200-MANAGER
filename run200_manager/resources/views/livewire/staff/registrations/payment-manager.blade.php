@@ -245,11 +245,13 @@
 
                             {{-- Actions --}}
                             <div class="flex items-center gap-2 lg:flex-col">
-                                @if($payment->canHaveReceipt() && auth()->user()->can('payment.view'))
+                                @if($payment->canHaveReceipt() && $payment->receipt !== null && auth()->user()->can('payment.view'))
                                     <a href="{{ route('payments.receipt', $payment) }}"
                                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-status-success/50 text-status-success hover:bg-status-success/10 transition-colors text-sm font-medium">
                                         Télécharger le reçu
                                     </a>
+                                @elseif($payment->canHaveReceipt() && auth()->user()->can('payment.view'))
+                                    <span class="text-sm text-carbon-400">Reçu en attente de vérification</span>
                                 @endif
 
                                 @if($payment->canBeRefunded() && auth()->user()->can('payment.refund'))

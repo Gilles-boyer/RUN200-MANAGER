@@ -35,6 +35,7 @@ class PaymentSuccess extends Component
 
         $payment = $this->sessionId
             ? Payment::query()
+                ->with('receipt')
                 ->where('race_registration_id', $this->registration->id)
                 ->where('method', PaymentMethod::STRIPE->value)
                 ->where('stripe_session_id', $this->sessionId)

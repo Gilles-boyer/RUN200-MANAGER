@@ -18,8 +18,10 @@
                     </dl>
                 </div>
 
-                @if($payment->canHaveReceipt())
+                @if($payment->canHaveReceipt() && $payment->receipt !== null)
                     <a href="{{ route('payments.receipt', $payment) }}" class="mt-4 inline-flex min-h-11 items-center justify-center rounded-md border border-green-600 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20">Télécharger le reçu de paiement</a>
+                @elseif($payment->canHaveReceipt())
+                    <p class="mt-4 text-sm text-gray-600 dark:text-gray-300">Votre reçu sera disponible après vérification du paiement par l'organisation.</p>
                 @endif
 
                 @unless($canAccessEcard)

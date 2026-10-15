@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'auto_send' => env('PAYMENT_RECEIPTS_AUTO_SEND', false),
+
     'issuer' => [
         'name' => 'ASSOCIATION SPORTIVE AUTOMOBILE DU CIRCUIT FELIX GUICHARD',
         'siret' => '51060913400018',

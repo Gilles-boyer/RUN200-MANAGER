@@ -6,7 +6,9 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Fortify;
@@ -29,6 +31,22 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();
+
+        // Fortify owns this route and loads it after application providers boot.
+        Route::matched(function (RouteMatched $event): void {
+            if ($event->route->getName() !== 'register.store') {
+                return;
+            }
+
+            // Fortify lowercases email before validation and cannot accept an array here.
+            if ($event->request->has('email') && ! is_string($event->request->input('email'))) {
+                $event->request->merge(['email' => '']);
+            }
+
+            if (! in_array('throttle:registration', $event->route->middleware(), true)) {
+                $event->route->middleware('throttle:registration');
+            }
+        });
     }
 
     /**
@@ -67,6 +85,29 @@ class FortifyServiceProvider extends ServiceProvider
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
 
             return Limit::perMinute(5)->by($throttleKey);
+        });
+
+        RateLimiter::for('registration', function (Request $request) {
+            $tooManyAttempts = function (Request $request, array $headers) {
+                $message = 'Trop de tentatives d’inscription. Veuillez patienter une minute avant de réessayer.';
+
+                if ($request->expectsJson()) {
+                    return response()->json(['message' => $message], 429, $headers);
+                }
+
+                return redirect()->route('register')
+                    ->withErrors(['registration' => $message])
+                    ->withInput($request->only('first_name', 'last_name', 'email', 'phone', 'license_number', 'terms'))
+                    ->withHeaders($headers);
+            };
+
+            $submittedEmail = $request->input('email');
+            $email = is_string($submittedEmail) ? Str::lower(trim($submittedEmail)) : '';
+
+            return [
+                Limit::perMinute(30)->by('registration-ip:'.$request->ip())->response($tooManyAttempts),
+                Limit::perMinute(6)->by('registration-email:'.$email.'|'.$request->ip())->response($tooManyAttempts),
+            ];
         });
     }
 }

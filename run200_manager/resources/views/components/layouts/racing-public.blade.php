@@ -4,17 +4,51 @@
 --}}
 @props([
     'title' => null,
+    'description' => null,
+    'indexable' => true,
 ])
 
+@php
+    $pageDescription = $description ?? match (true) {
+        str_starts_with((string) $title, 'RUN200 Manager -') => 'Inscrivez-vous aux courses RUN200, retrouvez le calendrier et suivez les résultats du championnat.',
+        str_starts_with((string) $title, 'Calendrier des courses') => 'Consultez le calendrier des courses RUN200 et les prochaines dates de compétition.',
+        str_starts_with((string) $title, 'Classement du championnat') => 'Retrouvez le classement du championnat RUN200 par catégorie et suivez les pilotes.',
+        str_starts_with((string) $title, 'Résultats :') => 'Consultez les résultats publiés de cette course RUN200.',
+        str_starts_with((string) $title, 'Tableaux d\'affichage') => 'Accédez aux tableaux d’affichage et aux documents publics des courses RUN200.',
+        str_starts_with((string) $title, 'Tableau d\'affichage') => 'Consultez le tableau d’affichage public de cette course RUN200.',
+        str_starts_with((string) $title, 'Mentions Légales') => 'Consultez les mentions légales de la plateforme RUN200.',
+        str_starts_with((string) $title, 'Politique de Confidentialité') => 'Découvrez comment RUN200 traite et protège vos données personnelles.',
+        default => 'Suivez les courses, les résultats et le championnat RUN200.',
+    };
+    $pageTitle = $title ?? config('app.name', 'RUN200');
+@endphp
+
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" x-data="{ mobileMenuOpen: false }">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#E53935">
 
-    <title>{{ $title ?? config('app.name', 'RUN200') }}</title>
+    <title>{{ $pageTitle }}</title>
+    <meta name="description" content="{{ $pageDescription }}">
+    @if($indexable)
+        <link rel="canonical" href="{{ url()->current() }}">
+    @else
+        <meta name="robots" content="noindex, nofollow">
+    @endif
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="fr_FR">
+    <meta property="og:site_name" content="RUN200">
+    <meta property="og:title" content="{{ $pageTitle }}">
+    <meta property="og:description" content="{{ $pageDescription }}">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:image" content="{{ asset('apple-touch-icon.png') }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{{ $pageTitle }}">
+    <meta name="twitter:description" content="{{ $pageDescription }}">
+    <meta name="twitter:image" content="{{ asset('apple-touch-icon.png') }}">
 
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -109,16 +143,15 @@
 
                     {{-- Mobile Menu Button --}}
                     <button
-                        @click="mobileMenuOpen = !mobileMenuOpen"
-                        :aria-expanded="mobileMenuOpen.toString()"
+                        type="button"
+                        data-public-menu-toggle
+                        aria-controls="public-mobile-menu"
+                        aria-expanded="false"
                         aria-label="Ouvrir le menu"
-                        class="md:hidden p-2 rounded-lg text-carbon-600 dark:text-carbon-400 hover:bg-carbon-100 dark:hover:bg-carbon-800 transition-colors"
+                        class="md:hidden p-2 rounded-lg text-carbon-600 dark:text-carbon-400 hover:bg-carbon-100 dark:hover:bg-carbon-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-racing-red-500 transition-colors"
                     >
-                        <svg x-show="!mobileMenuOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg aria-hidden="true" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                        </svg>
-                        <svg x-show="mobileMenuOpen" x-cloak class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                     </button>
                 </div>
@@ -127,15 +160,8 @@
 
         {{-- Mobile Menu --}}
         <div
-            x-show="mobileMenuOpen"
-            x-cloak
-            x-transition:enter="transition ease-out duration-200"
-            x-transition:enter-start="opacity-0 -translate-y-4"
-            x-transition:enter-end="opacity-100 translate-y-0"
-            x-transition:leave="transition ease-in duration-150"
-            x-transition:leave-start="opacity-100 translate-y-0"
-            x-transition:leave-end="opacity-0 -translate-y-4"
-            @click.away="mobileMenuOpen = false"
+            id="public-mobile-menu"
+            hidden
             class="md:hidden border-t border-carbon-200 dark:border-carbon-800"
         >
             <div class="px-4 py-4 space-y-2">
@@ -265,5 +291,32 @@
         </div>
     </footer>
     @fluxScripts
+    <script>
+        (() => {
+            const toggle = document.querySelector('[data-public-menu-toggle]');
+            const menu = document.getElementById('public-mobile-menu');
+
+            if (!toggle || !menu) return;
+
+            const setOpen = (open) => {
+                menu.hidden = !open;
+                toggle.setAttribute('aria-expanded', String(open));
+                toggle.setAttribute('aria-label', open ? 'Fermer le menu' : 'Ouvrir le menu');
+            };
+
+            toggle.addEventListener('click', () => setOpen(menu.hidden));
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && !menu.hidden) {
+                    setOpen(false);
+                    toggle.focus();
+                }
+            });
+            document.addEventListener('click', (event) => {
+                if (!menu.hidden && !menu.contains(event.target) && !toggle.contains(event.target)) {
+                    setOpen(false);
+                }
+            });
+        })();
+    </script>
 </body>
 </html>

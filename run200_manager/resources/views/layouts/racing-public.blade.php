@@ -4,7 +4,19 @@
 --}}
 @props([
     'title' => null,
+    'description' => null,
+    'indexable' => true,
 ])
+
+@php
+    $pageDescription = $description ?? match (true) {
+        str_starts_with((string) $title, 'RUN200 Manager -') => 'Inscrivez-vous aux courses RUN200, retrouvez le calendrier et suivez les résultats du championnat.',
+        str_starts_with((string) $title, 'Mentions Légales') => 'Consultez les mentions légales de la plateforme RUN200.',
+        str_starts_with((string) $title, 'Politique de Confidentialité') => 'Découvrez comment RUN200 traite et protège vos données personnelles.',
+        default => 'Suivez les courses, les résultats et le championnat RUN200.',
+    };
+    $pageTitle = $title ?? config('app.name', 'RUN200');
+@endphp
 
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" x-data="{ mobileMenuOpen: false }">
@@ -14,7 +26,24 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#E53935">
 
-    <title>{{ $title ?? config('app.name', 'RUN200') }}</title>
+    <title>{{ $pageTitle }}</title>
+    <meta name="description" content="{{ $pageDescription }}">
+    @if($indexable)
+        <link rel="canonical" href="{{ url()->current() }}">
+    @else
+        <meta name="robots" content="noindex, nofollow">
+    @endif
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="fr_FR">
+    <meta property="og:site_name" content="RUN200">
+    <meta property="og:title" content="{{ $pageTitle }}">
+    <meta property="og:description" content="{{ $pageDescription }}">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:image" content="{{ asset('apple-touch-icon.png') }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{{ $pageTitle }}">
+    <meta name="twitter:description" content="{{ $pageDescription }}">
+    <meta name="twitter:image" content="{{ asset('apple-touch-icon.png') }}">
 
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
