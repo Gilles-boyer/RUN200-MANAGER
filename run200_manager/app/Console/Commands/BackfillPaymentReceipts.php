@@ -15,7 +15,7 @@ use Throwable;
 class BackfillPaymentReceipts extends Command
 {
     protected $signature = 'payment-receipts:backfill
-        {--commit : Create missing receipts and send historical emails; without this option only inspect data}
+        {--commit : Test-only legacy delivery; production always remains in simulation mode}
         {--stripe-only : Inspect only payments recorded with the Stripe method}
         {--verified-email-only : Exclude recipients whose current account email is not verified}
         {--limit= : Maximum number of payments to inspect}
@@ -46,8 +46,8 @@ class BackfillPaymentReceipts extends Command
         $scanned = $existing = $ready = $eligible = $created = $sent = $alreadySent = $invalid = $failed = $missingEmail = $unverifiedEmail = $held = 0;
         $lastId = $afterId;
 
-        if ($commit && ! app()->environment('production', 'testing')) {
-            $this->error('Envoi historique désactivé dans cet environnement. Utilisez la simulation.');
+        if ($commit && ! app()->environment('testing')) {
+            $this->error('Ancien envoi historique désactivé. Utilisez la campagne de vérification et le contrôle Stripe avant tout reçu.');
 
             return self::FAILURE;
         }

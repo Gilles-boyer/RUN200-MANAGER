@@ -1,45 +1,54 @@
-# Mise en service des reçus de paiement
+# Reçus de paiement : procédure de mise en service
 
-> État réel de production au 15 octobre 2026 : voir [RELEASE_2026-10-15.md](RELEASE_2026-10-15.md). Le prévol et les commandes ci-dessous documentent la procédure ; les passages indiquant que le code n'était pas encore déployé sont historiques. Le SHA `0c41b5a7bc9bbc89b7d792bba99aa3b10a5d16fe` sert les nouveaux reçus avec `PAYMENT_RECEIPTS_AUTO_SEND=ON`. Un reçu Stripe réel a été envoyé et un PDF de contrôle a été reçu. Le rattrapage général attend toujours le rapprochement des 75 encaissements hors Stripe par l'utilisateur.
+État de référence : voir [RELEASE_2026-10-15.md](RELEASE_2026-10-15.md) pour le SHA réellement servi sur o2switch. Les commandes de confirmation d'adresse et le contrôle Stripe renforcé de la branche `codex/run200-email-verification` ne sont utilisables en production qu'après fusion, migration et vérification de cette nouvelle version.
 
-## Portée et prérequis
+## Règles de délivrance
 
-Le reçu est un justificatif de paiement d'inscription, sans valeur de reçu fiscal de don. Chaque reçu émis a un numéro stable et un PDF privé. L'envoi automatique des nouveaux paiements est désactivé par défaut via `PAYMENT_RECEIPTS_AUTO_SEND=false` et ne doit être activé qu'après validation du parcours réel. Les paiements anciens sont traités par commande explicite, en lots reprenables. Le téléchargement d'un paiement sans reçu existant ne crée rien et répond 404 ; le lien n'apparaît qu'après émission contrôlée.
+- Le document est un reçu de paiement d'inscription, sans valeur de reçu fiscal pour don.
+- Le lien « Télécharger le reçu » apparaît seulement après émission du reçu. Un paiement `payé` sans reçu affiche un message d'attente ; le téléchargement n'émet jamais de document par lui-même.
+- Un nouveau reçu est émis après confirmation du paiement. Le PDF reste accessible au pilote authentifié ; son e-mail attend la vérification de l'adresse actuelle du compte. L'événement `Verified` reprend les envois `pending` une seule fois.
+- Les reçus historiques Stripe exigent confirmation de l'adresse du compte **et** contrôle live du paiement chez Stripe : mode réel, montant, devise, identité de l'inscription et du pilote, payeur, capture, litige et remboursement. Les anomalies sont retenues sans émission ni envoi. L'ancien `payment-receipts:backfill --commit` est interdit hors de l'environnement de test.
+- Les 75 paiements hors Stripe attendent le rapprochement personnel de l'utilisateur ; ils ne sont pas inclus dans la campagne Stripe.
 
-Avant la mise en production, vérifier le SHA déployé, sauvegarder la base et tester sa restauration, confirmer l'expéditeur SMTP, révoquer l'ancien identifiant SMTP exposé dans l'historique Git s'il est encore actif, et vérifier les contrôles critiques de l'audit du site. Le [prévol du 15 octobre 2026](PRODUCTION_PREFLIGHT_2026-10-15.md) constate 252 paiements confirmés pour 101 adresses, une sauvegarde JetBackup de la base active et un test de message SMTP simple reçu à `contact@cfg.re`. La restauration, le PDF joint et le parcours d'envoi web restent non vérifiés. Le serveur reste au commit `2dc62f2` ; les étapes de migration et d'envoi ci-dessous n'y ont pas été exécutées.
+## Prévol avant toute campagne
 
-## Simulation puis envoi historique
+1. Constater le SHA déployé, les migrations appliquées, le cache de configuration, la santé HTTPS et la sauvegarde SQL privée. Revoir les contrôles touchés et critiques de `audit-sites`. Ne pas déclarer le site « prêt » tant que des points critiques sont ouverts.
+2. Vérifier que l'e-mail de confirmation est en français, sans reçu ni donnée de paiement, et que son lien signé demande la connexion au compte concerné. Vérifier un compte pilote réel et un autre compte refusé pour le PDF avant d'élargir la diffusion.
+3. Vérifier en lecture seule que les paiements Stripe locaux correspondent au payeur, à l'inscription et aux données live Stripe. La concordance de l'adresse copiée dans Stripe ne prouve pas que le pilote contrôle actuellement la boîte. Le contrôle inverse Stripe vers la base reste nécessaire pour établir la complétude des paiements.
+4. Mesurer les comptes éligibles avec `php artisan payment-receipts:request-verification --limit=20 --after-user-id=0` : simulation, aucun e-mail ni reçu. Examiner les cas rejetés et le dernier identifiant.
 
-Depuis la racine Laravel, après déploiement du code et migration de la table `payment_receipts` :
+## Invitations de confirmation
 
-```sh
-php artisan payment-receipts:backfill --limit=20 --after-id=0
-```
-
-Pour la tranche Stripe déjà rapprochée en lecture seule, appliquer les deux filtres sur la **simulation et l'envoi du même lot** :
-
-```sh
-php artisan payment-receipts:backfill --stripe-only --verified-email-only --limit=20 --after-id=0
-```
-
-`--stripe-only` retient la méthode stockée `stripe` ; `--verified-email-only` exclut une adresse de compte non vérifiée et la signale. Une ligne exclue provoque un code d'échec et impose de vérifier la situation avant de poursuivre au curseur suivant. Ces filtres ne prouvent pas par eux-mêmes le paiement chez Stripe ou l'identité du véritable porteur de carte. Conserver la liste des références rapprochées et contrôler les destinataires avant `--commit`. Un changement d'adresse entre simulation et envoi est recontrôlé juste avant SMTP, mais la base et SMTP ne forment pas une transaction atomique.
-
-La simulation n'envoie aucun e-mail. Elle donne les paiements examinés, les reçus déjà présents, les montants ou remboursements incohérents, les adresses manquantes, les envois en cours et le dernier identifiant examiné. Résoudre chaque anomalie du lot, puis relancer exactement le même lot. Ne pas déduire un montant manquant d'un tarif de course.
-
-Après rapprochement comptable des paiements du lot par l'utilisateur, un lot sans anomalie peut être envoyé :
+Après pilote de réception et revue du lot, la commande suivante envoie **seulement** le lien de confirmation aux comptes non vérifiés ayant un paiement Stripe enregistré. Elle trace une tentative par compte et par adresse ; une issue SMTP incertaine reste bloquée.
 
 ```sh
-php artisan payment-receipts:backfill --limit=20 --after-id=0 --commit
+php artisan payment-receipts:request-verification --commit --limit=20 --after-user-id=0
 ```
 
-Après revue d'un lot Stripe filtré et sans anomalie, utiliser exactement les mêmes options et le même curseur, avec `--commit`. Ne pas envoyer un lot qui contient une adresse non vérifiée sans traitement explicite de son cas. Repasser depuis `--after-id=0` pour retrouver les lignes exclues, même si d'autres lots ont avancé au-delà de leur ID.
+Vérifier le résultat du lot avant d'avancer le curseur. Le pilote doit se connecter à son compte et confirmer l'adresse ; le service contrôle alors chaque paiement chez Stripe, émet le reçu éligible et envoie son PDF une seule fois. Ne jamais convertir directement `email_verified_at` en masse. Une nouvelle adresse demande une nouvelle confirmation. Les comptes déjà vérifiés avant cette campagne et leurs éventuels autres paiements seront traités dans un lot contrôlé distinct après vérification de leur adresse actuelle ; ne pas les marquer artificiellement comme destinataires de la campagne.
 
-Ne pas lancer cette commande sur les 75 paiements hors Stripe avant le rapprochement personnel annoncé par l'utilisateur. Vérifier d'abord un reçu PDF et un envoi maîtrisé, puis le nombre envoyé et les échecs de chaque lot. Rejouer le même lot après correction d'un échec **pré-envoi certain** ; les reçus et les envois déjà marqués `sent` ne sont pas renvoyés. Passer au lot suivant avec le `--after-id` affiché seulement après traitement des exclus. Conserver le bilan agrégé et arrêter en cas d'anomalie. Un état `sending` exige un rapprochement manuel avec les journaux SMTP avant toute relance : une exception de transport ou un échec de l'écriture finale peut survenir après acceptation du message. Le code laisse cet état bloqué pour éviter un renvoi automatique potentiellement double.
+## Incidents et reprise
 
-## Contrôles de sortie
+- `email_status=sent` : ne pas renvoyer. `sending` : résultat SMTP potentiellement incertain, rapprochement manuel des journaux avant toute intervention. `not_requested` : reçu historique non libéré. `pending` : nouveau reçu émis, e-mail encore non parti.
+- En cas d'échec de la requête de reprise lors de `Verified`, l'adresse reste vérifiée et l'erreur est journalisée. Identifier les reçus `pending` de comptes dont `email_verified_at` est renseigné, puis examiner individuellement le paiement, le destinataire et l'absence d'envoi avant une reprise ciblée. Ne pas relancer l'ancien backfill en production. L'absence de cron Run200 fiable signifie que cette reprise d'incident est manuelle ; l'automatisme nominal n'est pas une garantie de livraison pendant une panne.
+- Une adresse modifiée par le pilote, par l'administration ou par une commande de normalisation perd sa vérification. La campagne conserve uniquement un HMAC de l'adresse invitée ; une rotation de `APP_KEY` invalide cette preuve et impose une nouvelle invitation.
+- Les reçus déjà émis gardent leur numéro et leur photographie du paiement à l'émission. Un remboursement ultérieur ou une réattribution de pilote demande un rapprochement explicite ; ne pas modifier silencieusement le PDF historique.
 
-- Un pilote authentifié télécharge uniquement les reçus de ses inscriptions ; le staff autorisé peut consulter ceux des inscriptions qu'il gère.
-- Vérifier les reçus Stripe, manuels et historiques sur la version livrée, sans déclencher de transaction réelle de test en production. Tester les remboursements partiels et totaux en local ou en préproduction ; aucun cas remboursé n'est présent dans les données de production contrôlées, donc ce parcours restera non vérifié en production jusqu'à un cas réel ou contrôlé.
-- Contrôler PDF, numéro, association, SIRET, pilote concerné, montant initial, remboursement connu à la date d'émission, et message e-mail historique sans promesse de course future.
-- Confirmer qu'aucun `pending`, `failed` ou `cancelled` n'a reçu de justificatif et que les e-mails historiques ne sont pas dupliqués.
-- Revoir les points touchés et critiques de `AUDIT_2026-10-15.md`, puis vérifier la version réellement servie en production. Le prévol a contrôlé la cohérence interne des paiements historiques ; l'émission de leurs reçus et la délivrabilité SMTP restent non vérifiées tant que cette procédure n'a pas été exécutée.
+Pour un incident sur `pending`, commencer par cette lecture seule depuis la base de production :
+
+```sql
+SELECT r.id AS receipt_id, p.id AS payment_id, p.method, r.email_status
+FROM payment_receipts r
+JOIN payments p ON p.id = r.payment_id
+JOIN race_registrations rr ON rr.id = p.race_registration_id
+JOIN pilots pl ON pl.id = rr.pilot_id
+JOIN users u ON u.id = pl.user_id
+WHERE r.email_status = 'pending' AND u.email_verified_at IS NOT NULL
+ORDER BY r.id;
+```
+
+Pour **chaque** identifiant, contrôler le paiement, le compte destinataire actuel, le journal SMTP et l'absence de `sending` ou `sent`. Pour Stripe, refaire le contrôle live du paiement et du payeur ; pour un paiement hors Stripe, demander le rapprochement de l'utilisateur. Si l'échec provenait seulement de la lecture DB avant SMTP, ouvrir `php artisan tinker`, recharger l'identifiant exact du reçu et son compte destinataire, puis appeler `SendPaymentReceipt::send($receipt, requireVerifiedEmail: true, expectedEmail: $user->email)` dans une intervention supervisée. Cet appel PHP n'est pas une commande shell autonome. Constater ensuite `sent` et l'absence de doublon. Conserver l'identifiant et la preuve de cette intervention dans le Kanban.
+
+## Vérifications de sortie
+
+Contrôler les nombres de comptes invités, de confirmations, de reçus créés, d'e-mails `sent`, de retenues et d'incidents. Inspecter un PDF authentifié, le montant, le SIRET et le remboursement connu ; tester le refus avec un autre compte. `sent` signifie acceptation SMTP, pas réception prouvée dans la boîte du pilote. Réexécuter l'audit des points touchés et critiques sur le SHA réellement déployé.

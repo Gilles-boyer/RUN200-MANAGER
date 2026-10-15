@@ -15,6 +15,7 @@ use App\Events\TechInspectionCompleted as TechInspectionCompletedEvent;
 use App\Listeners\SendECardAfterPayment;
 use App\Listeners\SendEngagementSignedNotification;
 use App\Listeners\SendPaymentConfirmation;
+use App\Listeners\SendPendingPaymentReceiptsAfterVerification;
 use App\Listeners\SendRaceCancelledNotification;
 use App\Listeners\SendRaceOpenedNotification;
 use App\Listeners\SendRegistrationAcceptedNotification;
@@ -23,6 +24,7 @@ use App\Listeners\SendRegistrationRefusedNotification;
 use App\Listeners\SendResultsPublishedNotification;
 use App\Listeners\SendTechInspectionNotification;
 use App\Listeners\SendWelcomePilotNotification;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 class EventServiceProvider extends ServiceProvider
@@ -75,6 +77,9 @@ class EventServiceProvider extends ServiceProvider
         PilotRegisteredEvent::class => [
             SendWelcomePilotNotification::class,
         ],
+        Verified::class => [
+            SendPendingPaymentReceiptsAfterVerification::class,
+        ],
     ];
 
     /**
@@ -83,6 +88,12 @@ class EventServiceProvider extends ServiceProvider
     public function boot(): void
     {
         //
+    }
+
+    /** The framework provider already registers the built-in verification listener. */
+    protected function configureEmailVerification(): void
+    {
+        // Avoid sending two verification messages for a single registration.
     }
 
     /**

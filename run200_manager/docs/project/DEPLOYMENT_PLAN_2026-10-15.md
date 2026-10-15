@@ -1,5 +1,7 @@
 # Plan de déploiement contrôlé — reçus de paiement RUN200
 
+> **Archive de préparation, non exécutable en l'état.** Ce plan précède les PR #17 à #19 et le parcours de vérification d'adresse. Les instructions `payment-receipts:backfill --commit` qu'il contient sont abandonnées et cette commande est bloquée en production. Utiliser [RECEIPTS_RELEASE.md](RECEIPTS_RELEASE.md) et le rapport du SHA réellement livré.
+
 **Cible :** `https://run200cfg.clicksolutions.re/`, Laravel dans `/home/mepa3308/run200cfg.clicksolutions.re/cgi-bin/run200_manager`, document root sur son `public/`. **État du plan :** préparé depuis le dépôt et le [prévol de production du 15 octobre](PRODUCTION_PREFLIGHT_2026-10-15.md) ; aucune commande de mutation ci-dessous n'a été exécutée. La PR #17 est encore brouillon au moment de la rédaction. Le serveur est au SHA `2dc62f2fde2ea48c11137952b95b75cec4cb1699` sur `main` ; PHP CLI 8.3.35, Laravel 12.48.1, MySQL, `QUEUE_CONNECTION=sync`. Confirmer à nouveau ces faits immédiatement avant toute intervention.
 
 ## Risques et conditions d'entrée

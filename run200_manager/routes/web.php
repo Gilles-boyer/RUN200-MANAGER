@@ -119,7 +119,7 @@ Route::get('dashboard', function () {
     }
 
     return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->middleware('auth')->name('dashboard');
 
 // Pilot Routes
 Route::middleware(['auth', 'role:PILOTE'])->prefix('pilot')->name('pilot.')->group(function () {

@@ -2,28 +2,33 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Casts\LowercaseCast;
 use App\Casts\TitleCaseCast;
+use Database\Factories\UserFactory;
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Permission\Traits\HasRoles;
+use Throwable;
 
 /**
  * @property-read Pilot|null $pilot
- * @property-read \Illuminate\Database\Eloquent\Collection<int, CarTechInspectionHistory> $techInspections
+ * @property-read Collection<int, CarTechInspectionHistory> $techInspections
  */
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, LogsActivity, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
 
     /**
@@ -76,6 +81,25 @@ class User extends Authenticatable
             ->take(2)
             ->map(fn ($word) => Str::substr($word, 0, 1))
             ->implode('');
+    }
+
+    /**
+     * A mail transport failure must not make a completed registration look failed.
+     */
+    public function sendEmailVerificationNotification(): bool
+    {
+        try {
+            $this->notify(new VerifyEmail);
+
+            return true;
+        } catch (Throwable $e) {
+            Log::error('Email verification notification delivery failed', [
+                'user_id' => $this->id,
+                'error_type' => $e::class,
+            ]);
+
+            return false;
+        }
     }
 
     /**

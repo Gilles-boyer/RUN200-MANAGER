@@ -1,12 +1,13 @@
 <x-layouts::auth>
     <div class="mt-4 flex flex-col gap-6">
         <flux:text class="text-center">
-            {{ __('Please verify your email address by clicking on the link we just emailed to you.') }}
+            Confirmez votre adresse e-mail avec le lien reçu pour permettre l’envoi de vos reçus de paiement.
+            Vous pouvez continuer à utiliser votre espace pendant cette vérification.
         </flux:text>
 
         @if (session('status') == 'verification-link-sent')
             <flux:text class="text-center font-medium !dark:text-green-400 !text-green-600">
-                {{ __('A new verification link has been sent to the email address you provided during registration.') }}
+                Votre demande de renvoi a été prise en compte. Si le message n’arrive pas, vérifiez les indésirables ou réessayez depuis votre profil.
             </flux:text>
         @endif
 
@@ -14,14 +15,14 @@
             <form method="POST" action="{{ route('verification.send') }}">
                 @csrf
                 <flux:button type="submit" variant="primary" class="w-full">
-                    {{ __('Resend verification email') }}
+                    Renvoyer le lien de vérification
                 </flux:button>
             </form>
 
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <flux:button variant="ghost" type="submit" class="text-sm cursor-pointer" data-test="logout-button">
-                    {{ __('Log out') }}
+                    Se déconnecter
                 </flux:button>
             </form>
         </div>

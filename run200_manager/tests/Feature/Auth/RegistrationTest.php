@@ -2,6 +2,11 @@
 
 use App\Models\Pilot;
 use App\Models\User;
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Contracts\Notifications\Dispatcher;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
+use Mockery\MockInterface;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
@@ -16,6 +21,9 @@ test('registration screen can be rendered', function () {
 });
 
 test('new users can register as pilot', function () {
+    Mail::fake();
+    Notification::fake();
+
     $response = $this->post(route('register.store'), [
         'first_name' => 'John',
         'last_name' => 'Doe',
@@ -36,6 +44,9 @@ test('new users can register as pilot', function () {
     $user = User::where('email', 'test@example.com')->first();
     expect($user)->not->toBeNull();
     expect($user->name)->toBe('John Doe');
+    expect($user->hasVerifiedEmail())->toBeFalse();
+    Notification::assertSentTo($user, VerifyEmail::class);
+    Notification::assertCount(1);
 
     // Verify user has PILOTE role
     expect($user->hasRole('PILOTE'))->toBeTrue();
@@ -48,6 +59,28 @@ test('new users can register as pilot', function () {
     expect($pilot->phone)->toBe('06 12 34 56 78'); // Formatted display
     expect($pilot->getRawOriginal('phone'))->toBe('0612345678'); // Stored normalized
     expect($pilot->license_number)->toBe('123456');
+});
+
+test('a verification mail transport failure does not turn a completed registration into an error', function () {
+    Mail::fake();
+    $this->mock(Dispatcher::class, function (MockInterface $mock): void {
+        $mock->shouldReceive('send')->once()->andThrow(new RuntimeException('mail transport unavailable'));
+    });
+
+    $response = $this->post(route('register.store'), [
+        'first_name' => 'Jane',
+        'last_name' => 'Doe',
+        'email' => 'jane@example.com',
+        'phone' => '+33 6 12 34 56 78',
+        'license_number' => '654321',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+        'terms' => '1',
+    ]);
+
+    $response->assertSessionHasNoErrors()->assertRedirect(route('dashboard', absolute: false));
+    $this->assertAuthenticated();
+    expect(User::where('email', 'jane@example.com')->first()?->hasVerifiedEmail())->toBeFalse();
 });
 
 test('registration requires all pilot fields', function () {

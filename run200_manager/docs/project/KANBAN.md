@@ -7,9 +7,9 @@ Vue dérivée de board.json. Modifier la source avec le coordinateur.
 - **SEC-03** · P1 · Revoquer ancien secret SMTP expose et traiter historique · `it_devops`
   Blocage : Proprietaire du compte a contacter pour revocation; utilisateur dit pouvoir le contacter
 - **REL-01** · P1 · Deployer et verifier les recus sur o2switch · `it_devops`
-  Blocage : Parcours authentifies non verifies, ancien secret actif et autres points audit ouverts
+  Blocage : Ancien secret Mailtrap actif, parcours complet nouveau paiement et acces PDF autre compte non verifies, audit critique ouvert; aucun verdict pret
 - **PAY-02** · P1 · Envoyer les recus historiques par lots · `it_backend`
-  Blocage : 75 paiements hors Stripe a rapprocher par utilisateur; envois en masse non effectues
+  Blocage : Envois historiques suspendus: procedure de confirmation des destinataires a definir sans activer naivement MustVerifyEmail; controle Stripe vers base en sens inverse; 75 paiements hors Stripe a rapprocher par utilisateur
 - **LEG-02** · P1 · Mettre en oeuvre la conservation des données sans cascade destructive · `it_backend`
   Blocage : Concevoir anonymisation et preservation des preuves comptables et sportives
 
@@ -27,7 +27,7 @@ Aucune carte.
 
 ## En revue
 
-Aucune carte.
+- **REC-03** · P1 · Vérifier les adresses et envoyer les reçus Stripe historiques · `it_backend`
 
 ## À livrer
 

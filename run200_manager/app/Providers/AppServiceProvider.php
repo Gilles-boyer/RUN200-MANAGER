@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
@@ -28,6 +30,19 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureRateLimiting();
+        $this->configureEmailVerificationMessage();
+    }
+
+    protected function configureEmailVerificationMessage(): void
+    {
+        VerifyEmail::toMailUsing(static fn ($notifiable, string $url): MailMessage => (new MailMessage)
+            ->subject('Confirmez votre adresse e-mail – RUN200 Manager')
+            ->greeting('Bonjour,')
+            ->line('Confirmez votre adresse e-mail en cliquant sur le bouton ci-dessous.')
+            ->line('Après cette confirmation, les reçus de paiement éligibles pourront vous être envoyés automatiquement.')
+            ->action('Confirmer mon adresse e-mail', $url)
+            ->line('Ce lien est valable pendant '.config('auth.verification.expire', 60).' minutes.')
+            ->line('Si vous n’êtes pas à l’origine de cette demande, ignorez ce message.'));
     }
 
     protected function configureDefaults(): void

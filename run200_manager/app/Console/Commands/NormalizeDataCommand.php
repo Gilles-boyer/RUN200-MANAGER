@@ -97,6 +97,9 @@ class NormalizeDataCommand extends Command
                 // Réassigner pour déclencher le cast
                 $user->name = $originalName;
                 $user->email = $originalEmail;
+                if ($user->isDirty('email')) {
+                    $user->email_verified_at = null;
+                }
 
                 // Vérifier si des changements ont été faits
                 if ($user->isDirty()) {

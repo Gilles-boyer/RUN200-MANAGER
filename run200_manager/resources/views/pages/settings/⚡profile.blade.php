@@ -57,9 +57,12 @@ new class extends Component {
             return;
         }
 
-        $user->sendEmailVerificationNotification();
-
-        Session::flash('status', 'verification-link-sent');
+        Session::flash(
+            'status',
+            $user->sendEmailVerificationNotification()
+                ? 'verification-link-sent'
+                : 'verification-link-failed',
+        );
     }
 
     #[Computed]
@@ -91,16 +94,20 @@ new class extends Component {
                 @if ($this->hasUnverifiedEmail)
                     <div>
                         <flux:text class="mt-4">
-                            {{ __('Your email address is unverified.') }}
+                            Votre adresse e-mail n’est pas encore vérifiée. Les reçus de paiement ne seront envoyés qu’après sa confirmation.
 
                             <flux:link class="text-sm cursor-pointer" wire:click.prevent="resendVerificationNotification">
-                                {{ __('Click here to re-send the verification email.') }}
+                                Renvoyer le lien de vérification
                             </flux:link>
                         </flux:text>
 
                         @if (session('status') === 'verification-link-sent')
                             <flux:text class="mt-2 font-medium !dark:text-green-400 !text-green-600">
-                                {{ __('A new verification link has been sent to your email address.') }}
+                                Un nouveau lien a été envoyé à votre adresse e-mail. Vérifiez aussi les indésirables.
+                            </flux:text>
+                        @elseif (session('status') === 'verification-link-failed')
+                            <flux:text class="mt-2 font-medium !dark:text-red-400 !text-red-600">
+                                L’envoi du lien a échoué. Réessayez dans quelques minutes ou contactez contact@cfg.re.
                             </flux:text>
                         @endif
                     </div>
