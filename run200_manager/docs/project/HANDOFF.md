@@ -16,15 +16,15 @@ Revue indépendante QA : 68 tests ciblés, 309 assertions, succès ; défauts de
 
 ## État production et blocages
 
-Aucune migration, envoi historique ou déploiement n'a été exécuté sur o2switch. La version servie n'est pas rapprochée d'un SHA. La session cPanel a montré l'accueil après reconnexion, mais le clic sur Terminal a renvoyé à la page de connexion à deux reprises ; ouverture directe du terminal demandée à l'utilisateur. La base historique, l'expéditeur SMTP, les sauvegardes/retour arrière et la livraison réelle d'e-mails ne sont pas vérifiés.
+Aucune migration, envoi historique ou déploiement n'a été exécuté sur o2switch. Après reconnexion par l'utilisateur, le terminal a permis le [prévol de production](PRODUCTION_PREFLIGHT_2026-10-15.md) : SHA en service `2dc62f2`, PHP CLI 8.3.35, MySQL, 252 paiements confirmés pour 101 adresses, sauvegarde JetBackup de la base active affichée le 15 octobre à 01 h 08. Le serveur contient des modifications locales à préserver. La restauration, le rapprochement externe des paiements et la livraison réelle d'e-mails ne sont pas vérifiés.
 
-Le dépôt GitHub est public. L'ancien mot de passe SMTP documenté doit être vérifié/révoqué s'il est actif et l'historique Git traité avec coordination. Les conditions d'inscription, la conservation des données et les parcours publics/authentifiés critiques restent à qualifier avant de déclarer le site prêt. Aucun envoi rétroactif ne doit partir avant l'audit agrégé de la base et la vérification des destinataires.
+Le dépôt GitHub est public. L'ancien mot de passe SMTP documenté doit être vérifié/révoqué s'il est actif et l'historique Git traité avec coordination. Les conditions d'inscription, la conservation des données et les parcours publics/authentifiés critiques restent à qualifier avant de déclarer le site prêt. L'audit agrégé interne des 252 paiements payés est terminé ; avant tout envoi rétroactif, il reste à rapprocher les encaissements avec les sources externes, contrôler les destinataires actuels et vérifier la délivrabilité SMTP.
 
 `gh api .../actions/workflows` renvoyait zéro workflow et la PR n'avait aucun check au commit `7afdf90` : les fichiers YAML étaient sous `run200_manager/.github/workflows`. Au commit `96cd957`, leur déplacement à la racine et leur adaptation au sous-dossier sont vérifiés sur GitHub : Pint, PHP 8.2 + Vite et PHP 8.4 + Vite passent sur la PR #17.
 
 ## Prochaines étapes
 
 1. Traiter les éventuelles remarques de la PR et recontrôler la CI après chaque nouveau commit ; conserver la PR en brouillon jusqu'à levée des risques de production.
-2. Dès accès cPanel stable : inspecter en lecture seule le SHA, la configuration d'exécution non secrète, la sauvegarde, la version PHP, les migrations, le cron et les agrégats historiques via la simulation de rattrapage après déploiement contrôlé.
+2. Préserver l'arbre serveur, confirmer une sauvegarde récente et une restauration possible, traiter les points critiques du rapport puis déployer de façon contrôlée. La simulation de rattrapage sur des lots de 20 devra être exécutée après migration, sans envoi.
 3. Résoudre les anomalies de paiement et les points critiques du site ; vérifier SMTP et effectuer les lots d'envoi autorisés par l'utilisateur, avec bilan et reprise.
 4. Vérifier la version servie et revérifier les contrôles `audit-sites` touchés/critiques en production. Ne pas annoncer « prêt » avant les preuves requises.
