@@ -4,6 +4,7 @@ use App\Concerns\ProfileValidationRules;
 use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
@@ -59,6 +60,21 @@ new class extends Component
             return;
         }
 
+        $accountKey = 'verification-resend:user:'.$user->getAuthIdentifier();
+        $ipKey = 'verification-resend:ip:'.hash('sha256', (string) request()->ip());
+        $accountAttempts = RateLimiter::hit($accountKey, 600);
+        $ipAttempts = RateLimiter::hit($ipKey, 600);
+
+        if ($accountAttempts > 3 || $ipAttempts > 60) {
+            Session::flash('status', 'verification-link-throttled');
+            Session::flash('verification-retry-minutes', max(1, (int) ceil(max(
+                RateLimiter::availableIn($accountKey),
+                RateLimiter::availableIn($ipKey),
+            ) / 60)));
+
+            return;
+        }
+
         Session::flash(
             'status',
             $user->sendEmailVerificationNotification()
@@ -110,6 +126,10 @@ new class extends Component
                         @elseif (session('status') === 'verification-link-failed')
                             <flux:text class="mt-2 font-medium !dark:text-red-400 !text-red-600">
                                 L’envoi du lien a échoué. Réessayez dans quelques minutes ou contactez contact@cfg.re.
+                            </flux:text>
+                        @elseif (session('status') === 'verification-link-throttled')
+                            <flux:text class="mt-2 font-medium !dark:text-red-400 !text-red-600">
+                                Trop de demandes de lien. Réessayez dans {{ session('verification-retry-minutes') }} {{ session('verification-retry-minutes') > 1 ? 'minutes' : 'minute' }}.
                             </flux:text>
                         @endif
                     </div>
