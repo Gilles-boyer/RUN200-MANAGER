@@ -1,6 +1,7 @@
 <?php
 
 use App\Application\Payments\UseCases\IssuePaymentReceipt;
+use App\Application\Payments\UseCases\SendPaymentReceipt;
 use App\Events\PaymentConfirmed;
 use App\Infrastructure\Pdf\PaymentReceiptPdfService;
 use App\Listeners\SendPaymentConfirmation;
@@ -10,6 +11,8 @@ use App\Models\Pilot;
 use App\Models\RaceRegistration;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
 
 function paidReceiptPayment(array $attributes = []): Payment
@@ -78,7 +81,7 @@ test('refunded payments with missing refund history are held for manual review',
     expect(PaymentReceipt::count())->toBe(0);
 });
 
-test('backfill audits then sends historical email once and retries failed delivery', function () {
+test('backfill audits then sends historical email once and holds an ambiguous delivery', function () {
     Mail::fake();
     config()->set('payment_receipts.auto_send', false);
     paidReceiptPayment(['amount' => '25.00', 'amount_cents' => 0]);
@@ -95,9 +98,27 @@ test('backfill audits then sends historical email once and retries failed delive
         && str_contains($mail->render(), 'Votre reçu de paiement')
         && ! str_contains($mail->render(), 'Rendez-vous vérifications'));
 
-    PaymentReceipt::first()->update(['email_status' => 'failed']);
-    $this->artisan('payment-receipts:backfill --commit')->assertSuccessful();
-    Mail::assertSent(App\Mail\PaymentConfirmed::class, 2);
+    PaymentReceipt::first()->update(['email_status' => 'sending']);
+    $this->artisan('payment-receipts:backfill --commit')->assertFailed();
+    Mail::assertSent(App\Mail\PaymentConfirmed::class, 1);
+});
+
+test('recipient failure before SMTP can be retried after its address is corrected', function () {
+    Mail::fake();
+    $payment = paidReceiptPayment();
+    $receipt = app(IssuePaymentReceipt::class)->issue($payment, historical: true);
+    $pilotUser = $payment->registration->pilot->user;
+    $pilotUser->update(['email' => 'invalide']);
+
+    expect(app(SendPaymentReceipt::class)->send($receipt, historical: true))->toBeFalse();
+    expect($receipt->fresh()->email_status)->toBe('failed')
+        ->and($receipt->fresh()->email_last_error)->toBe('recipient_unavailable');
+    Mail::assertNothingOutgoing();
+
+    $pilotUser->update(['email' => 'corrigee@example.test']);
+    expect(app(SendPaymentReceipt::class)->send($receipt, historical: true))->toBeTrue();
+    expect($receipt->fresh()->email_status)->toBe('sent');
+    Mail::assertSent(App\Mail\PaymentConfirmed::class, 1);
 });
 
 test('historical audit flags inconsistent amounts and missing recipient without mailing', function () {
@@ -184,6 +205,111 @@ test('backfill resumes from an explicit payment ID in controlled batches', funct
         ->assertSuccessful();
     expect(PaymentReceipt::count())->toBe(2);
     Mail::assertSent(App\Mail\PaymentConfirmed::class, 2);
+});
+
+test('historical stripe batch has the same eligible scope in simulation and commit', function () {
+    Mail::fake();
+    $cash = paidReceiptPayment(['method' => 'cash']);
+    $verified = paidReceiptPayment();
+    $unverified = paidReceiptPayment();
+    $unverified->registration->pilot->user->update(['email_verified_at' => null]);
+    $later = paidReceiptPayment();
+
+    $options = '--stripe-only --verified-email-only --limit=2';
+    $scope = '2 examiné(s), 0 reçu(s) existant(s), 2 donnée(s) valide(s), 1 éligible(s) à l’envoi';
+    expect(Artisan::call('payment-receipts:backfill '.$options))->toBe(1);
+    $simulationOutput = Artisan::output();
+    expect($simulationOutput)->toContain($scope, '1 adresse(s) non vérifiée(s)', 'lot suivant avec --after-id='.$unverified->id);
+    expect(PaymentReceipt::count())->toBe(0);
+    Mail::assertNothingOutgoing();
+
+    expect(Artisan::call('payment-receipts:backfill --commit '.$options))->toBe(1);
+    $commitOutput = Artisan::output();
+    expect($commitOutput)->toContain($scope, '1 adresse(s) non vérifiée(s)', 'lot suivant avec --after-id='.$unverified->id);
+    expect(PaymentReceipt::count())->toBe(1)
+        ->and(PaymentReceipt::first()->payment_id)->toBe($verified->id)
+        ->and(PaymentReceipt::first()->email_status)->toBe('sent')
+        ->and($cash->receipt()->exists())->toBeFalse()
+        ->and($unverified->receipt()->exists())->toBeFalse()
+        ->and($later->receipt()->exists())->toBeFalse();
+    Mail::assertSent(App\Mail\PaymentConfirmed::class, 1);
+
+    $this->artisan('payment-receipts:backfill --commit --stripe-only --verified-email-only --after-id='.$unverified->id)
+        ->expectsOutputToContain('lot suivant avec --after-id='.$later->id)
+        ->assertSuccessful();
+    expect(PaymentReceipt::count())->toBe(2)
+        ->and($cash->receipt()->exists())->toBeFalse()
+        ->and($unverified->receipt()->exists())->toBeFalse();
+    Mail::assertSent(App\Mail\PaymentConfirmed::class, 2);
+});
+
+test('verified stripe historical receipt is not sent twice on a repeated batch', function () {
+    Mail::fake();
+    $payment = paidReceiptPayment();
+    $options = '--commit --stripe-only --verified-email-only';
+
+    $this->artisan('payment-receipts:backfill '.$options)->assertSuccessful();
+    $this->artisan('payment-receipts:backfill '.$options)
+        ->expectsOutputToContain('1 déjà envoyé(s)')
+        ->assertSuccessful();
+
+    expect(PaymentReceipt::count())->toBe(1)
+        ->and($payment->receipt()->first()->email_status)->toBe('sent');
+    Mail::assertSent(App\Mail\PaymentConfirmed::class, 1);
+});
+
+test('verified recipient is checked again after receipt issuance before historical delivery', function () {
+    Mail::fake();
+    $payment = paidReceiptPayment();
+    $pilotUser = $payment->registration->pilot->user;
+    $event = 'eloquent.created: '.PaymentReceipt::class;
+    Event::listen($event, function () use ($pilotUser): void {
+        $pilotUser->update(['email_verified_at' => null]);
+    });
+
+    try {
+        expect(Artisan::call('payment-receipts:backfill --commit --stripe-only --verified-email-only'))->toBe(1);
+    } finally {
+        Event::forget($event);
+    }
+
+    expect(PaymentReceipt::count())->toBe(1)
+        ->and(PaymentReceipt::first()->email_status)->toBe('failed')
+        ->and(PaymentReceipt::first()->email_last_error)->toBe('recipient_unverified_or_changed');
+    Mail::assertNothingOutgoing();
+});
+
+test('uncertain SMTP outcome stays in sending and cannot be retried automatically', function () {
+    $payment = paidReceiptPayment();
+    $receipt = app(IssuePaymentReceipt::class)->issue($payment, historical: true);
+    Mail::shouldReceive('to')->once()->andThrow(new RuntimeException('SMTP outcome unknown'));
+
+    expect(app(SendPaymentReceipt::class)->send($receipt, historical: true))->toBeFalse()
+        ->and($receipt->fresh()->email_status)->toBe('sending');
+    expect(app(SendPaymentReceipt::class)->send($receipt, historical: true))->toBeFalse()
+        ->and($receipt->fresh()->email_status)->toBe('sending');
+});
+
+test('failed sent-status persistence holds receipt for manual reconciliation', function () {
+    Mail::fake();
+    $payment = paidReceiptPayment();
+    $receipt = app(IssuePaymentReceipt::class)->issue($payment, historical: true);
+    $event = 'eloquent.updating: '.PaymentReceipt::class;
+    Event::listen($event, function (PaymentReceipt $updating): void {
+        if ($updating->email_status === 'sent') {
+            throw new RuntimeException('status write failed');
+        }
+    });
+
+    try {
+        expect(app(SendPaymentReceipt::class)->send($receipt, historical: true))->toBeFalse();
+    } finally {
+        Event::forget($event);
+    }
+
+    expect($receipt->fresh()->email_status)->toBe('sending');
+    expect(app(SendPaymentReceipt::class)->send($receipt, historical: true))->toBeFalse();
+    Mail::assertSent(App\Mail\PaymentConfirmed::class, 1);
 });
 
 test('refund state is frozen in receipt and shown on historical PDF', function () {

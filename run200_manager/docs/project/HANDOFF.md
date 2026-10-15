@@ -1,5 +1,13 @@
 # Reprise du projet — 15 octobre 2026
 
+## État courant après livraison (remplace le prévol ci-dessous)
+
+Voir [RELEASE_2026-10-15.md](RELEASE_2026-10-15.md) pour les preuves et les 20 contrôles de la version réellement livrée. Le serveur o2switch sert le SHA `0c41b5a7bc9bbc89b7d792bba99aa3b10a5d16fe` (PR #17 et #18 fusionnées, quatre checks CI verts chacune). Sauvegarde SQL privée restaurée avec succès en base isolée puis base temporaire supprimée sur accord ; table des reçus migrée ; caches et build contrôlés ; HTTP redirige 307 vers HTTPS. Aucun reset de l'arbre serveur ni suppression des deux documents utilisateur non suivis.
+
+Le test e-mail avec PDF synthétique `TEST-SANS-VALEUR` a été reçu et le PDF ouvert selon l'utilisateur. Le paiement Stripe #247 contrôlé a donné un reçu réel unique, SMTP `sent`, sans preuve de réception par le pilote. `PAYMENT_RECEIPTS_AUTO_SEND=ON` dans le cache de configuration en production : les nouveaux paiements confirmés déclenchent le reçu. Rejeu du listener sur #247 sans doublon. Un lot historique de 20 a été simulé sans anomalie ni envoi. Le rattrapage global est suspendu au rapprochement des 75 paiements hors Stripe par l'utilisateur ; les 177 références Stripe connues ont été contrôlées base → Stripe, pas l'inverse.
+
+**Priorités restantes :** (P0) obtenir du propriétaire Mailtrap la révocation de l'ancien identifiant toujours actif dans l'historique Git public, sans échanger le mot de passe ; (P0) vérifier sur le site livré une inscription, ses erreurs, les permissions et le téléchargement de reçu avec des comptes réels ; (P1) rapprocher les 75 encaissements hors Stripe avant les lots rétroactifs ; (P1) appliquer les durées de conservation 3/5/10 ans avec une purge sûre ; (P1) qualifier les conditions d'inscription et l'inventaire des traceurs ; (P2) métadonnée `/register`, sitemap, images, contraste, mobile authentifié et mesures de vitesse. Audit QA production : 4 OK, 8 À corriger, 7 Non vérifiés, 1 Sans objet ; aucun verdict « prêt ». Le reste du présent document est le **prévol historique avant déploiement** et ne décrit plus la production actuelle.
+
 ## Source de vérité
 
 `board.json` ; `KANBAN.md` est une vue dérivée. Branche `codex/payment-receipts-audit` créée depuis `main` à `2dc62f2` ; implémentation et rapport commités à `4a0399f`, revue enregistrée à `7afdf90`. PR brouillon : https://github.com/Gilles-boyer/RUN200-MANAGER/pull/17. Deux documents utilisateur non suivis dans `docs/` sont préservés et exclus des commits.

@@ -81,7 +81,8 @@
       "reviewer": "audit_site",
       "evidence": [
         "Implémentation locale 4a0399f testée",
-        "Revue terminée ; rotation secret et production non vérifiées"
+        "Revue terminée ; rotation secret et production non vérifiées",
+        "Ancien message erreur Stripe masque sur paiement paid; deux webhooks effacent failure_reason au succes; QA 24 tests 88 assertions"
       ],
       "revision": "4a0399f",
       "review_evidence": "QA webhook remboursement et permissions ; 68 tests 309 assertions ciblés ; suite 557 tests 1644 assertions",
@@ -214,10 +215,12 @@
       "files": [],
       "author": "",
       "reviewer": "",
-      "evidence": [],
+      "evidence": [
+        "Ancien identifiant Mailtrap encore actif dans histoire publique; production SMTP distinct"
+      ],
       "revision": "",
       "review_evidence": "",
-      "blocked": ""
+      "blocked": "Proprietaire du compte a contacter pour revocation; utilisateur dit pouvoir le contacter"
     },
     {
       "id": "REL-01",
@@ -238,10 +241,12 @@
       "files": [],
       "author": "",
       "reviewer": "",
-      "evidence": [],
+      "evidence": [
+        "Production SHA 0c41b5a, migration, sauvegarde restauree, PDF SMTP et flag ON verifies; audit QA 4 OK 8 a corriger 7 non verifies 1 sans objet"
+      ],
       "revision": "",
       "review_evidence": "",
-      "blocked": ""
+      "blocked": "Parcours authentifies non verifies, ancien secret actif et autres points audit ouverts"
     },
     {
       "id": "PAY-02",
@@ -258,10 +263,13 @@
       "files": [],
       "author": "",
       "reviewer": "",
-      "evidence": [],
+      "evidence": [
+        "Un recu historique Stripe #247 envoye; lot 20 simule sans anomalie; 177 Stripe controles base vers Stripe",
+        "Code filtres Stripe et email verifie, etat SMTP ambigu sending; revue QA GO code NO-GO envoi massif; 21 tests 151 assertions et PHPStan"
+      ],
       "revision": "",
       "review_evidence": "",
-      "blocked": ""
+      "blocked": "75 paiements hors Stripe a rapprocher par utilisateur; envois en masse non effectues"
     },
     {
       "id": "PAY-03",
@@ -282,7 +290,8 @@
       "reviewer": "qa_security",
       "evidence": [
         "24 tests 186 assertions, Pint PHPStan; QA flag OFF ON et backfill indépendants",
-        "Revue indépendante PAY-03 sans anomalie dans périmètre; GET émission traité PAY-04"
+        "Revue indépendante PAY-03 sans anomalie dans périmètre; GET émission traité PAY-04",
+        "Flag OFF au deploiement initial puis ON apres test PDF recu et un envoi reel; cache config ON; rejeu sans doublon"
       ],
       "revision": "working-tree-pay03-2026-10-15",
       "review_evidence": "QA: flag OFF/ON, idempotence replay et backfill explicite indépendants testés; config cache production non vérifié",
@@ -333,10 +342,12 @@
       ],
       "author": "",
       "reviewer": "",
-      "evidence": [],
+      "evidence": [
+        "Durees 3 5 10 ans confirmees par association; aucune purge automatique deployee"
+      ],
       "revision": "",
       "review_evidence": "",
-      "blocked": ""
+      "blocked": "Concevoir anonymisation et preservation des preuves comptables et sportives"
     }
   ]
 }
