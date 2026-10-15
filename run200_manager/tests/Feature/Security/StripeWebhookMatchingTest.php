@@ -97,6 +97,43 @@ test('paid payment intent emits confirmation once for an accepted registration',
     Event::assertDispatchedTimes(PaymentConfirmed::class, 1);
 });
 
+test('a successful Stripe event clears an earlier failure message on either confirmation path', function () {
+    $checkoutRegistration = RaceRegistration::factory()->accepted()->create();
+    $checkoutPayment = pendingStripePayment($checkoutRegistration, 'cs_recovered');
+    $checkoutPayment->update(['status' => 'failed', 'failure_reason' => 'Earlier authentication failed']);
+
+    app(HandleStripeWebhook::class)->handleCheckoutCompleted([
+        'id' => 'cs_recovered',
+        'payment_intent' => 'pi_recovered',
+        'payment_status' => 'paid',
+        'amount_total' => 5000,
+        'currency' => 'eur',
+    ], 'evt_recovered');
+
+    $intentRegistration = RaceRegistration::factory()->accepted()->create();
+    $intentPayment = pendingStripePayment($intentRegistration, 'cs_intent_recovered');
+    $intentPayment->update([
+        'status' => 'failed',
+        'failure_reason' => 'Earlier card attempt failed',
+        'stripe_payment_intent_id' => 'pi_intent_recovered',
+    ]);
+
+    app(HandleStripeWebhook::class)->handlePaymentIntentSucceeded([
+        'id' => 'pi_intent_recovered',
+        'amount' => 5000,
+        'amount_received' => 5000,
+        'currency' => 'eur',
+    ], 'evt_intent_recovered');
+
+    $checkoutPayment->refresh();
+    $intentPayment->refresh();
+    expect($checkoutPayment->isPaid())->toBeTrue()
+        ->and($checkoutPayment->failure_reason)->toBeNull()
+        ->and($intentPayment->isPaid())->toBeTrue()
+        ->and($intentPayment->failure_reason)->toBeNull();
+    Event::assertDispatchedTimes(PaymentConfirmed::class, 2);
+});
+
 test('checkout confirmation replay preserves a fully refunded payment', function () {
     $registration = RaceRegistration::factory()->accepted()->create();
     $payment = pendingStripePayment($registration, 'cs_refunded');

@@ -1,5 +1,7 @@
 # Mise en service des reçus de paiement
 
+> État réel de production au 15 octobre 2026 : voir [RELEASE_2026-10-15.md](RELEASE_2026-10-15.md). Le prévol et les commandes ci-dessous documentent la procédure ; les passages indiquant que le code n'était pas encore déployé sont historiques. Le SHA `0c41b5a7bc9bbc89b7d792bba99aa3b10a5d16fe` sert les nouveaux reçus avec `PAYMENT_RECEIPTS_AUTO_SEND=ON`. Un reçu Stripe réel a été envoyé et un PDF de contrôle a été reçu. Le rattrapage général attend toujours le rapprochement des 75 encaissements hors Stripe par l'utilisateur.
+
 ## Portée et prérequis
 
 Le reçu est un justificatif de paiement d'inscription, sans valeur de reçu fiscal de don. Chaque reçu émis a un numéro stable et un PDF privé. L'envoi automatique des nouveaux paiements est désactivé par défaut via `PAYMENT_RECEIPTS_AUTO_SEND=false` et ne doit être activé qu'après validation du parcours réel. Les paiements anciens sont traités par commande explicite, en lots reprenables. Le téléchargement d'un paiement sans reçu existant ne crée rien et répond 404 ; le lien n'apparaît qu'après émission contrôlée.
@@ -14,6 +16,14 @@ Depuis la racine Laravel, après déploiement du code et migration de la table `
 php artisan payment-receipts:backfill --limit=20 --after-id=0
 ```
 
+Pour la tranche Stripe déjà rapprochée en lecture seule, appliquer les deux filtres sur la **simulation et l'envoi du même lot** :
+
+```sh
+php artisan payment-receipts:backfill --stripe-only --verified-email-only --limit=20 --after-id=0
+```
+
+`--stripe-only` retient la méthode stockée `stripe` ; `--verified-email-only` exclut une adresse de compte non vérifiée et la signale. Une ligne exclue provoque un code d'échec et impose de vérifier la situation avant de poursuivre au curseur suivant. Ces filtres ne prouvent pas par eux-mêmes le paiement chez Stripe ou l'identité du véritable porteur de carte. Conserver la liste des références rapprochées et contrôler les destinataires avant `--commit`. Un changement d'adresse entre simulation et envoi est recontrôlé juste avant SMTP, mais la base et SMTP ne forment pas une transaction atomique.
+
 La simulation n'envoie aucun e-mail. Elle donne les paiements examinés, les reçus déjà présents, les montants ou remboursements incohérents, les adresses manquantes, les envois en cours et le dernier identifiant examiné. Résoudre chaque anomalie du lot, puis relancer exactement le même lot. Ne pas déduire un montant manquant d'un tarif de course.
 
 Après rapprochement comptable des paiements du lot par l'utilisateur, un lot sans anomalie peut être envoyé :
@@ -22,7 +32,9 @@ Après rapprochement comptable des paiements du lot par l'utilisateur, un lot sa
 php artisan payment-receipts:backfill --limit=20 --after-id=0 --commit
 ```
 
-Ne pas lancer cette commande sur les 75 paiements hors Stripe avant le rapprochement personnel annoncé par l'utilisateur. Vérifier d'abord un reçu PDF et un envoi maîtrisé, puis le nombre envoyé et les échecs de chaque lot. Rejouer le même lot après correction d'un échec ; les reçus et les envois déjà marqués `sent` ne sont pas renvoyés. Passer au lot suivant avec le `--after-id` affiché. Conserver le bilan agrégé de chaque lot et arrêter en cas de taux d'échec SMTP ou d'anomalie imprévue. Un état `sending` exige un rapprochement manuel avec les journaux SMTP avant toute relance, car un serveur peut avoir accepté l'e-mail sans que l'application ait enregistré `sent`.
+Après revue d'un lot Stripe filtré et sans anomalie, utiliser exactement les mêmes options et le même curseur, avec `--commit`. Ne pas envoyer un lot qui contient une adresse non vérifiée sans traitement explicite de son cas. Repasser depuis `--after-id=0` pour retrouver les lignes exclues, même si d'autres lots ont avancé au-delà de leur ID.
+
+Ne pas lancer cette commande sur les 75 paiements hors Stripe avant le rapprochement personnel annoncé par l'utilisateur. Vérifier d'abord un reçu PDF et un envoi maîtrisé, puis le nombre envoyé et les échecs de chaque lot. Rejouer le même lot après correction d'un échec **pré-envoi certain** ; les reçus et les envois déjà marqués `sent` ne sont pas renvoyés. Passer au lot suivant avec le `--after-id` affiché seulement après traitement des exclus. Conserver le bilan agrégé et arrêter en cas d'anomalie. Un état `sending` exige un rapprochement manuel avec les journaux SMTP avant toute relance : une exception de transport ou un échec de l'écriture finale peut survenir après acceptation du message. Le code laisse cet état bloqué pour éviter un renvoi automatique potentiellement double.
 
 ## Contrôles de sortie
 

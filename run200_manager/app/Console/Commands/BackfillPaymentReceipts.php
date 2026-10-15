@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Application\Payments\UseCases\IssuePaymentReceipt;
 use App\Application\Payments\UseCases\SendPaymentReceipt;
+use App\Domain\Payment\Enums\PaymentMethod;
 use App\Domain\Payment\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Models\PaymentReceipt;
@@ -15,6 +16,8 @@ class BackfillPaymentReceipts extends Command
 {
     protected $signature = 'payment-receipts:backfill
         {--commit : Create missing receipts and send historical emails; without this option only inspect data}
+        {--stripe-only : Inspect only payments recorded with the Stripe method}
+        {--verified-email-only : Exclude recipients whose current account email is not verified}
         {--limit= : Maximum number of payments to inspect}
         {--after-id=0 : Resume strictly after this payment ID}';
 
@@ -38,7 +41,9 @@ class BackfillPaymentReceipts extends Command
         }
         $afterId = (int) $afterIdOption;
         $commit = (bool) $this->option('commit');
-        $scanned = $existing = $ready = $created = $sent = $alreadySent = $invalid = $failed = $missingEmail = $held = 0;
+        $stripeOnly = (bool) $this->option('stripe-only');
+        $verifiedEmailOnly = (bool) $this->option('verified-email-only');
+        $scanned = $existing = $ready = $eligible = $created = $sent = $alreadySent = $invalid = $failed = $missingEmail = $unverifiedEmail = $held = 0;
         $lastId = $afterId;
 
         if ($commit && ! app()->environment('production', 'testing')) {
@@ -49,6 +54,7 @@ class BackfillPaymentReceipts extends Command
 
         Payment::query()
             ->where('id', '>', $afterId)
+            ->when($stripeOnly, fn ($query) => $query->where('method', PaymentMethod::STRIPE->value))
             ->whereIn('status', [
                 PaymentStatus::PAID->value,
                 PaymentStatus::PARTIALLY_REFUNDED->value,
@@ -57,8 +63,8 @@ class BackfillPaymentReceipts extends Command
             ->with(['receipt', 'registration.race', 'registration.pilot.user'])
             ->orderBy('id')
             ->chunkById(100, function ($payments) use (
-                $issuer, $sender, $limit, $commit, &$scanned, &$existing, &$ready,
-                &$created, &$sent, &$alreadySent, &$invalid, &$failed, &$missingEmail, &$held, &$lastId
+                $issuer, $sender, $limit, $commit, $verifiedEmailOnly, &$scanned, &$existing, &$ready, &$eligible,
+                &$created, &$sent, &$alreadySent, &$invalid, &$failed, &$missingEmail, &$unverifiedEmail, &$held, &$lastId
             ): bool {
                 foreach ($payments as $payment) {
                     if ($limit !== null && $scanned >= $limit) {
@@ -94,7 +100,8 @@ class BackfillPaymentReceipts extends Command
                             continue;
                         }
 
-                        $currentEmail = $payment->registration?->pilot?->user?->email;
+                        $recipient = $payment->registration?->pilot?->user;
+                        $currentEmail = $recipient?->email;
                         if (! filter_var($currentEmail, FILTER_VALIDATE_EMAIL)) {
                             $missingEmail++;
                             $this->warn('Paiement #'.$payment->id.' : adresse actuelle du pilote absente ou invalide.');
@@ -102,16 +109,28 @@ class BackfillPaymentReceipts extends Command
                             // Do not freeze a known-bad address in a new receipt.
                             continue;
                         }
+                        if ($verifiedEmailOnly && $recipient->email_verified_at === null) {
+                            $unverifiedEmail++;
+                            $this->warn('Paiement #'.$payment->id.' : adresse actuelle du compte non vérifiée.');
+
+                            continue;
+                        }
                         if ($receipt !== null && $receipt->payer_email !== $currentEmail) {
                             $this->warn('Paiement #'.$payment->id.' : adresse actuelle différente du reçu ; livraison à l’adresse actuelle.');
                         }
+                        $eligible++;
 
                         if ($commit) {
                             if ($receipt === null) {
                                 $receipt = $issuer->issue($payment, historical: true);
                                 $created++;
                             }
-                            if ($sender->send($receipt, historical: true)) {
+                            if ($sender->send(
+                                $receipt,
+                                historical: true,
+                                requireVerifiedEmail: $verifiedEmailOnly,
+                                expectedEmail: $verifiedEmailOnly ? $currentEmail : null,
+                            )) {
                                 $sent++;
                             } else {
                                 $failed++;
@@ -131,24 +150,26 @@ class BackfillPaymentReceipts extends Command
             });
 
         $this->info(sprintf(
-            '%s : %d examiné(s), %d reçu(s) existant(s), %d donnée(s) valide(s), %d créé(s), %d email(s) envoyé(s), %d déjà envoyé(s), %d adresse(s) invalide(s), %d envoi(s) en cours, %d échec(s) envoi, %d anomalie(s).',
+            '%s : %d examiné(s), %d reçu(s) existant(s), %d donnée(s) valide(s), %d éligible(s) à l’envoi, %d créé(s), %d email(s) envoyé(s), %d déjà envoyé(s), %d adresse(s) invalide(s), %d adresse(s) non vérifiée(s), %d envoi(s) en cours, %d échec(s) envoi, %d anomalie(s).',
             $commit ? 'Émission et envoi' : 'Simulation',
             $scanned,
             $existing,
             $ready,
+            $eligible,
             $created,
             $sent,
             $alreadySent,
             $missingEmail,
+            $unverifiedEmail,
             $held,
             $failed,
             $invalid
         ));
         $this->line('Dernier paiement examiné : #'.$lastId.' ; lot suivant avec --after-id='.$lastId.'.');
-        if (($invalid + $failed + $held + $missingEmail) > 0) {
+        if (($invalid + $failed + $held + $missingEmail + $unverifiedEmail) > 0) {
             $this->warn('Corrigez les anomalies puis relancez ce même lot avant de passer au curseur suivant.');
         }
 
-        return ($invalid + $failed + $held + $missingEmail) > 0 ? self::FAILURE : self::SUCCESS;
+        return ($invalid + $failed + $held + $missingEmail + $unverifiedEmail) > 0 ? self::FAILURE : self::SUCCESS;
     }
 }

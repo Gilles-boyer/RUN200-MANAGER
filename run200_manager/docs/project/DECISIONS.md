@@ -2,6 +2,13 @@
 
 Consigner date, décision, raison, impact et risques avec responsable.
 
+## 15/10/2026 — livraison et activation contrôlée
+
+- Les PR #17 et #18 sont fusionnées et le SHA `0c41b5a7bc9bbc89b7d792bba99aa3b10a5d16fe` est servi par o2switch. La sauvegarde privée a été restaurée dans une base temporaire isolée ; cette base a été supprimée après accord de l'utilisateur, sauvegarde conservée. Les réglages et le build antérieurs ont aussi une copie privée de retour arrière. Responsable : coordinateur.
+- Après confirmation par l'utilisateur de la réception et de l'ouverture du PDF `TEST-SANS-VALEUR`, un seul reçu historique réel a été envoyé pour le paiement Stripe #247 contrôlé. L'acceptation SMTP est enregistrée, pas la réception finale par le pilote. Le drapeau des nouveaux reçus est maintenant `ON` en production ; le listener est idempotent sur ce reçu. Responsable : coordinateur.
+- Aucun lot historique global n'est envoyé avant rapprochement des 75 paiements hors Stripe par l'utilisateur. Le premier lot de 20 a été simulé sans anomalie. Les 177 références Stripe connues sont rapprochées base → Stripe ; inverse non fait. Responsable du rapprochement hors Stripe : utilisateur ; de la commande et des journaux : équipe informatique.
+- L'audit indépendant de la version livrée garde 3 (ancien secret actif) et 17 (parcours critique non éprouvé) bloquants. Ne pas déclarer le site prêt. Responsable : coordinateur/QA ; révocation Mailtrap : propriétaire du compte à contacter par l'utilisateur.
+
 ## 15/10/2026 — coordinateur
 
 - Source de vérité : `docs/project/board.json`, vue dérivée `KANBAN.md`.

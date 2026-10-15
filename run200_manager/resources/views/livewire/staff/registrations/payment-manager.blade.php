@@ -236,7 +236,7 @@
                                 @endif
 
                                 {{-- Failure Reason --}}
-                                @if($payment->failure_reason)
+                                @if($payment->failure_reason && ! in_array($payment->status, [\App\Domain\Payment\Enums\PaymentStatus::PAID, \App\Domain\Payment\Enums\PaymentStatus::PARTIALLY_REFUNDED, \App\Domain\Payment\Enums\PaymentStatus::REFUNDED], true))
                                     <div class="text-sm text-status-danger bg-status-danger/10 p-3 rounded-lg border-l-2 border-status-danger">
                                         <span class="font-medium">⚠️ Erreur :</span> {{ $payment->failure_reason }}
                                     </div>

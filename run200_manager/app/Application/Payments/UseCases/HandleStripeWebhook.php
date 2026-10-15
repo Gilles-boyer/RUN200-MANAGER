@@ -81,6 +81,7 @@ final class HandleStripeWebhook
 
             $payment->update([
                 'status' => 'paid',
+                'failure_reason' => null,
                 'stripe_payment_intent_id' => $paymentIntentId,
                 'stripe_customer_id' => $sessionData['customer'] ?? null,
                 'stripe_event_id' => $eventId,
@@ -289,6 +290,7 @@ final class HandleStripeWebhook
 
             $payment->update([
                 'status' => 'paid',
+                'failure_reason' => null,
                 'stripe_payment_intent_id' => $paymentIntentId,
                 'stripe_event_id' => $eventId,
                 'paid_at' => now(),
