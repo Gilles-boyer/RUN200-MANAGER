@@ -31,7 +31,13 @@ Inspection **en lecture seule** dans le terminal cPanel et JetBackup de l'héber
 | Inscription, pilote, utilisateur ou course manquant ; e-mail absent ou invalide ; nom pilote/course vide | 0 pour chacun |
 | Parmi les 177 Stripe : intention ou session absente ; intention dupliquée | 0 ; 0 |
 
-Aucun paiement n'a actuellement le statut `refunded` ou `partially_refunded`. Les requêtes vérifient la cohérence **interne** des enregistrements et les champs nécessaires au reçu ; elles ne rapprochent pas les 177 encaissements Stripe avec Stripe ni les autres moyens avec une caisse ou une banque. Les adresses contrôlées sont celles des comptes pilotes au moment de la lecture ; elles peuvent changer avant l'envoi.
+Aucun paiement n'a actuellement le statut `refunded` ou `partially_refunded`. Les requêtes vérifient la cohérence **interne** des enregistrements et les champs nécessaires au reçu. Les adresses contrôlées sont celles des comptes pilotes au moment de la lecture ; elles peuvent changer avant l'envoi.
+
+## Rapprochement Stripe en lecture seule
+
+Le 15 octobre 2026 vers **12 h 05 UTC**, la clé Stripe réelle configurée sur le serveur a permis de récupérer les **177 PaymentIntents** référencés par les 177 lignes locales `paid`/`stripe`. Les deux passes de lecture API ont abouti pour les 177 références, sans erreur. Les 177 PaymentIntents sont en mode réel avec statut `succeeded`, montant reçu et devise identiques aux données locales. Leur dernière charge développée est présente, liée au même PaymentIntent, payée et capturée ; aucune dernière charge n'était signalée comme litigieuse au moment du contrôle, et aucun écart de remboursement avec `refund_amount_cents` local n'a été relevé. Aucun identifiant de paiement, objet API complet, `client_secret` ou autre donnée personnelle n'a été exporté dans ce rapport.
+
+Ce rapprochement va **de la base vers Stripe**. Il ne démontre pas l'absence d'encaissements Stripe sans ligne locale et ne couvre pas les **75 paiements hors Stripe** (espèces, carte sur place, manuel, virement), les remises bancaires ou les litiges apparus après ce contrôle. Le registre de caisse et les relevés bancaires restent à rapprocher par une personne habilitée avant l'envoi historique de ces reçus.
 
 ## Sauvegarde observée
 
@@ -39,4 +45,4 @@ JetBackup 5 affiche pour la base MySQL active `mepa3308_run200cfg` une sauvegard
 
 ## Décision de mise en service
 
-Le volume et les contrôles internes rendent un rattrapage par petits lots **préparable**, sans établir encore que les paiements sont financièrement exacts ni que les e-mails arrivent. Déployer seulement après la levée des points critiques du rapport `AUDIT_2026-10-15.md`, la préservation des fichiers locaux du serveur et un plan de retour arrière. Après migration, exécuter la simulation `payment-receipts:backfill` sur des lots de **20**, contrôler un PDF et un envoi maîtrisé, puis traiter les lots suivants en vérifiant la remise et les compteurs `sent`/`failed`/`sending`. Aucun envoi massif ne doit précéder ces contrôles.
+Le volume, les contrôles internes et le rapprochement des 177 références Stripe rendent un rattrapage par petits lots **préparable**. Les 75 paiements hors Stripe et le contrôle inverse Stripe vers la base restent à rapprocher ; la délivrabilité des e-mails n'est pas prouvée. Déployer seulement après la levée des points critiques du rapport `AUDIT_2026-10-15.md`, la préservation des fichiers locaux du serveur et un plan de retour arrière. Après migration, exécuter la simulation `payment-receipts:backfill` sur des lots de **20**, contrôler un PDF et un envoi maîtrisé, puis traiter les lots suivants en vérifiant la remise et les compteurs `sent`/`failed`/`sending`. Aucun envoi massif ne doit précéder ces contrôles.

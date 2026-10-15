@@ -53,7 +53,7 @@
       "evidence": [
         "Implémentation locale 4a0399f testée",
         "Revue terminée ; production non vérifiée",
-        "Prévol o2switch du 15-10-2026: 252 paid, 101 adresses, données internes cohérentes; SMTP et JetBackup observés, aucun envoi"
+        "Prévol o2switch du 15-10-2026: 252 paid, 101 adresses, données internes cohérentes; 177 Stripe rapprochés en lecture seule sans écart; SMTP et JetBackup observés, aucun envoi"
       ],
       "revision": "4a0399f",
       "review_evidence": "QA 68 tests 309 assertions; suite 557 tests 1644 assertions; PDF A4",
