@@ -6,6 +6,7 @@ use App\Models\Car;
 use App\Models\CarCategory;
 use Illuminate\Database\QueryException;
 use Livewire\Component;
+use Throwable;
 
 class Index extends Component
 {
@@ -39,18 +40,19 @@ class Index extends Component
 
         try {
             $car->delete();
-        } catch (\DomainException $e) {
-            $this->deleteError = $e->getMessage();
+        } catch (Throwable $e) {
+            if ($e instanceof \DomainException) {
+                $this->deleteError = $e->getMessage();
 
-            return;
-        } catch (QueryException $e) {
-            if (! $car->raceRegistrations()->exists()) {
-                throw $e;
+                return;
+            }
+            if ($e instanceof QueryException && $car->raceRegistrations()->exists()) {
+                $this->deleteError = Car::DELETION_BLOCKED_MESSAGE;
+
+                return;
             }
 
-            $this->deleteError = Car::DELETION_BLOCKED_MESSAGE;
-
-            return;
+            throw $e;
         }
 
         session()->flash('success', 'Voiture supprimée avec succès.');

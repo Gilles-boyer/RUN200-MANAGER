@@ -5,10 +5,13 @@ use App\Models\Payment;
 use App\Models\Race;
 use App\Models\RaceRegistration;
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Livewire\Livewire;
 
 test('manual payment starts with the race fee and records an entered euro amount exactly', function () {
+    $this->seed(RolesAndPermissionsSeeder::class);
     $user = User::factory()->create();
+    $user->assignRole('STAFF_ADMINISTRATIF');
     $race = Race::factory()->create(['entry_fee_cents' => 7350]);
     $registration = RaceRegistration::factory()->accepted()->for($race)->create();
     $this->actingAs($user);
@@ -27,7 +30,9 @@ test('manual payment starts with the race fee and records an entered euro amount
 });
 
 test('manual payment rejects fractional cents and amounts below one euro', function () {
+    $this->seed(RolesAndPermissionsSeeder::class);
     $user = User::factory()->create();
+    $user->assignRole('STAFF_ADMINISTRATIF');
     $registration = RaceRegistration::factory()->accepted()->create();
     $this->actingAs($user);
 

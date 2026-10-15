@@ -1,0 +1,342 @@
+{
+  "version": 1,
+  "wip": {
+    "doing": 3,
+    "review": 2
+  },
+  "cards": [
+    {
+      "id": "AUD-01",
+      "title": "Audit technique et parcours du site",
+      "owner": "it_qa",
+      "priority": 1,
+      "state": "deliver",
+      "acceptance": [
+        "Rapport avec risques prouvés, priorités et 20 contrôles audit-sites sur état observé"
+      ],
+      "depends_on": [],
+      "files": [
+        "docs/project/AUDIT_2026-10-15.md"
+      ],
+      "author": "coordinator",
+      "reviewer": "audit_site",
+      "evidence": [
+        "20 contrôles et audit technique documentés; QA audit_site a relu et proposé trois précisions intégrées"
+      ],
+      "revision": "audit-doc-2026-10-15",
+      "review_evidence": "Revue indépendante du document et des 20 statuts, trois précisions éditoriales appliquées; état local audit de référence",
+      "blocked": ""
+    },
+    {
+      "id": "PAY-01",
+      "title": "Reçus de paiement nouveaux et historiques",
+      "owner": "it_backend",
+      "priority": 1,
+      "state": "deliver",
+      "acceptance": [
+        "Chaque paiement payé dispose d'un reçu individuel téléchargeable ; nouveaux paiements automatisés ; historique idempotent ; accès autorisé ; tests"
+      ],
+      "depends_on": [],
+      "files": [
+        "app/Models/PaymentReceipt.php",
+        "app/Models/Payment.php",
+        "app/Application/Payments/UseCases/IssuePaymentReceipt.php",
+        "app/Livewire/Staff/Registrations/PaymentManager.php",
+        "app/Listeners/SendPaymentConfirmation.php",
+        "resources/views/pdf/payment-receipt.blade.php",
+        "resources/views/livewire/pilot/registrations/index.blade.php",
+        "resources/views/livewire/staff/registrations/payment-manager.blade.php",
+        "routes/web.php"
+      ],
+      "author": "payments_design",
+      "reviewer": "audit_site",
+      "evidence": [
+        "Implémentation locale 4a0399f testée",
+        "Revue terminée ; production non vérifiée",
+        "Prévol o2switch du 15-10-2026: 252 paid, 101 adresses, données internes cohérentes; 177 Stripe rapprochés en lecture seule sans écart; SMTP et JetBackup observés, aucun envoi"
+      ],
+      "revision": "4a0399f",
+      "review_evidence": "QA 68 tests 309 assertions; suite 557 tests 1644 assertions; PDF A4",
+      "blocked": ""
+    },
+    {
+      "id": "SEC-01",
+      "title": "Corriger les risques critiques avant publication",
+      "owner": "it_backend",
+      "priority": 1,
+      "state": "deliver",
+      "acceptance": [
+        "Aucun compte guichet à mot de passe fixe et aucune attribution de paiement par simple montant ; autorisations de remboursement vérifiées"
+      ],
+      "depends_on": [],
+      "files": [
+        "app/Livewire/Staff/Registrations/WalkInRegistration.php",
+        "app/Livewire/Staff/Registrations/Index.php",
+        "app/Livewire/Staff/Registrations/CheckpointsManager.php",
+        "app/Application/Payments/UseCases/HandleStripeWebhook.php",
+        "resources/views/livewire/staff/registrations/index.blade.php",
+        "docs/systeme_notifications_email.md"
+      ],
+      "author": "audit_tech",
+      "reviewer": "audit_site",
+      "evidence": [
+        "Implémentation locale 4a0399f testée",
+        "Revue terminée ; rotation secret et production non vérifiées"
+      ],
+      "revision": "4a0399f",
+      "review_evidence": "QA webhook remboursement et permissions ; 68 tests 309 assertions ciblés ; suite 557 tests 1644 assertions",
+      "blocked": ""
+    },
+    {
+      "id": "CI-01",
+      "title": "Rétablir les contrôles GitHub Actions",
+      "owner": "it_devops",
+      "priority": 1,
+      "state": "deliver",
+      "acceptance": [
+        "Workflows détectés à la racine Git, tests et lint non mutatif exécutés sur PR #17"
+      ],
+      "depends_on": [],
+      "files": [],
+      "author": "ci_workflows",
+      "reviewer": "audit_site",
+      "evidence": [
+        "Workflows racine vérifiés localement",
+        "PR #17 commit 96cd957: GitHub Actions Pint, PHP 8.2+Vite, PHP 8.4+Vite tous réussis le 15-10-2026"
+      ],
+      "revision": "working-tree-2026-10-15-ci",
+      "review_evidence": "Revue locale indépendante: YAML valide, chemins corrects, Pint 43 PHP OK; GitHub Actions non encore exécuté",
+      "blocked": ""
+    },
+    {
+      "id": "SEC-02",
+      "title": "Limiter l inscription publique",
+      "owner": "it_backend",
+      "priority": 1,
+      "state": "deliver",
+      "acceptance": [
+        "POST register limite cote serveur et teste sans bloquer le parcours normal"
+      ],
+      "depends_on": [],
+      "files": [
+        "app/Providers/FortifyServiceProvider.php"
+      ],
+      "author": "registration_security",
+      "reviewer": "qa_security",
+      "evidence": [
+        "39 tests Auth 210 assertions, Pint et PHPStan ciblés; cache database/table présent en production; QA demandée",
+        "Revue indépendante QA SEC-02 terminée; production non vérifiée"
+      ],
+      "revision": "working-tree-sec02-2026-10-15",
+      "review_evidence": "QA: 9 tests 90 assertions, cache array et database SQLite; email tableau 422; JSON 429, HTML message visible; IP proxy à vérifier en production",
+      "blocked": ""
+    },
+    {
+      "id": "WEB-01",
+      "title": "Corriger les pages publiques et la page 404",
+      "owner": "it_frontend",
+      "priority": 2,
+      "state": "deliver",
+      "acceptance": [
+        "404 utile avec statut 404, metadonnees publiques et alternatives verifiees"
+      ],
+      "depends_on": [],
+      "files": [
+        "resources/views/errors/404.blade.php",
+        "resources/views/layouts/racing-public.blade.php"
+      ],
+      "author": "public_ux",
+      "reviewer": "qa_security",
+      "evidence": [
+        "23 tests 66 assertions, build Vite, test navigateur local 390px; QA demandée",
+        "Revue indépendante QA WEB-01; tests navigateur auteur 390px et Vite réussis"
+      ],
+      "revision": "working-tree-web01-2026-10-15",
+      "review_evidence": "QA: 18 tests 111 assertions avec suite paiement, view cache; 404 noindex et meta OK; mobile production non verifie",
+      "blocked": ""
+    },
+    {
+      "id": "OPS-01",
+      "title": "Preparer le deploiement o2switch et le retour arriere",
+      "owner": "it_devops",
+      "priority": 1,
+      "state": "deliver",
+      "acceptance": [
+        "Procedure exploitable preservant les fichiers serveur et distinguant migration SMTP sauvegarde et verification cible"
+      ],
+      "depends_on": [],
+      "files": [
+        "docs/project/DEPLOYMENT_PLAN_2026-10-15.md"
+      ],
+      "author": "release_plan",
+      "reviewer": "qa_security",
+      "evidence": [
+        "Plan déploiement préparé, SMTP test reçu; aucun changement serveur; QA demandée",
+        "Plan final revu; aucune mutation serveur"
+      ],
+      "revision": "working-tree-ops01-2026-10-15",
+      "review_evidence": "QA plan final cohérent avec PAY-04 et test CLI ciblé sans mail; portes CI sauvegarde PHP web secret parcours et audit encore ouvertes",
+      "blocked": ""
+    },
+    {
+      "id": "LEG-01",
+      "title": "Verifier et corriger informations legales et conservation",
+      "owner": "it_product_owner",
+      "priority": 1,
+      "state": "deliver",
+      "acceptance": [
+        "Identite et contact exacts, politique de conservation validee, droits RGPD sans collecte excessive"
+      ],
+      "depends_on": [],
+      "files": [
+        "resources/views/pages/legal.blade.php",
+        "resources/views/pages/privacy.blade.php"
+      ],
+      "author": "coordinator",
+      "reviewer": "qa_security",
+      "evidence": [
+        "Identité et durées 3/5/10 confirmées par utilisateur; pages corrigées; purge technique distincte LEG-02"
+      ],
+      "revision": "working-tree-leg01-2026-10-15",
+      "review_evidence": "QA identité, contact, date et demande identité proportionnée OK; purge technique non implémentée traitée LEG-02",
+      "blocked": ""
+    },
+    {
+      "id": "SEC-03",
+      "title": "Revoquer ancien secret SMTP expose et traiter historique",
+      "owner": "it_devops",
+      "priority": 1,
+      "state": "backlog",
+      "acceptance": [
+        "Ancien acces inactif confirme sans exposer la valeur; strategie histoire Git coordonnee"
+      ],
+      "depends_on": [],
+      "files": [],
+      "author": "",
+      "reviewer": "",
+      "evidence": [],
+      "revision": "",
+      "review_evidence": "",
+      "blocked": ""
+    },
+    {
+      "id": "REL-01",
+      "title": "Deployer et verifier les recus sur o2switch",
+      "owner": "it_devops",
+      "priority": 1,
+      "state": "backlog",
+      "acceptance": [
+        "SHA et assets serves, migration, PDF et mail controle valides, 20 points et rollback documentes"
+      ],
+      "depends_on": [
+        "OPS-01",
+        "SEC-02",
+        "WEB-01",
+        "LEG-01",
+        "SEC-03"
+      ],
+      "files": [],
+      "author": "",
+      "reviewer": "",
+      "evidence": [],
+      "revision": "",
+      "review_evidence": "",
+      "blocked": ""
+    },
+    {
+      "id": "PAY-02",
+      "title": "Envoyer les recus historiques par lots",
+      "owner": "it_backend",
+      "priority": 1,
+      "state": "backlog",
+      "acceptance": [
+        "75 paiements hors Stripe rapproches par utilisateur, simulation sans anomalie, lots envoyes et journaux verifies"
+      ],
+      "depends_on": [
+        "REL-01"
+      ],
+      "files": [],
+      "author": "",
+      "reviewer": "",
+      "evidence": [],
+      "revision": "",
+      "review_evidence": "",
+      "blocked": ""
+    },
+    {
+      "id": "PAY-03",
+      "title": "Garder les envois automatiques des nouveaux recus desactives au deploiement",
+      "owner": "it_backend",
+      "priority": 1,
+      "state": "deliver",
+      "acceptance": [
+        "Flag env par defaut false coupe listener avant creation/envoi; tests off/on; rattrapage explicite independant"
+      ],
+      "depends_on": [],
+      "files": [
+        "config/payment_receipts.php",
+        "app/Listeners/SendPaymentConfirmation.php",
+        "tests/Feature/Payments/PaymentReceiptTest.php"
+      ],
+      "author": "registration_security",
+      "reviewer": "qa_security",
+      "evidence": [
+        "24 tests 186 assertions, Pint PHPStan; QA flag OFF ON et backfill indépendants",
+        "Revue indépendante PAY-03 sans anomalie dans périmètre; GET émission traité PAY-04"
+      ],
+      "revision": "working-tree-pay03-2026-10-15",
+      "review_evidence": "QA: flag OFF/ON, idempotence replay et backfill explicite indépendants testés; config cache production non vérifié",
+      "blocked": ""
+    },
+    {
+      "id": "PAY-04",
+      "title": "Rendre le téléchargement de reçu strictement en lecture",
+      "owner": "it_backend",
+      "priority": 1,
+      "state": "deliver",
+      "acceptance": [
+        "Un GET sans reçu ne crée rien; lien uniquement si reçu existant; tests des permissions et de la non-mutation"
+      ],
+      "depends_on": [],
+      "files": [
+        "app/Http/Controllers/Payments/DownloadReceiptController.php",
+        "app/Livewire/Pilot/Registrations/Index.php",
+        "app/Livewire/Pilot/Registrations/PaymentSuccess.php",
+        "app/Livewire/Staff/Registrations/PaymentManager.php",
+        "resources/views/livewire/pilot/registrations/index.blade.php",
+        "resources/views/livewire/pilot/registrations/payment-success.blade.php",
+        "resources/views/livewire/staff/registrations/payment-manager.blade.php",
+        "tests/Feature/Payments/PaymentReceiptTest.php"
+      ],
+      "author": "coordinator",
+      "reviewer": "qa_security",
+      "evidence": [
+        "GET strictement lecture, liens conditionnels, eager loading; 27 tests 203 assertions, Pint PHPStan et view cache réussis",
+        "Revue indépendante QA PAY-04 terminée"
+      ],
+      "revision": "working-tree-pay04-final-2026-10-15",
+      "review_evidence": "QA diff final confirmé après optimisation des requêtes; lecture seule et permissions maintenues; production non vérifiée",
+      "blocked": ""
+    },
+    {
+      "id": "LEG-02",
+      "title": "Mettre en oeuvre la conservation des données sans cascade destructive",
+      "owner": "it_backend",
+      "priority": 1,
+      "state": "backlog",
+      "acceptance": [
+        "Appliquer comptes 3 ans, inscriptions 5 ans, paiements 10 ans avec jalons d activité, anonymisation ou archivage sûr, simulation et tests; préserver preuves sportives et comptables"
+      ],
+      "depends_on": [],
+      "files": [
+        "app/Console/Commands/PrunePersonalData.php"
+      ],
+      "author": "",
+      "reviewer": "",
+      "evidence": [],
+      "revision": "",
+      "review_evidence": "",
+      "blocked": ""
+    }
+  ]
+}

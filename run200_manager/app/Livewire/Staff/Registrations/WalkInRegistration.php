@@ -17,7 +17,9 @@ use App\Models\RaceRegistration;
 use App\Models\User;
 use App\Support\UserFacingError;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -338,6 +340,8 @@ class WalkInRegistration extends Component
 
     public function submit(): void
     {
+        Gate::authorize('registration.manage');
+
         $this->errorMessage = null;
 
         if (! $this->validateCurrentStep()) {
@@ -389,8 +393,9 @@ class WalkInRegistration extends Component
         $user = User::create([
             'name' => $this->newPilotFirstName.' '.$this->newPilotLastName,
             'email' => $this->newPilotEmail,
-            'password' => Hash::make('password'), // Default password for walk-in registrations
-            'email_verified_at' => now(),
+            // An account created by staff must not have a predictable password.
+            // The pilot can use the normal password-reset flow to choose their own.
+            'password' => Hash::make(Str::random(64)),
         ]);
 
         $user->assignRole('PILOTE');
@@ -479,14 +484,16 @@ class WalkInRegistration extends Component
             'pilot_id' => $pilot->id,
             'car_id' => $car->id,
             'car_category_id' => $car->car_category_id,
-            'status' => 'ACCEPTED', // Direct acceptance for walk-in
-            'validated_at' => now(),
-            'validated_by' => auth()->id(),
+            'status' => $this->paymentReceived ? 'ACCEPTED' : 'PENDING_PAYMENT',
+            'validated_at' => $this->paymentReceived ? now() : null,
+            'validated_by' => $this->paymentReceived ? auth()->id() : null,
         ]);
 
         // Dispatch events for email notifications
         RegistrationCreated::dispatch($registration);
-        RegistrationAccepted::dispatch($registration);
+        if ($this->paymentReceived) {
+            RegistrationAccepted::dispatch($registration);
+        }
 
         return $registration;
     }

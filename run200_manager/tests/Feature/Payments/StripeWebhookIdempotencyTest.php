@@ -65,6 +65,8 @@ class StripeWebhookIdempotencyTest extends TestCase
             'payment_intent' => 'pi_test_123',
             'customer' => 'cus_test_123',
             'payment_status' => 'paid',
+            'amount_total' => 5000,
+            'currency' => 'eur',
         ];
 
         $eventId = 'evt_test_unique_123';
@@ -84,6 +86,8 @@ class StripeWebhookIdempotencyTest extends TestCase
             'payment_intent' => 'pi_test_123',
             'customer' => 'cus_test_123',
             'payment_status' => 'paid',
+            'amount_total' => 5000,
+            'currency' => 'eur',
         ];
 
         $eventId = 'evt_test_duplicate_456';
@@ -107,6 +111,8 @@ class StripeWebhookIdempotencyTest extends TestCase
             'id' => 'cs_test_123456',
             'payment_intent' => 'pi_test_123',
             'payment_status' => 'paid',
+            'amount_total' => 5000,
+            'currency' => 'eur',
         ];
 
         $first = $this->webhookHandler->handleCheckoutCompleted($sessionData, 'evt_first');
@@ -127,6 +133,8 @@ class StripeWebhookIdempotencyTest extends TestCase
             'id' => 'cs_test_123456',
             'payment_intent' => 'pi_test_123',
             'payment_status' => 'paid',
+            'amount_total' => 5000,
+            'currency' => 'eur',
         ], 'evt_paid');
 
         $result = $this->webhookHandler->handlePaymentFailed([
@@ -167,6 +175,8 @@ class StripeWebhookIdempotencyTest extends TestCase
             'payment_intent' => 'pi_test_001',
             'customer' => 'cus_test_001',
             'payment_status' => 'paid',
+            'amount_total' => 5000,
+            'currency' => 'eur',
         ];
 
         $eventId1 = 'evt_test_001';
@@ -189,6 +199,8 @@ class StripeWebhookIdempotencyTest extends TestCase
             'payment_intent' => 'pi_test_002',
             'customer' => 'cus_test_002',
             'payment_status' => 'paid',
+            'amount_total' => 5000,
+            'currency' => 'eur',
         ];
 
         $eventId2 = 'evt_test_002';

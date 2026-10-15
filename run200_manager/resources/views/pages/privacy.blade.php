@@ -18,7 +18,7 @@
                     Politique de Confidentialité
                 </h1>
                 <p class="text-carbon-500 dark:text-carbon-400">
-                    Dernière mise à jour : {{ now()->format('d/m/Y') }}
+                    Dernière mise à jour : 15/10/2026
                 </p>
             </div>
 
@@ -51,9 +51,10 @@
                     <div class="pl-11 space-y-3 text-carbon-600 dark:text-carbon-400">
                         <p>Le responsable du traitement des données personnelles est :</p>
                         <div class="bg-carbon-50 dark:bg-carbon-800/50 rounded-xl p-4 space-y-2">
-                            <p><strong class="text-carbon-900 dark:text-white">ASA CFG</strong> (Association Sportive Automobile – Circuit Félix Guichard)</p>
-                            <p>Siège social : La Réunion (974), France</p>
-                            <p>Contact : <a href="https://cfg.re/#contactCfg" target="_blank" rel="noopener" class="text-racing-red-600 dark:text-racing-red-400 hover:underline">https://cfg.re/#contactCfg</a></p>
+                            <p><strong class="text-carbon-900 dark:text-white">Association Sportive Automobile du Circuit Félix Guichard (ASA CFG)</strong></p>
+                            <p>SIRET : 510 609 134 00018</p>
+                            <p>Siège social : Les Orangers Sainte-Anne, 400 chemin Robespierre, 97437 Saint-Benoît, France</p>
+                            <p>Contact : <a href="mailto:contact@cfg.re" class="text-racing-red-600 dark:text-racing-red-400 hover:underline">contact@cfg.re</a> · <a href="tel:+262692725584" class="text-racing-red-600 dark:text-racing-red-400 hover:underline">0692 725 584</a></p>
                         </div>
                     </div>
                 </section>
@@ -180,7 +181,7 @@
                             <li><strong class="text-carbon-900 dark:text-white">Personnel autorisé de l'ASA CFG</strong> (organisateurs, commissaires, staff)</li>
                             <li><strong class="text-carbon-900 dark:text-white">FFSA et LSAR</strong> (obligations réglementaires sportives)</li>
                             <li><strong class="text-carbon-900 dark:text-white">Stripe</strong> (traitement sécurisé des paiements)</li>
-                            <li><strong class="text-carbon-900 dark:text-white">Hébergeur OVH</strong> (hébergement technique)</li>
+                            <li><strong class="text-carbon-900 dark:text-white">Hébergeur o2switch</strong> (hébergement technique)</li>
                             <li><strong class="text-carbon-900 dark:text-white">Autorités compétentes</strong> (sur réquisition légale)</li>
                         </ul>
                         <p>
@@ -311,8 +312,8 @@
                         <div class="bg-racing-red-50 dark:bg-racing-red-900/20 border border-racing-red-200 dark:border-racing-red-800 rounded-xl p-4 mt-4">
                             <p class="text-racing-red-700 dark:text-racing-red-300">
                                 <strong>Pour exercer vos droits :</strong> Contactez-nous via
-                                <a href="https://cfg.re/#contactCfg" target="_blank" rel="noopener" class="underline hover:no-underline">https://cfg.re/#contactCfg</a>
-                                en joignant une copie de votre pièce d'identité.
+                                <a href="mailto:contact@cfg.re" class="underline hover:no-underline">contact@cfg.re</a>.
+                                Une vérification complémentaire de votre identité ne sera demandée qu'en cas de doute raisonnable, par un moyen adapté à la demande.
                             </p>
                         </div>
 
@@ -337,7 +338,7 @@
                             <li>Stockage sécurisé des mots de passe (hachage bcrypt)</li>
                             <li>Accès restreint aux données personnelles</li>
                             <li>Journalisation des accès et des modifications</li>
-                            <li>Sauvegardes régulières et chiffrées</li>
+                            <li>Sauvegardes régulières</li>
                             <li>Authentification à deux facteurs disponible</li>
                         </ul>
                     </div>
@@ -352,12 +353,12 @@
                         Cookies
                     </h2>
                     <div class="pl-11 space-y-4 text-carbon-600 dark:text-carbon-400">
-                        <p>RUN200 Manager utilise uniquement des <strong class="text-carbon-900 dark:text-white">cookies strictement nécessaires</strong> au fonctionnement du site :</p>
+                        <p>RUN200 Manager utilise des <strong class="text-carbon-900 dark:text-white">cookies nécessaires</strong> à la session et à la sécurité. Le navigateur conserve aussi un réglage local d'affichage :</p>
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm">
                                 <thead class="bg-carbon-100 dark:bg-carbon-800">
                                     <tr>
-                                        <th class="px-4 py-3 text-left font-semibold text-carbon-900 dark:text-white rounded-tl-lg">Cookie</th>
+                                        <th class="px-4 py-3 text-left font-semibold text-carbon-900 dark:text-white rounded-tl-lg">Donnée du navigateur</th>
                                         <th class="px-4 py-3 text-left font-semibold text-carbon-900 dark:text-white">Finalité</th>
                                         <th class="px-4 py-3 text-left font-semibold text-carbon-900 dark:text-white rounded-tr-lg">Durée</th>
                                     </tr>
@@ -374,15 +375,15 @@
                                         <td class="px-4 py-3">2 heures</td>
                                     </tr>
                                     <tr>
-                                        <td class="px-4 py-3 font-mono text-xs">darkMode</td>
-                                        <td class="px-4 py-3">Préférence de thème (clair/sombre)</td>
-                                        <td class="px-4 py-3">1 an</td>
+                                        <td class="px-4 py-3 font-mono text-xs">localStorage.theme</td>
+                                        <td class="px-4 py-3">Affichage sombre de l'interface ; ce n'est pas un cookie</td>
+                                        <td class="px-4 py-3">Jusqu'à suppression des données du navigateur</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
                         <p class="text-sm">
-                            Aucun cookie de tracking, publicitaire ou de profilage n'est utilisé. Ces cookies étant strictement nécessaires, ils sont exemptés de consentement conformément à l'article 82 de la loi Informatique et Libertés.
+                            Aucun cookie publicitaire ou de profilage n'est configuré sur les pages du site. Les cookies de session et de sécurité sont nécessaires à son fonctionnement.
                         </p>
                     </div>
                 </section>

@@ -4,10 +4,16 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Payments\Stripe;
 
+use App\Models\Car;
 use App\Models\Payment;
+use App\Models\Pilot;
+use App\Models\Race;
 use App\Models\RaceRegistration;
+use App\Models\User;
 use Stripe\Checkout\Session;
+use Stripe\Event;
 use Stripe\Exception\ApiErrorException;
+use Stripe\Exception\SignatureVerificationException;
 use Stripe\PaymentIntent;
 use Stripe\Refund;
 use Stripe\Stripe;
@@ -16,7 +22,7 @@ use Stripe\Webhook;
 /**
  * Service for handling Stripe payments.
  */
-final class StripePaymentService
+class StripePaymentService
 {
     public function __construct()
     {
@@ -40,11 +46,11 @@ final class StripePaymentService
         string $currency = 'EUR',
         ?array $metadata = null
     ): Session {
-        /** @var \App\Models\Pilot $pilot */
+        /** @var Pilot $pilot */
         $pilot = $registration->pilot;
-        /** @var \App\Models\Race $race */
+        /** @var Race $race */
         $race = $registration->race;
-        /** @var \App\Models\Car $car */
+        /** @var Car $car */
         $car = $registration->car;
 
         $lineItemDescription = sprintf(
@@ -67,7 +73,7 @@ final class StripePaymentService
             config('stripe.cancel_url')
         ));
 
-        /** @var \App\Models\User|null $user */
+        /** @var User|null $user */
         $user = $pilot->user;
 
         // Metadata that will be attached to both session and payment_intent
@@ -139,7 +145,8 @@ final class StripePaymentService
     public function refund(
         string $paymentIntentId,
         ?int $amountCents = null,
-        ?string $reason = null
+        ?string $reason = null,
+        ?string $idempotencyKey = null
     ): Refund {
         $params = [
             'payment_intent' => $paymentIntentId,
@@ -149,20 +156,24 @@ final class StripePaymentService
             $params['amount'] = $amountCents;
         }
 
-        if ($reason !== null) {
+        // Stripe only accepts these codes; free-form staff notes stay in local activity.
+        if ($reason !== null && in_array($reason, ['duplicate', 'fraudulent', 'requested_by_customer'], true)) {
             $params['reason'] = $reason;
         }
 
-        return Refund::create($params);
+        return Refund::create(
+            $params,
+            $idempotencyKey === null ? null : ['idempotency_key' => $idempotencyKey]
+        );
     }
 
     /**
      * Construct and validate a webhook event.
      *
      * @throws \UnexpectedValueException
-     * @throws \Stripe\Exception\SignatureVerificationException
+     * @throws SignatureVerificationException
      */
-    public function constructWebhookEvent(string $payload, string $signature): \Stripe\Event
+    public function constructWebhookEvent(string $payload, string $signature): Event
     {
         return Webhook::constructEvent(
             $payload,

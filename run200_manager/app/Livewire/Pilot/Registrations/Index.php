@@ -23,7 +23,7 @@ class Index extends Component
         $registrations = collect();
 
         if ($pilot) {
-            $query = RaceRegistration::with(['race.season', 'car', 'payments', 'paddockSpot'])
+            $query = RaceRegistration::with(['race.season', 'car', 'payments.receipt', 'paddockSpot'])
                 ->where('pilot_id', $pilot->id);
 
             if ($this->statusFilter && RegistrationStatus::tryFrom($this->statusFilter)) {

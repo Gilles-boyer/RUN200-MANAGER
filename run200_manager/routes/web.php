@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Payments\DownloadReceiptController;
 use App\Http\Controllers\RaceBoardController;
 use App\Http\Controllers\Staff\ExportEngagedCsvController;
 use App\Http\Controllers\Webhook\StripeWebhookController;
@@ -50,6 +51,10 @@ if (app()->environment('local')) {
 Route::post('/stripe/webhook', StripeWebhookController::class)
     ->name('stripe.webhook')
     ->withoutMiddleware(['web', 'csrf']);
+
+Route::get('/payments/{payment}/receipt', DownloadReceiptController::class)
+    ->middleware('auth')
+    ->name('payments.receipt');
 
 // =========================================================================
 // Public Routes (no authentication required)

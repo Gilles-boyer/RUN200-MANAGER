@@ -188,14 +188,7 @@
                                 </div>
                             </td>
                             <td class="px-4 py-4">
-                                <button wire:click="openStatusModal({{ $registration->id }})"
-                                        class="group flex items-center gap-2 hover:bg-carbon-700/50 rounded-lg px-2 py-1 -mx-2 -my-1 transition-colors"
-                                        title="Cliquer pour modifier le statut">
-                                    <x-racing.badge-status :status="$registration->status" />
-                                    <svg class="w-4 h-4 text-carbon-500 group-hover:text-racing-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-                                    </svg>
-                                </button>
+                                <x-racing.badge-status :status="$registration->status" />
                                 @if($registration->reason)
                                     <p class="mt-1 text-xs text-carbon-400 max-w-xs truncate" title="{{ $registration->reason }}">
                                         {{ $registration->reason }}
@@ -320,7 +313,7 @@
                                         </a>
                                     @endcan
 
-                                    @if($registration->isPending())
+                                    @if($registration->isPending() && auth()->user()->can('race_registration.validate'))
                                         <button wire:click="openValidationModal({{ $registration->id }}, 'accept')"
                                                 class="p-2 rounded-lg text-status-success hover:bg-status-success/20 transition-colors"
                                                 title="Accepter">
@@ -337,7 +330,7 @@
                                         </button>
                                     @endif
 
-                                    @if($registration->isAccepted())
+                                    @if($registration->isAccepted() && auth()->user()->can('race_registration.assign_paddock'))
                                         <button wire:click="openPaddockModal({{ $registration->id }})"
                                                 class="p-2 rounded-lg text-status-info hover:bg-status-info/20 transition-colors"
                                                 title="Assigner paddock">
@@ -384,14 +377,7 @@
                                 </div>
                             </div>
                         </div>
-                        <button wire:click="openStatusModal({{ $registration->id }})"
-                                class="group flex items-center gap-1"
-                                title="Cliquer pour modifier le statut">
-                            <x-racing.badge-status :status="$registration->status" />
-                            <svg class="w-3 h-3 text-carbon-500 group-hover:text-racing-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-                            </svg>
-                        </button>
+                        <x-racing.badge-status :status="$registration->status" />
                     </div>
 
                     {{-- Contenu --}}
@@ -488,14 +474,7 @@
                                 Paiements
                             </a>
                         @endcan
-                        <button wire:click="openStatusModal({{ $registration->id }})"
-                                class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-racing-red-500/20 text-racing-red-500 text-sm font-medium hover:bg-racing-red-500/30 transition-colors tap-target">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                            </svg>
-                            Statut
-                        </button>
-                        @if($registration->isPending())
+                        @if($registration->isPending() && auth()->user()->can('race_registration.validate'))
                             <button wire:click="openValidationModal({{ $registration->id }}, 'accept')"
                                     class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-status-success/20 text-status-success text-sm font-medium hover:bg-status-success/30 transition-colors tap-target">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -511,7 +490,7 @@
                                 Refuser
                             </button>
                         @endif
-                        @if($registration->isAccepted())
+                        @if($registration->isAccepted() && auth()->user()->can('race_registration.assign_paddock'))
                             <button wire:click="openPaddockModal({{ $registration->id }})"
                                     class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-status-info/20 text-status-info text-sm font-medium hover:bg-status-info/30 transition-colors tap-target">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -653,91 +632,6 @@
                         </x-racing.button>
                         <x-racing.button wire:click="assignPaddock" variant="primary">
                             Assigner
-                        </x-racing.button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    {{-- Modal Changement de Statut --}}
-    @if($showStatusModal && $selectedRegistration)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-center justify-center min-h-screen p-4">
-                <div class="fixed inset-0 bg-carbon-950/80 backdrop-blur-sm transition-opacity" wire:click="closeStatusModal"></div>
-
-                <div class="relative bg-carbon-800 rounded-xl border border-carbon-700 shadow-2xl transform transition-all sm:max-w-lg w-full">
-                    <div class="p-6">
-                        <div class="flex items-center gap-3 mb-6">
-                            <div class="w-10 h-10 rounded-lg bg-racing-red-500/20 flex items-center justify-center">
-                                <svg class="w-6 h-6 text-racing-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                </svg>
-                            </div>
-                            <h3 class="text-lg font-semibold text-white">Modifier le statut</h3>
-                        </div>
-
-                        <div class="mb-6 p-4 bg-carbon-700/50 rounded-xl border border-carbon-600">
-                            <div class="space-y-2">
-                                <p class="text-sm text-carbon-300">
-                                    <span class="text-carbon-400">Pilote:</span>
-                                    <span class="text-white font-medium">{{ $selectedRegistration->pilot->last_name }} {{ $selectedRegistration->pilot->first_name }}</span>
-                                </p>
-                                <p class="text-sm text-carbon-300">
-                                    <span class="text-carbon-400">Course:</span>
-                                    <span class="text-white">{{ $selectedRegistration->race->name }}</span>
-                                </p>
-                                <p class="text-sm text-carbon-300">
-                                    <span class="text-carbon-400">Voiture:</span>
-                                    <span class="text-white">#{{ $selectedRegistration->car->race_number }} - {{ $selectedRegistration->car->make }} {{ $selectedRegistration->car->model }}</span>
-                                </p>
-                                <p class="text-sm text-carbon-300">
-                                    <span class="text-carbon-400">Statut actuel:</span>
-                                    <x-racing.badge-status :status="$selectedRegistration->status" class="ml-2" />
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="space-y-4">
-                            <x-racing.form.select
-                                wire:model.live="newStatus"
-                                label="Nouveau statut"
-                                required
-                                :options="$this->availableStatuses"
-                            />
-
-                            @if($newStatus === 'REFUSED')
-                                <x-racing.form.textarea
-                                    wire:model="statusChangeReason"
-                                    label="Raison du changement"
-                                    rows="3"
-                                    placeholder="Indiquez la raison du refus (optionnel)..."
-                                />
-                            @endif
-                        </div>
-
-                        {{-- Avertissement pour les changements critiques --}}
-                        @if(in_array($newStatus, ['REFUSED', 'TECH_CHECKED_FAIL']))
-                            <div class="mt-4 p-3 bg-status-danger/10 border border-status-danger/30 rounded-lg">
-                                <div class="flex items-start gap-2">
-                                    <svg class="w-5 h-5 text-status-danger flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    <div>
-                                        <p class="text-sm font-medium text-status-danger">Attention</p>
-                                        <p class="text-xs text-status-danger/80">Ce statut indique un problème. Assurez-vous que c'est intentionnel.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-
-                    <div class="flex items-center justify-end gap-3 px-6 py-4 bg-carbon-900/50 border-t border-carbon-700 rounded-b-xl">
-                        <x-racing.button variant="outline" wire:click="closeStatusModal">
-                            Annuler
-                        </x-racing.button>
-                        <x-racing.button wire:click="updateStatus" variant="primary">
-                            Enregistrer
                         </x-racing.button>
                     </div>
                 </div>

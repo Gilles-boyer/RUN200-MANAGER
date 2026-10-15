@@ -2,20 +2,35 @@
 
 namespace App\Listeners;
 
+use App\Application\Payments\UseCases\IssuePaymentReceipt;
+use App\Application\Payments\UseCases\SendPaymentReceipt;
 use App\Events\PaymentConfirmed;
-use App\Mail\PaymentConfirmed as PaymentConfirmedMail;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
-class SendPaymentConfirmation implements ShouldQueue
+class SendPaymentConfirmation
 {
+    public function __construct(private IssuePaymentReceipt $issuer, private SendPaymentReceipt $sender) {}
+
     public function handle(PaymentConfirmed $event): void
     {
+        if (! config('payment_receipts.auto_send', false)) {
+            return;
+        }
+
         $payment = $event->payment;
 
-        if ($payment->registration && $payment->registration->pilot && $payment->registration->pilot->user) {
-            Mail::to($payment->registration->pilot->user->email)
-                ->send(new PaymentConfirmedMail($payment));
+        try {
+            $receipt = $this->issuer->issue($payment);
+        } catch (Throwable $e) {
+            Log::error('Payment receipt issuance failed', [
+                'payment_id' => $payment->id,
+                'error_type' => $e::class,
+            ]);
+
+            return;
         }
+
+        $this->sender->send($receipt);
     }
 }

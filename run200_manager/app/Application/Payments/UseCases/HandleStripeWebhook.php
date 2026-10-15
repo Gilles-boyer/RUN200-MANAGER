@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Application\Payments\UseCases;
 
+use App\Events\PaymentConfirmed;
 use App\Infrastructure\Payments\Stripe\StripePaymentService;
 use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use Spatie\Activitylog\Facades\Activity;
+use Stripe\Checkout\Session;
 
 /**
  * Use case for handling Stripe webhook events.
@@ -27,6 +29,8 @@ final class HandleStripeWebhook
     {
         $sessionId = $sessionData['id'];
         $paymentIntentId = $sessionData['payment_intent'] ?? null;
+        $amountTotal = $sessionData['amount_total'] ?? null;
+        $currency = $sessionData['currency'] ?? null;
 
         $payment = Payment::where('stripe_session_id', $sessionId)->first();
 
@@ -36,12 +40,45 @@ final class HandleStripeWebhook
             );
         }
 
-        // Already processed
-        if ($payment->isPaid()) {
+        if (($sessionData['payment_status'] ?? null) !== 'paid'
+            || ! is_int($amountTotal)
+            || $amountTotal <= 0
+            || $amountTotal !== $payment->amount_cents
+            || ! is_string($currency)
+            || preg_match('/^[A-Za-z]{3}$/', $currency) !== 1
+            || strtoupper($currency) !== $payment->currency
+            || ! is_string($paymentIntentId)
+            || $paymentIntentId === ''
+            || ($payment->stripe_payment_intent_id !== null && $payment->stripe_payment_intent_id !== $paymentIntentId)) {
+            Log::warning('Checkout session is not a confirmed payment or does not match the local amount', [
+                'session_id' => $sessionId,
+                'payment_id' => $payment->id,
+            ]);
+
             return $payment;
         }
 
-        return DB::transaction(function () use ($payment, $paymentIntentId, $sessionData, $eventId) {
+        // Already processed
+        if ($this->isSettled($payment)) {
+            return $payment;
+        }
+
+        return DB::transaction(function () use ($payment, $paymentIntentId, $amountTotal, $currency, $sessionData, $eventId) {
+            $payment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
+            if ($this->isSettled($payment)) {
+                return $payment;
+            }
+            if ($payment->amount_cents !== $amountTotal
+                || $payment->currency !== strtoupper($currency)
+                || ($payment->stripe_payment_intent_id !== null && $payment->stripe_payment_intent_id !== $paymentIntentId)) {
+                Log::warning('Checkout session no longer matches the local payment', [
+                    'session_id' => $sessionData['id'],
+                    'payment_id' => $payment->id,
+                ]);
+
+                return $payment;
+            }
+
             $payment->update([
                 'status' => 'paid',
                 'stripe_payment_intent_id' => $paymentIntentId,
@@ -59,9 +96,6 @@ final class HandleStripeWebhook
             if ($registration && $registration->status === 'PENDING_PAYMENT') {
                 $registration->update(['status' => 'PENDING_VALIDATION']);
 
-                // Dispatch event for email notification
-                \App\Events\PaymentConfirmed::dispatch($payment);
-
                 Activity::performedOn($registration)
                     ->withProperties([
                         'payment_id' => $payment->id,
@@ -70,6 +104,10 @@ final class HandleStripeWebhook
                     ])
                     ->log('registration.payment_received');
             }
+
+            // A paid payment needs a confirmation even when the registration
+            // was already accepted (for example, an on-site registration).
+            PaymentConfirmed::dispatch($payment);
 
             // Log activity
             Activity::performedOn($payment)
@@ -100,11 +138,16 @@ final class HandleStripeWebhook
         }
 
         // Already processed
-        if ($payment->isPaid() || $payment->isCancelled()) {
+        if ($this->isSettled($payment) || $payment->isCancelled()) {
             return $payment;
         }
 
         return DB::transaction(function () use ($payment) {
+            $payment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
+            if ($this->isSettled($payment) || $payment->isCancelled()) {
+                return $payment;
+            }
+
             $payment->update([
                 'status' => 'cancelled',
                 'failure_reason' => 'Session expirée',
@@ -134,7 +177,16 @@ final class HandleStripeWebhook
         $paymentIntentId = $paymentIntentData['id'];
         $metadata = $paymentIntentData['metadata'] ?? [];
         $amount = $paymentIntentData['amount'] ?? 0;
-        $amountReceived = $paymentIntentData['amount_received'] ?? $amount;
+        $amountReceived = $paymentIntentData['amount_received'] ?? null;
+        $currency = $paymentIntentData['currency'] ?? null;
+
+        if (! is_int($amountReceived) || $amountReceived <= 0 || ! is_string($currency) || preg_match('/^[A-Za-z]{3}$/', $currency) !== 1) {
+            Log::warning('Payment intent is missing a positive received amount or currency', [
+                'payment_intent_id' => $paymentIntentId,
+            ]);
+
+            return null;
+        }
 
         Log::info('Processing payment_intent.succeeded', [
             'payment_intent_id' => $paymentIntentId,
@@ -152,6 +204,10 @@ final class HandleStripeWebhook
             $payment = Payment::where('race_registration_id', $metadata['registration_id'])
                 ->where('status', 'pending')
                 ->where('method', 'stripe')
+                ->where('amount_cents', $amountReceived)
+                ->where('currency', strtoupper($currency))
+                ->where(fn ($query) => $query->whereNull('stripe_payment_intent_id')
+                    ->orWhere('stripe_payment_intent_id', $paymentIntentId))
                 ->latest()
                 ->first();
 
@@ -165,7 +221,7 @@ final class HandleStripeWebhook
         if (! $payment) {
             try {
                 // Get all checkout sessions and find the one with this payment_intent
-                $sessions = \Stripe\Checkout\Session::all([
+                $sessions = Session::all([
                     'payment_intent' => $paymentIntentId,
                     'limit' => 1,
                 ]);
@@ -187,40 +243,50 @@ final class HandleStripeWebhook
             }
         }
 
-        // Strategy 4: Find pending payment by amount (last resort - risky)
-        if (! $payment && $amountReceived > 0) {
-            $payment = Payment::where('amount_cents', $amountReceived)
-                ->where('status', 'pending')
-                ->where('method', 'stripe')
-                ->whereNull('stripe_payment_intent_id')
-                ->where('created_at', '>=', now()->subHours(24))
-                ->latest()
-                ->first();
-
-            if ($payment) {
-                Log::warning('Found payment by amount matching (fallback strategy)', [
-                    'payment_id' => $payment->id,
-                    'amount_cents' => $amountReceived,
-                ]);
-            }
-        }
-
         if (! $payment) {
             Log::warning('Payment not found for payment_intent.succeeded', [
                 'payment_intent_id' => $paymentIntentId,
                 'metadata' => $metadata,
                 'amount' => $amount,
             ]);
+
             return null;
         }
 
         // Already processed
-        if ($payment->isPaid()) {
-            Log::info('Payment already marked as paid', ['payment_id' => $payment->id]);
+        if ($this->isSettled($payment)) {
+            Log::info('Payment already settled', ['payment_id' => $payment->id]);
+
             return $payment;
         }
 
-        return DB::transaction(function () use ($payment, $paymentIntentId, $paymentIntentData, $eventId) {
+        if (($payment->stripe_payment_intent_id !== null && $payment->stripe_payment_intent_id !== $paymentIntentId)
+            || $payment->amount_cents !== $amountReceived
+            || strtoupper($currency) !== $payment->currency) {
+            Log::warning('Payment intent does not match the local payment amount', [
+                'payment_intent_id' => $paymentIntentId,
+                'payment_id' => $payment->id,
+            ]);
+
+            return null;
+        }
+
+        return DB::transaction(function () use ($payment, $paymentIntentId, $amountReceived, $currency, $paymentIntentData, $eventId) {
+            $payment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
+            if ($this->isSettled($payment)) {
+                return $payment;
+            }
+            if (($payment->stripe_payment_intent_id !== null && $payment->stripe_payment_intent_id !== $paymentIntentId)
+                || $payment->amount_cents !== $amountReceived
+                || $payment->currency !== strtoupper($currency)) {
+                Log::warning('Payment intent no longer matches the local payment', [
+                    'payment_intent_id' => $paymentIntentId,
+                    'payment_id' => $payment->id,
+                ]);
+
+                return null;
+            }
+
             $payment->update([
                 'status' => 'paid',
                 'stripe_payment_intent_id' => $paymentIntentId,
@@ -239,9 +305,6 @@ final class HandleStripeWebhook
             if ($registration && $registration->status === 'PENDING_PAYMENT') {
                 $registration->update(['status' => 'PENDING_VALIDATION']);
 
-                // Dispatch event for email notification
-                \App\Events\PaymentConfirmed::dispatch($payment);
-
                 Activity::performedOn($registration)
                     ->withProperties([
                         'payment_id' => $payment->id,
@@ -250,6 +313,8 @@ final class HandleStripeWebhook
                     ])
                     ->log('registration.payment_received');
             }
+
+            PaymentConfirmed::dispatch($payment);
 
             // Log activity
             Activity::performedOn($payment)
@@ -298,7 +363,7 @@ final class HandleStripeWebhook
         // Strategy 3: Try to find via Stripe session lookup
         if (! $payment) {
             try {
-                $sessions = \Stripe\Checkout\Session::all([
+                $sessions = Session::all([
                     'payment_intent' => $paymentIntentId,
                     'limit' => 1,
                 ]);
@@ -320,14 +385,20 @@ final class HandleStripeWebhook
                 'payment_intent_id' => $paymentIntentId,
                 'metadata' => $metadata,
             ]);
+
             return null;
         }
 
-        if ($payment->isPaid()) {
+        if ($this->isSettled($payment)) {
             return $payment;
         }
 
         return DB::transaction(function () use ($payment, $paymentIntentData, $paymentIntentId) {
+            $payment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
+            if ($this->isSettled($payment)) {
+                return $payment;
+            }
+
             $lastError = $paymentIntentData['last_payment_error'] ?? null;
 
             $payment->update([
@@ -364,7 +435,7 @@ final class HandleStripeWebhook
     {
         $paymentIntentId = $chargeData['payment_intent'] ?? null;
 
-        if (! $paymentIntentId) {
+        if (! is_string($paymentIntentId) || $paymentIntentId === '') {
             return null;
         }
 
@@ -374,11 +445,31 @@ final class HandleStripeWebhook
             return null;
         }
 
-        return DB::transaction(function () use ($payment, $chargeData) {
-            $amountRefunded = $chargeData['amount_refunded'] ?? 0;
-            $amountTotal = $chargeData['amount'] ?? $payment->amount_cents;
+        return DB::transaction(function () use ($payment, $chargeData, $paymentIntentId) {
+            $payment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
+            $amountRefunded = $chargeData['amount_refunded'] ?? null;
+            $amountTotal = $chargeData['amount'] ?? null;
+            $currency = $chargeData['currency'] ?? null;
 
-            $isFullRefund = $amountRefunded >= $amountTotal;
+            if ($payment->stripe_payment_intent_id !== $paymentIntentId
+                || ! is_int($amountTotal) || $amountTotal <= 0 || $amountTotal !== $payment->amount_cents
+                || ! is_int($amountRefunded) || $amountRefunded <= 0 || $amountRefunded > $amountTotal
+                || ! is_string($currency) || preg_match('/^[A-Za-z]{3}$/', $currency) !== 1
+                || strtoupper($currency) !== $payment->currency) {
+                Log::warning('Refund charge does not match the local payment amount or currency', [
+                    'payment_id' => $payment->id,
+                ]);
+
+                return $payment;
+            }
+
+            // Stripe reports the cumulative refunded amount. Older and duplicate
+            // events must never reduce that total or revert a full refund.
+            if ($payment->isRefunded() || $amountRefunded <= ($payment->refund_amount_cents ?? 0)) {
+                return $payment;
+            }
+
+            $isFullRefund = $amountRefunded === $payment->amount_cents;
 
             $payment->update([
                 'status' => $isFullRefund ? 'refunded' : 'partially_refunded',
@@ -400,5 +491,10 @@ final class HandleStripeWebhook
 
             return $payment->fresh();
         });
+    }
+
+    private function isSettled(Payment $payment): bool
+    {
+        return $payment->isPaid() || $payment->isPartiallyRefunded() || $payment->isRefunded();
     }
 }

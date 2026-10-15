@@ -18,7 +18,7 @@
                     Mentions Légales
                 </h1>
                 <p class="text-carbon-500 dark:text-carbon-400">
-                    Dernière mise à jour : {{ now()->format('d/m/Y') }}
+                    Dernière mise à jour : 15/10/2026
                 </p>
             </div>
 
@@ -38,17 +38,17 @@
                             Le site <strong class="text-carbon-900 dark:text-white">RUN200 Manager</strong> (ci-après « le Site ») est édité par :
                         </p>
                         <div class="bg-carbon-50 dark:bg-carbon-800/50 rounded-xl p-4 space-y-2">
-                            <p><strong class="text-carbon-900 dark:text-white">ASA CFG</strong> (Association Sportive Automobile – Circuit Félix Guichard)</p>
+                            <p><strong class="text-carbon-900 dark:text-white">Association Sportive Automobile du Circuit Félix Guichard (ASA CFG)</strong></p>
                             <p>Association loi 1901</p>
                             <p>Affiliée à la <strong>FFSA</strong> (Fédération Française du Sport Automobile)</p>
                             <p>Et à la <strong>LSAR</strong> (Ligue du Sport Automobile de La Réunion)</p>
-                            <p>Siège social : La Réunion (974), France</p>
+                            <p>SIREN : 510 609 134 · SIRET du siège : 510 609 134 00018</p>
+                            <p>Siège social : Les Orangers Sainte-Anne, 400 chemin Robespierre, 97437 Saint-Benoît, France</p>
                         </div>
                         <p>
                             <strong class="text-carbon-900 dark:text-white">Contact :</strong>
-                            <a href="https://cfg.re/#contactCfg" target="_blank" rel="noopener" class="text-racing-red-600 dark:text-racing-red-400 hover:underline">
-                                https://cfg.re/#contactCfg
-                            </a>
+                            <a href="mailto:contact@cfg.re" class="text-racing-red-600 dark:text-racing-red-400 hover:underline">contact@cfg.re</a>
+                            · <a href="tel:+262692725584" class="text-racing-red-600 dark:text-racing-red-400 hover:underline">0692 725 584</a>
                         </p>
                     </div>
                 </section>
@@ -62,7 +62,7 @@
                         Directeur de la publication
                     </h2>
                     <div class="pl-11 text-carbon-600 dark:text-carbon-400">
-                        <p>Le directeur de la publication est le Président de l'ASA CFG.</p>
+                        <p>Le directeur de la publication est Félix Guichard, président de l'ASA CFG.</p>
                     </div>
                 </section>
 
@@ -77,11 +77,10 @@
                     <div class="pl-11 space-y-3 text-carbon-600 dark:text-carbon-400">
                         <p>Le Site est hébergé par :</p>
                         <div class="bg-carbon-50 dark:bg-carbon-800/50 rounded-xl p-4 space-y-2">
-                            <p><strong class="text-carbon-900 dark:text-white">OVH SAS</strong></p>
-                            <p>2, rue Kellermann – 59100 Roubaix – France</p>
-                            <p>RCS Lille Métropole 424 761 419 00045</p>
-                            <p>Téléphone : +33 9 72 10 10 07</p>
-                            <p>Site web : <a href="https://www.ovh.com" target="_blank" rel="noopener" class="text-racing-red-600 dark:text-racing-red-400 hover:underline">www.ovh.com</a></p>
+                            <p><strong class="text-carbon-900 dark:text-white">o2switch</strong></p>
+                            <p>Chemin des Pardiaux – 63000 Clermont-Ferrand – France</p>
+                            <p>Téléphone : 04 44 44 60 40</p>
+                            <p>Site web : <a href="https://www.o2switch.fr" target="_blank" rel="noopener" class="text-racing-red-600 dark:text-racing-red-400 hover:underline">www.o2switch.fr</a></p>
                         </div>
                     </div>
                 </section>

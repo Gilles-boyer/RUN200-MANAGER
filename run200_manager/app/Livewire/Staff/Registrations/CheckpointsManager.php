@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Staff\Registrations;
 
 use App\Application\Registrations\UseCases\UpdateEngagementFormValidation;
+use App\Domain\Registration\Rules\CheckpointTransitions;
 use App\Events\TechInspectionCompleted;
 use App\Models\CarTechInspectionHistory;
 use App\Models\Checkpoint;
@@ -15,6 +16,8 @@ use App\Models\User;
 use App\Support\UserFacingError;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -101,6 +104,8 @@ class CheckpointsManager extends Component
 
     public function openAddPassageModal(int $checkpointId): void
     {
+        Gate::authorize('registration.manage');
+
         $this->selectedCheckpointId = $checkpointId;
         $this->editingPassageId = null;
         $this->passageDate = now()->format('Y-m-d');
@@ -111,10 +116,9 @@ class CheckpointsManager extends Component
 
     public function openEditPassageModal(int $passageId): void
     {
-        $passage = CheckpointPassage::find($passageId);
-        if (! $passage) {
-            return;
-        }
+        Gate::authorize('registration.manage');
+
+        $passage = $this->registration->passages()->with('checkpoint')->findOrFail($passageId);
 
         $this->editingPassageId = $passageId;
         $this->selectedCheckpointId = $passage->checkpoint_id;
@@ -136,11 +140,36 @@ class CheckpointsManager extends Component
 
     public function savePassage(): void
     {
+        Gate::authorize('registration.manage');
+
         $this->validate([
             'selectedCheckpointId' => 'required|exists:checkpoints,id',
             'passageDate' => 'required|date',
             'passageTime' => 'required|date_format:H:i',
         ]);
+
+        $checkpoint = Checkpoint::findOrFail($this->selectedCheckpointId);
+        $this->registration->refresh();
+
+        if ($this->editingPassageId) {
+            $passageToEdit = $this->registration->passages()->with('checkpoint')->findOrFail($this->editingPassageId);
+            if ($passageToEdit->checkpoint_id !== $checkpoint->id) {
+                throw ValidationException::withMessages([
+                    'selectedCheckpointId' => 'Le checkpoint de ce passage ne peut pas être remplacé.',
+                ]);
+            }
+        } else {
+            $passedCodes = CheckpointPassage::query()
+                ->where('race_registration_id', $this->registration->id)
+                ->with('checkpoint')->get()
+                ->map(fn (CheckpointPassage $passage) => $passage->checkpoint->code)
+                ->all();
+            if (! $checkpoint->is_active || ! CheckpointTransitions::canScan($checkpoint->code, $this->registration->status, $passedCodes)) {
+                throw ValidationException::withMessages([
+                    'selectedCheckpointId' => 'Cette étape ne peut pas être validée dans l’état actuel de l’inscription.',
+                ]);
+            }
+        }
 
         $scannedAt = Carbon::parse($this->passageDate.' '.$this->passageTime);
 
@@ -149,7 +178,7 @@ class CheckpointsManager extends Component
 
             if ($this->editingPassageId) {
                 // Update existing passage
-                $passage = CheckpointPassage::find($this->editingPassageId);
+                $passage = $passageToEdit;
 
                 // Merge existing meta with updated staff_note
                 $meta = $passage->meta ?? [];
@@ -242,8 +271,7 @@ class CheckpointsManager extends Component
                     ->log('checkpoint.passage_added_manually');
 
                 // Si c'est un passage TECH_CHECK, créer l'inspection technique et l'historique
-                $checkpoint = Checkpoint::find($this->selectedCheckpointId);
-                if ($checkpoint && $checkpoint->code === 'TECH_CHECK') {
+                if ($checkpoint->code === 'TECH_CHECK') {
                     // Créer l'entrée TechInspection si elle n'existe pas
                     if (! $this->registration->techInspection) {
                         $techInspection = TechInspection::create([
@@ -269,12 +297,14 @@ class CheckpointsManager extends Component
                         $engagementValidation = new UpdateEngagementFormValidation;
                         $engagementValidation->recordTechValidation($this->registration, auth()->user(), 'OK', trim($this->staffNote) !== '' ? trim($this->staffNote) : null);
 
-                        // Mettre à jour le statut de l'inscription
-                        $this->registration->update(['status' => 'TECH_CHECKED_OK']);
-
                         // Dispatch event for email notification
                         TechInspectionCompleted::dispatch($techInspection);
                     }
+                }
+
+                $newStatus = CheckpointTransitions::getStatusAfterScan($checkpoint->code);
+                if ($newStatus !== null) {
+                    $this->registration->update(['status' => $newStatus]);
                 }
 
                 session()->flash('success', 'Passage ajouté avec succès.');
@@ -303,7 +333,11 @@ class CheckpointsManager extends Component
 
     public function confirmDeletePassage(int $passageId): void
     {
-        $this->passageToDelete = CheckpointPassage::with('checkpoint')->find($passageId);
+        Gate::authorize('registration.manage');
+
+        $this->passageToDelete = CheckpointPassage::query()
+            ->where('race_registration_id', $this->registration->id)
+            ->with('checkpoint')->findOrFail($passageId);
         $this->showDeleteModal = true;
     }
 
@@ -315,8 +349,28 @@ class CheckpointsManager extends Component
 
     public function deletePassage(): void
     {
+        Gate::authorize('registration.manage');
+
         if (! $this->passageToDelete) {
             return;
+        }
+
+        $this->passageToDelete = CheckpointPassage::query()
+            ->where('race_registration_id', $this->registration->id)
+            ->with('checkpoint')->findOrFail($this->passageToDelete->id);
+
+        $dependentCodes = match ($this->passageToDelete->checkpoint->code) {
+            'ADMIN_CHECK' => ['TECH_CHECK', 'ENTRY', 'BRACELET'],
+            'TECH_CHECK' => ['ENTRY', 'BRACELET'],
+            'ENTRY' => ['BRACELET'],
+            default => [],
+        };
+        if (in_array($this->registration->fresh()->status, ['RESULTS_IMPORTED', 'PUBLISHED'], true)
+            || ($dependentCodes !== [] && $this->registration->passages()
+                ->whereHas('checkpoint', fn ($query) => $query->whereIn('code', $dependentCodes))->exists())) {
+            throw ValidationException::withMessages([
+                'passageToDelete' => 'Supprimez d’abord les étapes suivantes ou corrigez les résultats publiés.',
+            ]);
         }
 
         try {
@@ -345,11 +399,17 @@ class CheckpointsManager extends Component
 
                 // Supprimer le TechInspection
                 $this->registration->techInspection->delete();
+            }
 
-                // Remettre le statut approprié
-                $hasAdminCheck = $this->registration->hasPassedCheckpoint('ADMIN_CHECK');
-                $newStatus = $hasAdminCheck ? 'ADMIN_CHECKED' : 'ACCEPTED';
-                $this->registration->update(['status' => $newStatus]);
+            $previousStatus = match ($checkpointCode) {
+                'ADMIN_CHECK' => 'ACCEPTED',
+                'TECH_CHECK' => $this->registration->hasPassedCheckpoint('ADMIN_CHECK') ? 'ADMIN_CHECKED' : 'ACCEPTED',
+                'ENTRY' => 'TECH_CHECKED_OK',
+                'BRACELET' => 'ENTRY_SCANNED',
+                default => null,
+            };
+            if ($previousStatus !== null) {
+                $this->registration->update(['status' => $previousStatus]);
             }
 
             $this->passageToDelete->delete();

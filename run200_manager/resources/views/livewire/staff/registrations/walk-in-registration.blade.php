@@ -124,10 +124,10 @@
                         <div class="flex items-center justify-between">
                             <div class="flex items-center">
                                 @if($this->selectedPilot->photo_path)
-                                    <img src="{{ Storage::url($this->selectedPilot->photo_path) }}" class="h-12 w-12 rounded-xl object-cover ring-2 ring-status-success/30">
+                                    <img src="{{ Storage::url($this->selectedPilot->photo_path) }}" alt="Photo de {{ $this->selectedPilot->first_name }} {{ $this->selectedPilot->last_name }}" class="h-12 w-12 rounded-xl object-cover ring-2 ring-status-success/30">
                                 @else
                                     <div class="h-12 w-12 rounded-xl bg-carbon-700 flex items-center justify-center ring-2 ring-status-success/30">
-                                        <span class="text-white font-bold">
+                                        <span aria-hidden="true" class="text-white font-bold">
                                             {{ substr($this->selectedPilot->first_name, 0, 1) }}{{ substr($this->selectedPilot->last_name, 0, 1) }}
                                         </span>
                                     </div>
@@ -141,7 +141,7 @@
                                     </p>
                                 </div>
                             </div>
-                            <button type="button" wire:click="clearPilotSelection" class="p-2 text-gray-400 hover:text-white hover:bg-carbon-700 rounded-lg transition-colors">
+                            <button type="button" wire:click="clearPilotSelection" aria-label="Retirer le pilote sélectionné" class="p-2 text-gray-400 hover:text-white hover:bg-carbon-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-racing-red-500 rounded-lg transition-colors">
                                 <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
                                 </svg>
@@ -170,10 +170,10 @@
                                     <button type="button" wire:click="selectPilot({{ $pilot->id }})"
                                         class="w-full px-4 py-3 flex items-center hover:bg-carbon-700/50 text-left transition-colors">
                                         @if($pilot->photo_path)
-                                            <img src="{{ Storage::url($pilot->photo_path) }}" class="h-10 w-10 rounded-lg object-cover">
+                                            <img src="{{ Storage::url($pilot->photo_path) }}" alt="Photo de {{ $pilot->first_name }} {{ $pilot->last_name }}" class="h-10 w-10 rounded-lg object-cover">
                                         @else
                                             <div class="h-10 w-10 rounded-lg bg-carbon-700 flex items-center justify-center">
-                                                <span class="text-gray-400 font-medium">{{ substr($pilot->first_name, 0, 1) }}{{ substr($pilot->last_name, 0, 1) }}</span>
+                                                <span aria-hidden="true" class="text-gray-400 font-medium">{{ substr($pilot->first_name, 0, 1) }}{{ substr($pilot->last_name, 0, 1) }}</span>
                                             </div>
                                         @endif
                                         <div class="ml-4 flex-1">

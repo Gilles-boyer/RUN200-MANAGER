@@ -84,3 +84,79 @@ test('registration validates unique license number', function () {
 
     $response->assertSessionHasErrors(['license_number']);
 });
+
+test('registration rejects the seventh attempt for the same email and IP with a clear JSON error', function () {
+    $payload = ['email' => 'pilot@example.com'];
+
+    for ($attempt = 0; $attempt < 6; $attempt++) {
+        $this->postJson(route('register.store'), $payload)->assertUnprocessable();
+    }
+
+    $response = $this->postJson(route('register.store'), $payload);
+
+    $response->assertStatus(429)
+        ->assertJsonPath('message', 'Trop de tentatives d’inscription. Veuillez patienter une minute avant de réessayer.')
+        ->assertHeader('Retry-After');
+
+    $this->postJson(route('register.store'), ['email' => 'other@example.com'])
+        ->assertUnprocessable();
+
+    $this->assertDatabaseCount('users', 0);
+});
+
+test('registration shows a clear web error without repeating the password after too many attempts', function () {
+    $payload = [
+        'email' => 'pilot@example.com',
+        'password' => 'unsecret',
+        'password_confirmation' => 'unsecret',
+    ];
+
+    for ($attempt = 0; $attempt < 6; $attempt++) {
+        $this->post(route('register.store'), $payload)->assertSessionHasErrors();
+    }
+
+    $response = $this->post(route('register.store'), $payload);
+
+    $response->assertRedirect(route('register'))
+        ->assertSessionHasErrors(['registration'])
+        ->assertSessionHasInput('email', 'pilot@example.com')
+        ->assertSessionMissing('_old_input.password')
+        ->assertHeader('Retry-After');
+
+    $this->get(route('register'))
+        ->assertOk()
+        ->assertSee('Trop de tentatives d’inscription. Veuillez patienter une minute avant de réessayer.');
+});
+
+test('registration also limits attempts when emails are changed', function () {
+    for ($attempt = 0; $attempt < 30; $attempt++) {
+        $this->postJson(route('register.store'), ['email' => "pilot{$attempt}@example.com"])
+            ->assertUnprocessable();
+    }
+
+    $this->postJson(route('register.store'), ['email' => 'another@example.com'])
+        ->assertStatus(429)
+        ->assertHeader('Retry-After');
+});
+
+test('registration attempts from another IP are counted separately', function () {
+    $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.10']);
+
+    for ($attempt = 0; $attempt < 6; $attempt++) {
+        $this->postJson(route('register.store'), ['email' => 'pilot@example.com'])
+            ->assertUnprocessable();
+    }
+
+    $this->postJson(route('register.store'), ['email' => 'pilot@example.com'])
+        ->assertStatus(429);
+
+    $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.11'])
+        ->postJson(route('register.store'), ['email' => 'pilot@example.com'])
+        ->assertUnprocessable();
+});
+
+test('registration limiter handles a non-string email as a validation error', function () {
+    $this->postJson(route('register.store'), ['email' => ['pilot@example.com']])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['email']);
+});

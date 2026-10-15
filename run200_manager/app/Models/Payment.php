@@ -8,6 +8,7 @@ use App\Infrastructure\Payments\Stripe\StripePaymentService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -59,6 +60,11 @@ class Payment extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function receipt(): HasOne
+    {
+        return $this->hasOne(PaymentReceipt::class);
+    }
+
     // =========================================================================
     // Accessors
     // =========================================================================
@@ -69,7 +75,7 @@ class Payment extends Model
     public function getFormattedAmountAttribute(): string
     {
         return StripePaymentService::formatAmount(
-            $this->amount_cents ?? (int) ($this->amount * 100),
+            ($this->amount_cents ?? 0) > 0 ? $this->amount_cents : (int) round((float) $this->amount * 100),
             $this->currency ?? 'EUR'
         );
     }
@@ -158,6 +164,23 @@ class Payment extends Model
     public function isCompleted(): bool
     {
         return $this->isPaid();
+    }
+
+    public function canHaveReceipt(): bool
+    {
+        if (! in_array($this->status, [
+            PaymentStatus::PAID,
+            PaymentStatus::PARTIALLY_REFUNDED,
+            PaymentStatus::REFUNDED,
+        ], true)) {
+            return false;
+        }
+
+        $hasAmount = ($this->amount_cents ?? 0) > 0
+            || (is_numeric($this->amount) && (float) $this->amount > 0);
+
+        // The non-null constrained FK is enough for display; the issuer validates relations.
+        return $hasAmount && $this->race_registration_id !== null;
     }
 
     public function canBeRefunded(): bool

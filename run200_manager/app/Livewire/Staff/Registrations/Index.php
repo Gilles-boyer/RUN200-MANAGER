@@ -4,12 +4,12 @@ namespace App\Livewire\Staff\Registrations;
 
 use App\Application\Registrations\UseCases\AssignPaddock;
 use App\Application\Registrations\UseCases\ValidateRegistration;
-use App\Domain\Registration\Enums\RegistrationStatus;
 use App\Infrastructure\Qr\QrTokenService;
 use App\Models\Checkpoint;
 use App\Models\Race;
 use App\Models\RaceRegistration;
 use App\Support\UserFacingError;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -44,13 +44,6 @@ class Index extends Component
 
     public string $paddockNumber = '';
 
-    // Modal changement de statut
-    public bool $showStatusModal = false;
-
-    public string $newStatus = '';
-
-    public string $statusChangeReason = '';
-
     // Modal QR Code
     public bool $showQrModal = false;
 
@@ -70,14 +63,6 @@ class Index extends Component
     public function checkpoints()
     {
         return Checkpoint::active()->ordered()->get();
-    }
-
-    #[Computed]
-    public function availableStatuses()
-    {
-        return collect(RegistrationStatus::cases())->mapWithKeys(function ($status) {
-            return [$status->value => $status->label()];
-        })->toArray();
     }
 
     public function mount($raceId = null, $statusFilter = null): void
@@ -148,6 +133,8 @@ class Index extends Component
 
     public function openValidationModal(int $registrationId, string $action)
     {
+        Gate::authorize('race_registration.validate');
+
         $this->selectedRegistration = RaceRegistration::with(['pilot', 'car', 'race'])->find($registrationId);
         $this->validationAction = $action;
         $this->refusalReason = '';
@@ -164,15 +151,20 @@ class Index extends Component
 
     public function confirmValidation()
     {
+        Gate::authorize('race_registration.validate');
+
         if (! $this->selectedRegistration) {
             return;
         }
 
+        $this->validate(['validationAction' => ['required', 'in:accept,refuse']]);
+
         try {
             $useCase = new ValidateRegistration;
+            $registration = RaceRegistration::findOrFail($this->selectedRegistration->id);
 
             if ($this->validationAction === 'accept') {
-                $useCase->accept($this->selectedRegistration);
+                $useCase->accept($registration);
                 session()->flash('success', 'Inscription acceptée avec succès.');
             } else {
                 $this->validate([
@@ -182,7 +174,7 @@ class Index extends Component
                     'refusalReason.min' => 'La raison doit contenir au moins 10 caractères.',
                 ]);
 
-                $useCase->refuse($this->selectedRegistration, $this->refusalReason);
+                $useCase->refuse($registration, $this->refusalReason);
                 session()->flash('success', 'Inscription refusée.');
             }
         } catch (ValidationException $e) {
@@ -198,6 +190,8 @@ class Index extends Component
 
     public function openPaddockModal(int $registrationId)
     {
+        Gate::authorize('race_registration.assign_paddock');
+
         $this->selectedRegistration = RaceRegistration::with(['pilot', 'car', 'race'])->find($registrationId);
         $this->paddockNumber = $this->selectedRegistration->paddock ?? '';
         $this->showPaddockModal = true;
@@ -212,6 +206,8 @@ class Index extends Component
 
     public function assignPaddock()
     {
+        Gate::authorize('race_registration.assign_paddock');
+
         if (! $this->selectedRegistration) {
             return;
         }
@@ -224,7 +220,7 @@ class Index extends Component
 
         try {
             $useCase = new AssignPaddock;
-            $useCase->execute($this->selectedRegistration, $this->paddockNumber);
+            $useCase->execute(RaceRegistration::findOrFail($this->selectedRegistration->id), $this->paddockNumber);
             session()->flash('success', 'Paddock assigné avec succès.');
         } catch (\InvalidArgumentException $e) {
             session()->flash('error', $e->getMessage());
@@ -233,62 +229,6 @@ class Index extends Component
         }
 
         $this->closePaddockModal();
-    }
-
-    public function openStatusModal(int $registrationId)
-    {
-        $this->selectedRegistration = RaceRegistration::with(['pilot', 'car', 'race'])->find($registrationId);
-        $this->newStatus = $this->selectedRegistration->status;
-        $this->statusChangeReason = '';
-        $this->showStatusModal = true;
-    }
-
-    public function closeStatusModal()
-    {
-        $this->showStatusModal = false;
-        $this->selectedRegistration = null;
-        $this->newStatus = '';
-        $this->statusChangeReason = '';
-    }
-
-    public function updateStatus()
-    {
-        if (! $this->selectedRegistration) {
-            return;
-        }
-
-        $this->validate([
-            'newStatus' => 'required|in:'.implode(',', RegistrationStatus::values()),
-        ], [
-            'newStatus.required' => 'Le statut est obligatoire.',
-            'newStatus.in' => 'Le statut sélectionné est invalide.',
-        ]);
-
-        try {
-            $oldStatus = $this->selectedRegistration->status;
-
-            $updateData = ['status' => $this->newStatus];
-
-            // Si on passe à REFUSED, on peut ajouter la raison
-            if ($this->newStatus === RegistrationStatus::REFUSED->value && $this->statusChangeReason) {
-                $updateData['reason'] = $this->statusChangeReason;
-            }
-
-            // Si on passe à ACCEPTED ou autre, on garde la validation
-            if (in_array($this->newStatus, [RegistrationStatus::ACCEPTED->value, RegistrationStatus::ADMIN_CHECKED->value])) {
-                $updateData['validated_at'] = now();
-                $updateData['validated_by'] = auth()->id();
-            }
-
-            $this->selectedRegistration->update($updateData);
-
-            $statusLabel = RegistrationStatus::from($this->newStatus)->label();
-            session()->flash('success', "Statut modifié avec succès : {$statusLabel}");
-        } catch (\Exception $e) {
-            session()->flash('error', UserFacingError::message($e, 'Impossible de modifier le statut de cette inscription.'));
-        }
-
-        $this->closeStatusModal();
     }
 
     public function render()
