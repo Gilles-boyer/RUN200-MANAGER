@@ -116,10 +116,15 @@ class PaddockSpot extends Model
         $validStatuses = array_merge(RaceRegistration::engagedStatuses(), ['PENDING_VALIDATION']);
 
         if ($this->relationLoaded('registrations')) {
-            return $this->registrations->first(function (RaceRegistration $registration) use ($raceId, $validStatuses): bool {
-                return (int) $registration->race_id === $raceId
-                    && in_array($registration->status, $validStatuses, true);
-            });
+            foreach ($this->registrations as $registration) {
+                if ($registration instanceof RaceRegistration
+                    && (int) $registration->race_id === $raceId
+                    && in_array($registration->status, $validStatuses, true)) {
+                    return $registration;
+                }
+            }
+
+            return null;
         }
 
         /** @var RaceRegistration|null $registration */

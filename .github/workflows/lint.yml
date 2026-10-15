@@ -1,0 +1,59 @@
+name: Style PHP modifié
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  pint:
+    name: Pint (fichiers modifiés)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: run200_manager
+    steps:
+      - name: Récupérer le code et la base du diff
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Installer PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+
+      - name: Installer Pint
+        run: composer install --no-interaction --prefer-dist --no-progress --no-scripts
+
+      - name: Vérifier les fichiers PHP modifiés sans les changer
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        shell: bash
+        run: |
+          if ! git -C .. cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            echo "::error::Commit de base introuvable : ${BASE_SHA}"
+            exit 1
+          fi
+
+          mapfile -d '' -t changed < <(git -C .. diff --name-only --diff-filter=ACMR -z "$BASE_SHA" HEAD -- run200_manager)
+          php_files=()
+          for file in "${changed[@]}"; do
+            [[ "$file" == *.php ]] || continue
+            php_files+=("${file#run200_manager/}")
+          done
+
+          if (( ${#php_files[@]} == 0 )); then
+            echo "Aucun fichier PHP modifié."
+            exit 0
+          fi
+
+          printf 'Vérification de %s fichier(s) PHP.\n' "${#php_files[@]}"
+          vendor/bin/pint --test "${php_files[@]}"

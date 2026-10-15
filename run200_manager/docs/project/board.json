@@ -85,6 +85,26 @@
       "revision": "4a0399f",
       "review_evidence": "QA webhook remboursement et permissions ; 68 tests 309 assertions ciblés ; suite 557 tests 1644 assertions",
       "blocked": ""
+    },
+    {
+      "id": "CI-01",
+      "title": "Rétablir les contrôles GitHub Actions",
+      "owner": "it_devops",
+      "priority": 1,
+      "state": "review",
+      "acceptance": [
+        "Workflows détectés à la racine Git, tests et lint non mutatif exécutés sur PR #17"
+      ],
+      "depends_on": [],
+      "files": [],
+      "author": "ci_workflows",
+      "reviewer": "audit_site",
+      "evidence": [
+        "Workflows racine vérifiés localement"
+      ],
+      "revision": "working-tree-2026-10-15-ci",
+      "review_evidence": "Revue locale indépendante: YAML valide, chemins corrects, Pint 43 PHP OK; GitHub Actions non encore exécuté",
+      "blocked": ""
     }
   ]
 }

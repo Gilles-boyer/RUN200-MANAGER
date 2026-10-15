@@ -291,7 +291,8 @@ class RaceRegistration extends Model
      */
     public function getPaidAmountCents(): int
     {
-        return $this->payments()
+        return Payment::query()
+            ->where('race_registration_id', $this->id)
             ->whereIn('status', [
                 PaymentStatus::PAID->value,
                 PaymentStatus::PARTIALLY_REFUNDED->value,

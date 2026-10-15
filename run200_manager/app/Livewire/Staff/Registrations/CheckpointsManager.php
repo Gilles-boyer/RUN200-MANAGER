@@ -159,7 +159,9 @@ class CheckpointsManager extends Component
                 ]);
             }
         } else {
-            $passedCodes = $this->registration->passages()->with('checkpoint')->get()
+            $passedCodes = CheckpointPassage::query()
+                ->where('race_registration_id', $this->registration->id)
+                ->with('checkpoint')->get()
                 ->map(fn (CheckpointPassage $passage) => $passage->checkpoint->code)
                 ->all();
             if (! $checkpoint->is_active || ! CheckpointTransitions::canScan($checkpoint->code, $this->registration->status, $passedCodes)) {
@@ -333,7 +335,9 @@ class CheckpointsManager extends Component
     {
         Gate::authorize('registration.manage');
 
-        $this->passageToDelete = $this->registration->passages()->with('checkpoint')->findOrFail($passageId);
+        $this->passageToDelete = CheckpointPassage::query()
+            ->where('race_registration_id', $this->registration->id)
+            ->with('checkpoint')->findOrFail($passageId);
         $this->showDeleteModal = true;
     }
 
@@ -351,7 +355,8 @@ class CheckpointsManager extends Component
             return;
         }
 
-        $this->passageToDelete = $this->registration->passages()
+        $this->passageToDelete = CheckpointPassage::query()
+            ->where('race_registration_id', $this->registration->id)
             ->with('checkpoint')->findOrFail($this->passageToDelete->id);
 
         $dependentCodes = match ($this->passageToDelete->checkpoint->code) {

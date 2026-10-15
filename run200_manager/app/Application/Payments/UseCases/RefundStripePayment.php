@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Spatie\Activitylog\Facades\Activity;
+use Stripe\Exception\ApiErrorException;
 
 /**
  * Use case for refunding a Stripe payment.
@@ -33,6 +34,7 @@ final class RefundStripePayment
      * @param  string|null  $reason  Reason for the refund
      *
      * @throws InvalidArgumentException
+     * @throws ApiErrorException
      */
     public function execute(
         Payment $payment,

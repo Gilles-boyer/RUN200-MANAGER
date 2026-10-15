@@ -42,7 +42,10 @@ final class RecordManualPayment
 
         return DB::transaction(function () use ($registration, $recorder, $amountCents, $currency, $notes, $method): Payment {
             $registration = RaceRegistration::query()->lockForUpdate()->findOrFail($registration->id);
-            $existingPaid = $registration->payments()->where('status', 'paid')->first();
+            $existingPaid = Payment::query()
+                ->where('race_registration_id', $registration->id)
+                ->where('status', 'paid')
+                ->first();
             if ($existingPaid !== null) {
                 if (($existingPaid->metadata['manual_confirmation'] ?? false)
                     && $existingPaid->amount_cents === $amountCents
@@ -64,7 +67,8 @@ final class RecordManualPayment
                 throw new InvalidArgumentException('Un paiement Stripe est en cours. Vérifiez son état avant un encaissement manuel.');
             }
 
-            $pending = $registration->payments()
+            $pending = Payment::query()
+                ->where('race_registration_id', $registration->id)
                 ->where('status', 'pending')
                 ->whereIn('method', array_column([
                     PaymentMethod::MANUAL,

@@ -20,7 +20,7 @@ Aucune carte.
 
 ## En revue
 
-Aucune carte.
+- **CI-01** · P1 · Rétablir les contrôles GitHub Actions · `it_devops`
 
 ## À livrer
 

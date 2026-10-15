@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Application\Payments\UseCases;
 
 use App\Mail\PaymentConfirmed as PaymentConfirmedMail;
+use App\Models\Payment;
 use App\Models\PaymentReceipt;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -20,9 +21,9 @@ final class SendPaymentReceipt
         }
 
         $statuses = $historical ? ['not_requested', 'pending', 'failed'] : ['pending', 'failed'];
-        $payment = $receipt->payment()->with('registration.pilot.user')->first();
+        $payment = Payment::query()->with('registration.pilot.user')->find($receipt->payment_id);
         $deliveryEmail = $payment?->registration?->pilot?->user?->email;
-        if (! filter_var($deliveryEmail, FILTER_VALIDATE_EMAIL)) {
+        if ($payment === null || ! filter_var($deliveryEmail, FILTER_VALIDATE_EMAIL)) {
             PaymentReceipt::query()->whereKey($receipt->id)
                 ->whereIn('email_status', $statuses)
                 ->update([

@@ -6,6 +6,7 @@ use App\Application\Payments\UseCases\IssuePaymentReceipt;
 use App\Application\Payments\UseCases\SendPaymentReceipt;
 use App\Domain\Payment\Enums\PaymentStatus;
 use App\Models\Payment;
+use App\Models\PaymentReceipt;
 use Illuminate\Console\Command;
 use InvalidArgumentException;
 use Throwable;
@@ -67,6 +68,9 @@ class BackfillPaymentReceipts extends Command
                     $lastId = $payment->id;
 
                     $receipt = $payment->receipt;
+                    if ($receipt !== null && ! $receipt instanceof PaymentReceipt) {
+                        throw new \LogicException('Unexpected receipt relation type.');
+                    }
                     if ($receipt !== null) {
                         $existing++;
                     }
