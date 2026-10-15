@@ -36,6 +36,28 @@ final class RequestHistoricalReceiptEmailVerification extends Command
             return self::FAILURE;
         }
         $commit = (bool) $this->option('commit');
+        $mode = config('payment_receipts.historical_delivery.mode', 'off');
+        if ($mode !== 'all' && $mode !== 'pilot') {
+            $this->warn('Diffusion historique désactivée : aucun compte invité ni reçu envoyé.');
+
+            return $commit ? self::FAILURE : self::SUCCESS;
+        }
+        if ($commit && ! config('payment_receipts.auto_send', false)) {
+            $this->error('Envoi automatique des reçus désactivé : aucune invitation envoyée.');
+
+            return self::FAILURE;
+        }
+        $pilotUserId = $pilotPaymentId = null;
+        if ($mode === 'pilot') {
+            $pilotUserId = filter_var(config('payment_receipts.historical_delivery.pilot_user_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $pilotPaymentId = filter_var(config('payment_receipts.historical_delivery.pilot_payment_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            if (! is_int($pilotUserId) || ! is_int($pilotPaymentId)) {
+                $this->error('Pilote historique non configuré : identifiants utilisateur et paiement obligatoires.');
+
+                return self::FAILURE;
+            }
+            $this->info(sprintf('Portée pilote : compte #%d, paiement #%d uniquement.', $pilotUserId, $pilotPaymentId));
+        }
         if ($commit && ! app()->environment('production', 'testing')) {
             $this->error('La campagne ne peut être envoyée que depuis production.');
 
@@ -43,18 +65,26 @@ final class RequestHistoricalReceiptEmailVerification extends Command
         }
 
         $limit = $limitOption === null ? null : (int) $limitOption;
+        $claimStatus = $mode === 'pilot' ? 'pilot_sending' : 'sending';
+        $sentStatus = $mode === 'pilot' ? 'pilot_sent' : 'sent';
         $scanned = $eligible = $sent = $held = $skipped = 0;
         $lastId = (int) $afterOption;
 
-        User::query()
+        $users = User::query()
             ->where('id', '>', $lastId)
             ->whereNull('email_verified_at')
             ->whereHas('pilot.raceRegistrations.payments', fn ($query) => $query
                 ->where('method', PaymentMethod::STRIPE->value)
                 ->whereIn('status', [PaymentStatus::PAID->value, PaymentStatus::PARTIALLY_REFUNDED->value, PaymentStatus::REFUNDED->value])
-                ->whereNotNull('stripe_payment_intent_id'))
-            ->orderBy('id')
-            ->chunkById(50, function ($users) use ($commit, $limit, $historicalSender, &$scanned, &$eligible, &$sent, &$held, &$skipped, &$lastId): bool {
+                ->whereNotNull('stripe_payment_intent_id')
+                ->when($pilotPaymentId !== null, fn ($query) => $query->whereKey($pilotPaymentId)));
+
+        if ($pilotUserId !== null) {
+            $users->whereKey($pilotUserId);
+        }
+
+        $users->orderBy('id')
+            ->chunkById(50, function ($users) use ($commit, $limit, $historicalSender, $claimStatus, $sentStatus, &$scanned, &$eligible, &$sent, &$held, &$skipped, &$lastId): bool {
                 foreach ($users as $user) {
                     if ($limit !== null && $scanned >= $limit) {
                         return false;
@@ -82,7 +112,7 @@ final class RequestHistoricalReceiptEmailVerification extends Command
                         DB::table('payment_receipt_verification_requests')->insert([
                             'user_id' => $user->id,
                             'email_hash' => $emailHash,
-                            'status' => 'sending',
+                            'status' => $claimStatus,
                             'claimed_at' => now(),
                             'created_at' => now(),
                             'updated_at' => now(),
@@ -106,7 +136,7 @@ final class RequestHistoricalReceiptEmailVerification extends Command
                     try {
                         DB::table('payment_receipt_verification_requests')->where('user_id', $user->id)
                             ->where('email_hash', $emailHash)
-                            ->where('status', 'sending')->update(['status' => 'sent', 'sent_at' => now(), 'updated_at' => now()]);
+                            ->where('status', $claimStatus)->update(['status' => $sentStatus, 'sent_at' => now(), 'updated_at' => now()]);
                         $sent++;
                         // If the recipient verified between SMTP acceptance and this update,
                         // the Verified listener saw an unfinished campaign. Close that race.

@@ -19,6 +19,12 @@ class SendPaymentConfirmation
         }
 
         $payment = $event->payment;
+        if (! $payment->isPaid()
+            || ! ($payment->wasRecentlyCreated || $payment->wasChanged('status'))) {
+            // This listener handles a fresh payment transition only. Historical
+            // records are controlled by the separate Stripe verification flow.
+            return;
+        }
 
         try {
             $receipt = $this->issuer->issue($payment);

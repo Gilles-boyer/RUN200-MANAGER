@@ -376,6 +376,28 @@
       "revision": "codex/run200-email-verification",
       "review_evidence": "QA indépendante GO code local, NO-GO campagne avant pilote et contrôles production",
       "blocked": ""
+    },
+    {
+      "id": "REC-04",
+      "title": "Borner le pilote de reçu historique à un seul paiement",
+      "owner": "it_backend",
+      "priority": 1,
+      "state": "review",
+      "acceptance": [
+        "Mode historique off par défaut ; pilot autorise seulement compte et paiement choisis ; aucun reçu inattendu ; test et revue indépendants ; SHA et état de production vérifiés"
+      ],
+      "depends_on": [],
+      "files": [
+        "config/payment_receipts.php"
+      ],
+      "author": "it_backend",
+      "reviewer": "",
+      "evidence": [
+        "617 tests, 2026 assertions ; PHPStan, Pint cible et vues OK ; auto_send=false en production"
+      ],
+      "revision": "0c030f2",
+      "review_evidence": "",
+      "blocked": ""
     }
   ]
 }

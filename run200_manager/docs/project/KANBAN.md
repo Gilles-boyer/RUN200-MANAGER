@@ -28,6 +28,7 @@ Aucune carte.
 ## En revue
 
 - **REC-03** · P1 · Vérifier les adresses et envoyer les reçus Stripe historiques · `it_backend`
+- **REC-04** · P1 · Borner le pilote de reçu historique à un seul paiement · `it_backend`
 
 ## À livrer
 

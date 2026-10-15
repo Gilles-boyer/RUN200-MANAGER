@@ -56,18 +56,32 @@ final class SendVerifiedHistoricalStripeReceipts
     private function sendForUser(User $user, bool $fromSignedLink, ?string $signedEmail = null): array
     {
         $result = ['examined' => 0, 'sent' => 0, 'held' => 0, 'already_sent' => 0];
+        $mode = config('payment_receipts.historical_delivery.mode', 'off');
+        if (! config('payment_receipts.auto_send', false) || ($mode !== 'pilot' && $mode !== 'all')) {
+            return $result;
+        }
+
+        $pilotPaymentId = null;
+        if ($mode === 'pilot') {
+            $pilotUserId = filter_var(config('payment_receipts.historical_delivery.pilot_user_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $pilotPaymentId = filter_var(config('payment_receipts.historical_delivery.pilot_payment_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            if (! is_int($pilotUserId) || ! is_int($pilotPaymentId) || (int) $user->getKey() !== $pilotUserId) {
+                return $result;
+            }
+        }
+
         $user = $user->fresh();
         if ($user === null || $user->email_verified_at === null || ! filter_var($user->email, FILTER_VALIDATE_EMAIL)
             || ($signedEmail !== null && $user->email !== $signedEmail)) {
             return $result;
         }
 
-        if (! $fromSignedLink) {
+        if ($mode === 'all' || ! $fromSignedLink) {
             // Administrative replay requires an accepted campaign notice for
             // this exact address, including accounts verified long ago.
             $campaign = DB::table('payment_receipt_verification_requests')
                 ->where('user_id', $user->id)
-                ->where('status', 'sent')
+                ->where('status', $mode === 'pilot' ? 'pilot_sent' : 'sent')
                 ->where('email_hash', HistoricalReceiptEmailHash::of($user->email))
                 ->first();
             if ($campaign === null || $campaign->sent_at === null) {
@@ -75,12 +89,17 @@ final class SendVerifiedHistoricalStripeReceipts
             }
         }
 
-        Payment::query()
+        $payments = Payment::query()
             ->where('method', PaymentMethod::STRIPE->value)
             ->whereIn('status', [PaymentStatus::PAID->value, PaymentStatus::PARTIALLY_REFUNDED->value, PaymentStatus::REFUNDED->value])
             ->whereHas('registration.pilot', fn ($query) => $query->where('user_id', $user->id))
-            ->with(['receipt', 'registration.pilot.user', 'registration.race'])
-            ->orderBy('id')
+            ->with(['receipt', 'registration.pilot.user', 'registration.race']);
+
+        if ($pilotPaymentId !== null) {
+            $payments->whereKey($pilotPaymentId);
+        }
+
+        $payments->orderBy('id')
             ->chunkById(50, function ($payments) use ($user, &$result): void {
                 foreach ($payments as $payment) {
                     $result['examined']++;
