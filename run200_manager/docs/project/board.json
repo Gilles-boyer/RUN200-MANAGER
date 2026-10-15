@@ -53,7 +53,8 @@
       "evidence": [
         "Implémentation locale 4a0399f testée",
         "Revue terminée ; production non vérifiée",
-        "Prévol o2switch du 15-10-2026: 252 paid, 101 adresses, données internes cohérentes; 177 Stripe rapprochés en lecture seule sans écart; SMTP et JetBackup observés, aucun envoi"
+        "Prévol o2switch du 15-10-2026: 252 paid, 101 adresses, données internes cohérentes; 177 Stripe rapprochés en lecture seule sans écart; SMTP et JetBackup observés, aucun envoi",
+        "Code de recu deploye au SHA dde8090; auto_send ON, un recu reel sent et PDF authentifie telecharge en staff; nouveau paiement reel et acces pilote/autre compte non verifies; lots historiques suivis par PAY-02"
       ],
       "revision": "4a0399f",
       "review_evidence": "QA 68 tests 309 assertions; suite 557 tests 1644 assertions; PDF A4",
@@ -82,7 +83,8 @@
       "evidence": [
         "Implémentation locale 4a0399f testée",
         "Revue terminée ; rotation secret et production non vérifiées",
-        "Ancien message erreur Stripe masque sur paiement paid; deux webhooks effacent failure_reason au succes; QA 24 tests 88 assertions"
+        "Ancien message erreur Stripe masque sur paiement paid; deux webhooks effacent failure_reason au succes; QA 24 tests 88 assertions",
+        "Correctif d'affichage de l'erreur Stripe deploye avec PR #19; paiement #247 controle en page staff sans ancien message"
       ],
       "revision": "4a0399f",
       "review_evidence": "QA webhook remboursement et permissions ; 68 tests 309 assertions ciblés ; suite 557 tests 1644 assertions",
@@ -106,7 +108,7 @@
         "PR #17 commit 96cd957: GitHub Actions Pint, PHP 8.2+Vite, PHP 8.4+Vite tous réussis le 15-10-2026"
       ],
       "revision": "working-tree-2026-10-15-ci",
-      "review_evidence": "Revue locale indépendante: YAML valide, chemins corrects, Pint 43 PHP OK; GitHub Actions non encore exécuté",
+      "review_evidence": "Revue locale indépendante: YAML valide, chemins corrects, Pint 43 PHP OK; GitHub Actions exécutés ensuite sur PR #17 et 4/4 contrôles réussis sur PR #19",
       "blocked": ""
     },
     {
@@ -242,11 +244,12 @@
       "author": "",
       "reviewer": "",
       "evidence": [
-        "Production SHA 0c41b5a, migration, sauvegarde restauree, PDF SMTP et flag ON verifies; audit QA 4 OK 8 a corriger 7 non verifies 1 sans objet"
+        "Production SHA 0c41b5a, migration, sauvegarde restauree, PDF SMTP et flag ON verifies; audit QA 4 OK 8 a corriger 7 non verifies 1 sans objet",
+        "PR #19 fusionnee et deployee au SHA dde80904721fa2b6a95d0c64e49f14f1015fd169; 4/4 CI; 572 tests/1791 assertions; config auto_send ON, 1 recu sent; simulation filtree 20 examines/20 emails non verifies/0 eligible; audit QA 4 OK 8 a corriger 7 non verifies 1 sans objet"
       ],
       "revision": "",
       "review_evidence": "",
-      "blocked": "Parcours authentifies non verifies, ancien secret actif et autres points audit ouverts"
+      "blocked": "Ancien secret Mailtrap actif, parcours complet nouveau paiement et acces PDF autre compte non verifies, audit critique ouvert; aucun verdict pret"
     },
     {
       "id": "PAY-02",
@@ -265,11 +268,12 @@
       "reviewer": "",
       "evidence": [
         "Un recu historique Stripe #247 envoye; lot 20 simule sans anomalie; 177 Stripe controles base vers Stripe",
-        "Code filtres Stripe et email verifie, etat SMTP ambigu sending; revue QA GO code NO-GO envoi massif; 21 tests 151 assertions et PHPStan"
+        "Code filtres Stripe et email verifie, etat SMTP ambigu sending; revue QA GO code NO-GO envoi massif; 21 tests 151 assertions et PHPStan",
+        "Production SHA dde8090: 177 paiements Stripe, 4 comptes avec email_verified_at et 173 non verifies; 176 concordances email Stripe/base et 1 sans email Stripe, concordance non probante car adresse vraisemblablement transmise par application; dry-run --stripe-only --verified-email-only 20 examines/20 non verifies/0 eligible/0 envoi; MustVerifyEmail commente dans User.php"
       ],
       "revision": "",
       "review_evidence": "",
-      "blocked": "75 paiements hors Stripe a rapprocher par utilisateur; envois en masse non effectues"
+      "blocked": "Envois historiques suspendus: procedure de confirmation des destinataires a definir sans activer naivement MustVerifyEmail; controle Stripe vers base en sens inverse; 75 paiements hors Stripe a rapprocher par utilisateur"
     },
     {
       "id": "PAY-03",
@@ -291,7 +295,8 @@
       "evidence": [
         "24 tests 186 assertions, Pint PHPStan; QA flag OFF ON et backfill indépendants",
         "Revue indépendante PAY-03 sans anomalie dans périmètre; GET émission traité PAY-04",
-        "Flag OFF au deploiement initial puis ON apres test PDF recu et un envoi reel; cache config ON; rejeu sans doublon"
+        "Flag OFF au deploiement initial puis ON apres test PDF recu et un envoi reel; cache config ON; rejeu sans doublon",
+        "SHA dde8090 deploye: cache config confirme auto_send ON et un recu sent; aucun nouveau paiement reel observe apres activation"
       ],
       "revision": "working-tree-pay03-2026-10-15",
       "review_evidence": "QA: flag OFF/ON, idempotence replay et backfill explicite indépendants testés; config cache production non vérifié",
@@ -321,7 +326,8 @@
       "reviewer": "qa_security",
       "evidence": [
         "GET strictement lecture, liens conditionnels, eager loading; 27 tests 203 assertions, Pint PHPStan et view cache réussis",
-        "Revue indépendante QA PAY-04 terminée"
+        "Revue indépendante QA PAY-04 terminée",
+        "PDF du recu #247 telecharge avec session staff en production (880024 octets); clic normal navigateur pilote bloque cote client; acces pilote et refus autre compte non verifies"
       ],
       "revision": "working-tree-pay04-final-2026-10-15",
       "review_evidence": "QA diff final confirmé après optimisation des requêtes; lecture seule et permissions maintenues; production non vérifiée",
@@ -348,6 +354,28 @@
       "revision": "",
       "review_evidence": "",
       "blocked": "Concevoir anonymisation et preservation des preuves comptables et sportives"
+    },
+    {
+      "id": "REC-03",
+      "title": "Vérifier les adresses et envoyer les reçus Stripe historiques",
+      "owner": "it_backend",
+      "priority": 1,
+      "state": "review",
+      "acceptance": [
+        "Lien de confirmation en français sans reçu ; accès anciens comptes préservé ; Stripe live, payeur et pilote concordants ; aucun doublon ; ancien backfill bloqué ; QA et pilote production avant campagne"
+      ],
+      "depends_on": [],
+      "files": [
+        "app/Application/Payments/UseCases/SendVerifiedHistoricalStripeReceipts.php"
+      ],
+      "author": "it_backend",
+      "reviewer": "it_qa",
+      "evidence": [
+        "Tests 597/1922, PHPStan et views OK ; ancien backfill --commit bloqué en production"
+      ],
+      "revision": "codex/run200-email-verification",
+      "review_evidence": "QA indépendante GO code local, NO-GO campagne avant pilote et contrôles production",
+      "blocked": ""
     }
   ]
 }

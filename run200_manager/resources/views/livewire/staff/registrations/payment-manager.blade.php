@@ -251,7 +251,7 @@
                                         Télécharger le reçu
                                     </a>
                                 @elseif($payment->canHaveReceipt() && auth()->user()->can('payment.view'))
-                                    <span class="text-sm text-carbon-400">Reçu en attente de vérification</span>
+                                    <span class="max-w-56 text-sm text-carbon-400">Aucun reçu émis pour ce paiement. Le paiement et l'adresse du pilote doivent être vérifiés avant son émission.</span>
                                 @endif
 
                                 @if($payment->canBeRefunded() && auth()->user()->can('payment.refund'))

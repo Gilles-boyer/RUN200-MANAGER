@@ -31,6 +31,16 @@ class SendPaymentConfirmation
             return;
         }
 
-        $this->sender->send($receipt);
+        $recipient = $payment->registration?->pilot?->user;
+        if ($recipient?->email_verified_at === null) {
+            // The PDF remains available to its owner, but no receipt is emailed yet.
+            return;
+        }
+
+        $this->sender->send(
+            $receipt,
+            requireVerifiedEmail: true,
+            expectedEmail: $recipient->email,
+        );
     }
 }

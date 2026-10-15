@@ -11,6 +11,7 @@ use App\Models\Pilot;
 use App\Models\RaceRegistration;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
@@ -350,6 +351,86 @@ test('automatic confirmation is disabled until enabled, then sends once despite 
     expect(PaymentReceipt::count())->toBe(1)
         ->and(PaymentReceipt::first()->email_status)->toBe('sent')
         ->and(PaymentReceipt::first()->email_sent_at)->not->toBeNull();
+    Mail::assertSent(App\Mail\PaymentConfirmed::class, 1);
+});
+
+test('a new payment receipt waits for email verification and is delivered once afterwards', function () {
+    Mail::fake();
+    config()->set('payment_receipts.auto_send', true);
+    $payment = paidReceiptPayment();
+    $user = $payment->registration->pilot->user;
+    $user->update(['email_verified_at' => null]);
+
+    $listener = app(SendPaymentConfirmation::class);
+    $listener->handle(new PaymentConfirmed($payment));
+
+    expect(PaymentReceipt::count())->toBe(1)
+        ->and($payment->receipt()->first()->email_status)->toBe('pending');
+    Mail::assertNothingOutgoing();
+
+    $user->markEmailAsVerified();
+    event(new Verified($user));
+    event(new Verified($user));
+    $listener->handle(new PaymentConfirmed($payment));
+
+    expect($payment->receipt()->first()->email_status)->toBe('sent');
+    Mail::assertSent(App\Mail\PaymentConfirmed::class, 1);
+});
+
+test('a receipt cannot be sent after a verified account changes its email', function () {
+    Mail::fake();
+    config()->set('payment_receipts.auto_send', true);
+    $payment = paidReceiptPayment();
+    $user = $payment->registration->pilot->user;
+    $user->update(['email_verified_at' => null, 'email' => 'new-address@example.com']);
+
+    app(SendPaymentConfirmation::class)->handle(new PaymentConfirmed($payment));
+    $receipt = $payment->receipt()->first();
+
+    expect($receipt->email_status)->toBe('pending');
+    Mail::assertNothingOutgoing();
+
+    $user->markEmailAsVerified();
+    event(new Verified($user));
+
+    expect($receipt->fresh()->email_status)->toBe('sent')
+        ->and($receipt->fresh()->delivery_email)->toBe('new-address@example.com');
+    Mail::assertSent(App\Mail\PaymentConfirmed::class, 1);
+});
+
+test('verification of a new address cannot send old or uncertain receipts', function () {
+    Mail::fake();
+    config()->set('payment_receipts.auto_send', true);
+    $payment = paidReceiptPayment();
+    $user = $payment->registration->pilot->user;
+    $user->update(['email_verified_at' => null]);
+    app(SendPaymentConfirmation::class)->handle(new PaymentConfirmed($payment));
+    $pending = $payment->receipt()->first();
+
+    $otherPayment = fn (): Payment => Payment::create([
+        'race_registration_id' => $payment->race_registration_id,
+        'user_id' => $user->id,
+        'amount' => '50.00',
+        'amount_cents' => 5000,
+        'currency' => 'EUR',
+        'method' => 'stripe',
+        'status' => 'paid',
+        'paid_at' => now(),
+    ]);
+
+    $historical = $otherPayment();
+    $historicalReceipt = app(IssuePaymentReceipt::class)->issue($historical, historical: true);
+
+    $uncertain = $otherPayment();
+    $uncertainReceipt = app(IssuePaymentReceipt::class)->issue($uncertain);
+    $uncertainReceipt->update(['email_status' => 'sending']);
+
+    $user->markEmailAsVerified();
+    event(new Verified($user));
+
+    expect($pending->fresh()->email_status)->toBe('sent')
+        ->and($historicalReceipt->fresh()->email_status)->toBe('not_requested')
+        ->and($uncertainReceipt->fresh()->email_status)->toBe('sending');
     Mail::assertSent(App\Mail\PaymentConfirmed::class, 1);
 });
 

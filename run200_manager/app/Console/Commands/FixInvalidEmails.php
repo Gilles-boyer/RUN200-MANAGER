@@ -25,6 +25,7 @@ class FixInvalidEmails extends Command
             if ($originalEmail !== $cleanedEmail) {
                 $this->info("Correction: {$originalEmail} -> {$cleanedEmail}");
                 $user->email = $cleanedEmail;
+                $user->email_verified_at = null;
                 $user->save();
                 $fixed++;
             }

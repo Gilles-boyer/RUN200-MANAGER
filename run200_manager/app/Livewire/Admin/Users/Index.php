@@ -209,10 +209,14 @@ class Index extends Component
         ]);
 
         $user = User::withTrashed()->findOrFail($this->editingUserId);
-        $user->update([
+        $user->fill([
             'name' => $this->editName,
             'email' => $this->editEmail,
         ]);
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+        $user->save();
 
         $user->syncRoles($this->editRoles);
 
@@ -258,7 +262,7 @@ class Index extends Component
             'pilotFirstName' => 'required|string|max:255',
             'pilotLastName' => 'required|string|max:255',
             'pilotPhone' => 'nullable|string|max:20',
-            'pilotLicenseNumber' => ['nullable', 'string', 'min:1', 'max:6', 'regex:/^[0-9]+$/', 'unique:pilots,license_number,' . $this->editingPilotId],
+            'pilotLicenseNumber' => ['nullable', 'string', 'min:1', 'max:6', 'regex:/^[0-9]+$/', 'unique:pilots,license_number,'.$this->editingPilotId],
             'pilotBirthDate' => 'nullable|date',
             'pilotBirthPlace' => 'nullable|string|max:255',
             'pilotAddress' => 'nullable|string|max:255',
