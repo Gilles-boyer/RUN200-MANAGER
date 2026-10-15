@@ -18,6 +18,11 @@ use Illuminate\Support\Facades\Notification;
 use Stripe\Charge;
 use Stripe\PaymentIntent;
 
+beforeEach(function () {
+    config()->set('payment_receipts.auto_send', true);
+    config()->set('payment_receipts.historical_delivery.mode', 'all');
+});
+
 function historicalStripePayment(): Payment
 {
     $registration = RaceRegistration::factory()->create();
@@ -105,6 +110,97 @@ test('campaign previews then sends a single verification notice without a receip
     expect($mail->subject)->toContain('Confirmez votre adresse e-mail')
         ->and($mail->actionText)->toBe('Confirmer mon adresse e-mail')
         ->and($mail->attachments)->toBe([]);
+});
+
+test('disabled historical delivery never claims or sends a campaign notice', function () {
+    Notification::fake();
+    historicalStripePayment();
+    config()->set('payment_receipts.historical_delivery.mode', 'off');
+
+    $this->artisan('payment-receipts:request-verification')->assertSuccessful();
+    $this->artisan('payment-receipts:request-verification --commit')->assertFailed();
+
+    expect(DB::table('payment_receipt_verification_requests')->count())->toBe(0);
+    Notification::assertNothingSent();
+});
+
+test('automatic mail kill switch refuses campaign commit and historical replay', function () {
+    Notification::fake();
+    Mail::fake();
+    $payment = historicalStripePayment();
+    $user = $payment->registration->pilot->user;
+    markHistoricalVerificationSent($payment);
+    $user->forceFill(['email_verified_at' => now()])->save();
+    config()->set('payment_receipts.auto_send', false);
+
+    $this->artisan('payment-receipts:request-verification --commit')->assertFailed();
+    expect(app(SendVerifiedHistoricalStripeReceipts::class)->forUser($user)['examined'])->toBe(0)
+        ->and(PaymentReceipt::count())->toBe(0);
+    Notification::assertNothingSent();
+    Mail::assertNothingOutgoing();
+});
+
+test('pilot campaign invites only the configured account with the configured payment', function () {
+    Notification::fake();
+    $selected = historicalStripePayment();
+    $other = historicalStripePayment();
+    $selectedUser = $selected->registration->pilot->user;
+    $otherUser = $other->registration->pilot->user;
+
+    config()->set('payment_receipts.historical_delivery', [
+        'mode' => 'pilot',
+        'pilot_user_id' => $selectedUser->id,
+        'pilot_payment_id' => $selected->id,
+    ]);
+
+    $this->artisan('payment-receipts:request-verification --commit')->assertSuccessful();
+
+    expect(DB::table('payment_receipt_verification_requests')->count())->toBe(1)
+        ->and(DB::table('payment_receipt_verification_requests')->value('user_id'))->toBe($selectedUser->id)
+        ->and(DB::table('payment_receipt_verification_requests')->value('status'))->toBe('pilot_sent');
+    Notification::assertSentTo($selectedUser, VerifyEmail::class, 1);
+    Notification::assertNotSentTo($otherUser, VerifyEmail::class);
+});
+
+test('pilot campaign proof allows a bounded direct replay of only its configured payment', function () {
+    Mail::fake();
+    $selected = historicalStripePayment();
+    $user = $selected->registration->pilot->user;
+    $other = Payment::create([
+        'race_registration_id' => $selected->race_registration_id,
+        'user_id' => $user->id,
+        'amount' => '50.00',
+        'amount_cents' => 5000,
+        'currency' => 'EUR',
+        'method' => 'stripe',
+        'status' => 'paid',
+        'stripe_payment_intent_id' => 'pi_historical_other',
+        'paid_at' => now()->subDays(10),
+    ]);
+    DB::table('payment_receipt_verification_requests')->insert([
+        'user_id' => $user->id,
+        'email_hash' => HistoricalReceiptEmailHash::of($user->email),
+        'status' => 'pilot_sent',
+        'claimed_at' => now(),
+        'sent_at' => now(),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+    $user->forceFill(['email_verified_at' => now()])->save();
+    config()->set('payment_receipts.historical_delivery', [
+        'mode' => 'pilot',
+        'pilot_user_id' => $user->id,
+        'pilot_payment_id' => $selected->id,
+    ]);
+    stubLiveStripePayment($selected);
+
+    $service = app(SendVerifiedHistoricalStripeReceipts::class);
+    expect($service->forUser($user)['sent'])->toBe(1)
+        ->and($service->forUser($user)['already_sent'])->toBe(1)
+        ->and(PaymentReceipt::count())->toBe(1)
+        ->and(PaymentReceipt::first()->payment_id)->toBe($selected->id)
+        ->and(PaymentReceipt::where('payment_id', $other->id)->exists())->toBeFalse();
+    Mail::assertSent(PaymentConfirmed::class, 1);
 });
 
 test('verification completed during notice delivery still triggers checked historical receipts', function () {

@@ -1,6 +1,8 @@
 <?php
 
+use App\Application\Payments\UseCases\HandleStripeWebhook;
 use App\Application\Payments\UseCases\IssuePaymentReceipt;
+use App\Application\Payments\UseCases\RecordManualPayment;
 use App\Application\Payments\UseCases\SendPaymentReceipt;
 use App\Events\PaymentConfirmed;
 use App\Infrastructure\Pdf\PaymentReceiptPdfService;
@@ -352,6 +354,108 @@ test('automatic confirmation is disabled until enabled, then sends once despite 
         ->and(PaymentReceipt::first()->email_status)->toBe('sent')
         ->and(PaymentReceipt::first()->email_sent_at)->not->toBeNull();
     Mail::assertSent(App\Mail\PaymentConfirmed::class, 1);
+});
+
+test('a late Stripe webhook for an old pending checkout still issues its new receipt', function () {
+    Mail::fake();
+    config()->set('payment_receipts.auto_send', true);
+    config()->set('payment_receipts.historical_delivery.mode', 'off');
+    $registration = RaceRegistration::factory()->create(['status' => 'PENDING_PAYMENT']);
+    $payment = Payment::create([
+        'race_registration_id' => $registration->id,
+        'user_id' => $registration->pilot->user_id,
+        'amount' => '50.00',
+        'amount_cents' => 5000,
+        'currency' => 'EUR',
+        'method' => 'stripe',
+        'status' => 'pending',
+        'stripe_session_id' => 'cs_test_fresh_receipt',
+    ]);
+    $payment->forceFill(['created_at' => now()->subMonth()])->saveQuietly();
+
+    app(HandleStripeWebhook::class)->handleCheckoutCompleted([
+        'id' => 'cs_test_fresh_receipt',
+        'payment_intent' => 'pi_test_fresh_receipt',
+        'payment_status' => 'paid',
+        'amount_total' => 5000,
+        'currency' => 'eur',
+    ]);
+
+    expect($payment->fresh()->isPaid())->toBeTrue()
+        ->and($payment->receipt()->first()?->email_status)->toBe('sent');
+    Mail::assertSent(App\Mail\PaymentConfirmed::class, 1);
+});
+
+test('a freshly confirmed manual payment still receives its new receipt', function () {
+    Mail::fake();
+    config()->set('payment_receipts.auto_send', true);
+    config()->set('payment_receipts.historical_delivery.mode', 'off');
+    $registration = RaceRegistration::factory()->create(['status' => 'PENDING_PAYMENT']);
+    $payment = Payment::create([
+        'race_registration_id' => $registration->id,
+        'user_id' => $registration->pilot->user_id,
+        'amount' => '50.00',
+        'amount_cents' => 5000,
+        'currency' => 'EUR',
+        'method' => 'cash',
+        'status' => 'pending',
+    ]);
+
+    app(RecordManualPayment::class)->execute($registration, User::factory()->create(), 50.00, method: 'cash');
+
+    expect($payment->fresh()->isPaid())->toBeTrue()
+        ->and($payment->receipt()->first()?->email_status)->toBe('sent');
+    Mail::assertSent(App\Mail\PaymentConfirmed::class, 1);
+});
+
+test('a newly recorded manual payment also receives its new receipt', function () {
+    Mail::fake();
+    config()->set('payment_receipts.auto_send', true);
+    config()->set('payment_receipts.historical_delivery.mode', 'off');
+    $registration = RaceRegistration::factory()->create(['status' => 'PENDING_PAYMENT']);
+
+    $payment = app(RecordManualPayment::class)->execute(
+        $registration,
+        User::factory()->create(),
+        50.00,
+        method: 'cash',
+    );
+
+    expect($payment->fresh()->isPaid())->toBeTrue()
+        ->and($payment->receipt()->first()?->email_status)->toBe('sent');
+    Mail::assertSent(App\Mail\PaymentConfirmed::class, 1);
+});
+
+test('replayed historical Stripe confirmation cannot bypass the historical delivery gate', function () {
+    Mail::fake();
+    config()->set('payment_receipts.auto_send', true);
+    config()->set('payment_receipts.historical_delivery.mode', 'off');
+    $payment = paidReceiptPayment(['paid_at' => now()->subMonth()]);
+    $replayed = Payment::findOrFail($payment->id);
+
+    app(SendPaymentConfirmation::class)->handle(new PaymentConfirmed($replayed));
+
+    expect($payment->receipt()->exists())->toBeFalse();
+    Mail::assertNothingOutgoing();
+
+    config()->set('payment_receipts.historical_delivery.mode', 'pilot');
+    config()->set('payment_receipts.historical_delivery.pilot_user_id', $payment->registration->pilot->user_id);
+    config()->set('payment_receipts.historical_delivery.pilot_payment_id', $payment->id);
+    app(SendPaymentConfirmation::class)->handle(new PaymentConfirmed($replayed));
+
+    expect($payment->receipt()->exists())->toBeFalse();
+    Mail::assertNothingOutgoing();
+});
+
+test('a recently settled payment reloaded from storage is not a fresh confirmation', function () {
+    Mail::fake();
+    config()->set('payment_receipts.auto_send', true);
+    $payment = paidReceiptPayment(['paid_at' => now()->subMinutes(2)]);
+
+    app(SendPaymentConfirmation::class)->handle(new PaymentConfirmed(Payment::findOrFail($payment->id)));
+
+    expect($payment->receipt()->exists())->toBeFalse();
+    Mail::assertNothingOutgoing();
 });
 
 test('a new payment receipt waits for email verification and is delivered once afterwards', function () {
