@@ -28,7 +28,6 @@ Aucune carte.
 ## En revue
 
 - **REC-03** · P1 · Vérifier les adresses et envoyer les reçus Stripe historiques · `it_backend`
-- **REC-04** · P1 · Borner le pilote de reçu historique à un seul paiement · `it_backend`
 
 ## À livrer
 
@@ -41,6 +40,7 @@ Aucune carte.
 - **LEG-01** · P1 · Verifier et corriger informations legales et conservation · `it_product_owner`
 - **PAY-03** · P1 · Garder les envois automatiques des nouveaux recus desactives au deploiement · `it_backend`
 - **PAY-04** · P1 · Rendre le téléchargement de reçu strictement en lecture · `it_backend`
+- **REC-04** · P1 · Borner le pilote de reçu historique à un seul paiement · `it_backend`
 - **WEB-01** · P2 · Corriger les pages publiques et la page 404 · `it_frontend`
 
 ## Terminé

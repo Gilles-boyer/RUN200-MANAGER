@@ -382,7 +382,7 @@
       "title": "Borner le pilote de reçu historique à un seul paiement",
       "owner": "it_backend",
       "priority": 1,
-      "state": "review",
+      "state": "deliver",
       "acceptance": [
         "Mode historique off par défaut ; pilot autorise seulement compte et paiement choisis ; aucun reçu inattendu ; test et revue indépendants ; SHA et état de production vérifiés"
       ],
@@ -391,12 +391,13 @@
         "config/payment_receipts.php"
       ],
       "author": "it_backend",
-      "reviewer": "",
+      "reviewer": "it_qa",
       "evidence": [
-        "617 tests, 2026 assertions ; PHPStan, Pint cible et vues OK ; auto_send=false en production"
+        "617 tests, 2026 assertions ; PHPStan, Pint cible et vues OK ; auto_send=false en production",
+        "PR #22 fusionnee/deployee SHA 150aa63; mode pilot compte 46 paiement 27, auto_send true; invitation pilot_sent avec sent_at; utilisateur non verifie, zero recu pour paiements 27,69,171,255"
       ],
       "revision": "0c030f2",
-      "review_evidence": "",
+      "review_evidence": "Revue independante du garde pilote 0c030f2: GO code; 617 tests/2026 assertions, PHPStan/Pint/vues et CI 4/4; production 150aa63, mode pilot #46/#27, invitation unique SMTP acceptee et zero recu inattendu; livraison du PDF attend la validation du pilote",
       "blocked": ""
     }
   ]
