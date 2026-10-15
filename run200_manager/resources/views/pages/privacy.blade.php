@@ -180,7 +180,7 @@
                             <li><strong class="text-carbon-900 dark:text-white">Personnel autorisé de l'ASA CFG</strong> (organisateurs, commissaires, staff)</li>
                             <li><strong class="text-carbon-900 dark:text-white">FFSA et LSAR</strong> (obligations réglementaires sportives)</li>
                             <li><strong class="text-carbon-900 dark:text-white">Stripe</strong> (traitement sécurisé des paiements)</li>
-                            <li><strong class="text-carbon-900 dark:text-white">Hébergeur OVH</strong> (hébergement technique)</li>
+                            <li><strong class="text-carbon-900 dark:text-white">Hébergeur o2switch</strong> (hébergement technique)</li>
                             <li><strong class="text-carbon-900 dark:text-white">Autorités compétentes</strong> (sur réquisition légale)</li>
                         </ul>
                         <p>
@@ -352,12 +352,12 @@
                         Cookies
                     </h2>
                     <div class="pl-11 space-y-4 text-carbon-600 dark:text-carbon-400">
-                        <p>RUN200 Manager utilise uniquement des <strong class="text-carbon-900 dark:text-white">cookies strictement nécessaires</strong> au fonctionnement du site :</p>
+                        <p>RUN200 Manager utilise des <strong class="text-carbon-900 dark:text-white">cookies nécessaires</strong> à la session et à la sécurité. Le navigateur conserve aussi un réglage local d'affichage :</p>
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm">
                                 <thead class="bg-carbon-100 dark:bg-carbon-800">
                                     <tr>
-                                        <th class="px-4 py-3 text-left font-semibold text-carbon-900 dark:text-white rounded-tl-lg">Cookie</th>
+                                        <th class="px-4 py-3 text-left font-semibold text-carbon-900 dark:text-white rounded-tl-lg">Donnée du navigateur</th>
                                         <th class="px-4 py-3 text-left font-semibold text-carbon-900 dark:text-white">Finalité</th>
                                         <th class="px-4 py-3 text-left font-semibold text-carbon-900 dark:text-white rounded-tr-lg">Durée</th>
                                     </tr>
@@ -374,15 +374,15 @@
                                         <td class="px-4 py-3">2 heures</td>
                                     </tr>
                                     <tr>
-                                        <td class="px-4 py-3 font-mono text-xs">darkMode</td>
-                                        <td class="px-4 py-3">Préférence de thème (clair/sombre)</td>
-                                        <td class="px-4 py-3">1 an</td>
+                                        <td class="px-4 py-3 font-mono text-xs">localStorage.theme</td>
+                                        <td class="px-4 py-3">Affichage sombre de l'interface ; ce n'est pas un cookie</td>
+                                        <td class="px-4 py-3">Jusqu'à suppression des données du navigateur</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
                         <p class="text-sm">
-                            Aucun cookie de tracking, publicitaire ou de profilage n'est utilisé. Ces cookies étant strictement nécessaires, ils sont exemptés de consentement conformément à l'article 82 de la loi Informatique et Libertés.
+                            Aucun cookie publicitaire ou de profilage n'est configuré sur les pages du site. Les cookies de session et de sécurité sont nécessaires à son fonctionnement.
                         </p>
                     </div>
                 </section>

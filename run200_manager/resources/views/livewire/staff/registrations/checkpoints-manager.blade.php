@@ -44,7 +44,7 @@
             {{-- Pilot Info --}}
             <div class="flex items-start space-x-4">
                 @if($registration->pilot->photo_path)
-                    <img src="{{ Storage::url($registration->pilot->photo_path) }}" class="h-16 w-16 rounded-xl object-cover ring-2 ring-carbon-600">
+                    <img src="{{ Storage::url($registration->pilot->photo_path) }}" alt="Photo de {{ $registration->pilot->first_name }} {{ $registration->pilot->last_name }}" class="h-16 w-16 rounded-xl object-cover ring-2 ring-carbon-600">
                 @else
                     <div class="h-16 w-16 rounded-xl bg-carbon-700 flex items-center justify-center ring-2 ring-carbon-600">
                         <span class="text-white font-bold text-xl">
@@ -178,6 +178,7 @@
                                         <p class="text-sm text-gray-400">Code: <span class="font-mono text-checkered-yellow-500">{{ $checkpoint->code }}</span></p>
                                     </div>
 
+                                    @can('registration.manage')
                                     <div class="flex items-center gap-2">
                                         @if($passage)
                                             <button wire:click="openEditPassageModal({{ $passage->id }})"
@@ -201,6 +202,7 @@
                                             </button>
                                         @endif
                                     </div>
+                                    @endcan
                                 </div>
 
                                 @if($passage)
@@ -300,7 +302,7 @@
     @endif
 
     {{-- Modal Add/Edit Passage --}}
-    @if($showPassageModal)
+    @if($showPassageModal && auth()->user()->can('registration.manage'))
     <div class="fixed inset-0 bg-carbon-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" wire:click.self="closePassageModal">
         <div class="bg-carbon-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-carbon-700/50">
             <div class="px-6 py-4 border-b border-carbon-700/50">
@@ -348,7 +350,7 @@
     @endif
 
     {{-- Modal Confirm Delete --}}
-    @if($showDeleteModal)
+    @if($showDeleteModal && auth()->user()->can('registration.manage'))
     <div class="fixed inset-0 bg-carbon-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" wire:click.self="closeDeleteModal">
         <div class="bg-carbon-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-carbon-700/50">
             <div class="px-6 py-4 border-b border-carbon-700/50">

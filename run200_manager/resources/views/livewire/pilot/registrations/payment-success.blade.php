@@ -18,6 +18,10 @@
                     </dl>
                 </div>
 
+                @if($payment->canHaveReceipt())
+                    <a href="{{ route('payments.receipt', $payment) }}" class="mt-4 inline-flex min-h-11 items-center justify-center rounded-md border border-green-600 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20">Télécharger le reçu de paiement</a>
+                @endif
+
                 @unless($canAccessEcard)
                     @if(in_array($registration->status, ['PENDING_PAYMENT', 'PENDING_VALIDATION'], true))
                         <p class="mt-6 text-gray-600 dark:text-gray-300">Votre paiement est reçu. Votre e-carte sera disponible après validation de votre inscription par l'organisation.</p>

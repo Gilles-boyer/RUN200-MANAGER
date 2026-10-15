@@ -223,6 +223,15 @@
                                             @endif
                                         </p>
                                     @endif
+
+                                    @foreach($registration->payments->filter(fn ($payment) => $payment->canHaveReceipt()) as $receiptPayment)
+                                        <a href="{{ route('payments.receipt', $receiptPayment) }}"
+                                           class="mt-3 flex items-center justify-between gap-3 rounded-lg border border-carbon-600 px-3 py-2 text-sm text-white hover:border-racing-red-500 focus:outline-none focus:ring-2 focus:ring-racing-red-500"
+                                           aria-label="Télécharger le reçu du paiement de {{ $receiptPayment->formatted_amount }} du {{ ($receiptPayment->paid_at ?? $receiptPayment->created_at)->format('d/m/Y') }}">
+                                            <span>Télécharger le reçu · {{ $receiptPayment->formatted_amount }}</span>
+                                            <span class="text-carbon-400">{{ ($receiptPayment->paid_at ?? $receiptPayment->created_at)->format('d/m/Y') }}</span>
+                                        </a>
+                                    @endforeach
                                 </div>
 
                                 {{-- Paddock si assigné --}}

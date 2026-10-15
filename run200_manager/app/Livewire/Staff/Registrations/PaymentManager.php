@@ -7,15 +7,16 @@ namespace App\Livewire\Staff\Registrations;
 use App\Application\Payments\UseCases\RecordManualPayment;
 use App\Application\Payments\UseCases\RefundStripePayment;
 use App\Domain\Payment\Enums\PaymentStatus;
-use App\Models\Payment;
 use App\Models\RaceRegistration;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Stripe\Exception\ApiErrorException;
 
 class PaymentManager extends Component
 {
@@ -39,6 +40,7 @@ class PaymentManager extends Component
 
     public function mount(RaceRegistration $registration): void
     {
+        abort_unless(auth()->user()?->can('payment.view'), 403);
         $this->registration = $registration->load(['payments', 'pilot', 'car', 'race']);
     }
 
@@ -68,6 +70,7 @@ class PaymentManager extends Component
 
     public function openManualPaymentModal(): void
     {
+        abort_unless(auth()->user()?->can('payment.manage'), 403);
         $this->manualAmount = number_format($this->registration->race->entry_fee_cents / 100, 2, ',', '');
         $this->manualMethod = 'cash';
         $this->manualNotes = '';
@@ -81,6 +84,7 @@ class PaymentManager extends Component
 
     public function recordManualPayment(RecordManualPayment $useCase): void
     {
+        abort_unless(auth()->user()?->can('payment.manage'), 403);
         $this->validate([
             'manualAmount' => ['required', 'string', 'regex:/^\d{1,6}(?:[.,]\d{1,2})?$/'],
             'manualMethod' => ['required', 'string', 'in:cash,card_onsite,bank_transfer,manual'],
@@ -118,6 +122,9 @@ class PaymentManager extends Component
 
     public function openRefundModal(int $paymentId): void
     {
+        abort_unless(auth()->user()?->can('payment.refund'), 403);
+        $this->registration->payments()->findOrFail($paymentId);
+
         $this->selectedPaymentId = $paymentId;
         $this->refundReason = '';
         $this->showRefundModal = true;
@@ -131,11 +138,13 @@ class PaymentManager extends Component
 
     public function processRefund(RefundStripePayment $useCase): void
     {
+        abort_unless(auth()->user()?->can('payment.refund'), 403);
+
         $this->validate([
             'refundReason' => ['required', 'string', 'min:10', 'max:500'],
         ]);
 
-        $payment = Payment::findOrFail($this->selectedPaymentId);
+        $payment = $this->registration->payments()->findOrFail($this->selectedPaymentId);
 
         if (! $payment->canBeRefunded()) {
             session()->flash('error', 'Ce paiement ne peut pas être remboursé.');
@@ -146,7 +155,17 @@ class PaymentManager extends Component
         /** @var User $user */
         $user = auth()->user();
 
-        $useCase->execute($payment, $user, null, $this->refundReason);
+        try {
+            $useCase->execute($payment, $user, null, $this->refundReason);
+        } catch (InvalidArgumentException $e) {
+            session()->flash('error', $e->getMessage());
+
+            return;
+        } catch (ApiErrorException) {
+            session()->flash('error', 'Stripe n’a pas confirmé le remboursement. Vérifiez son état avant de réessayer.');
+
+            return;
+        }
 
         $this->closeRefundModal();
         $this->registration->refresh();
@@ -156,7 +175,8 @@ class PaymentManager extends Component
 
     public function cancelPayment(int $paymentId): void
     {
-        $payment = Payment::findOrFail($paymentId);
+        abort_unless(auth()->user()?->can('payment.manage'), 403);
+        $payment = $this->registration->payments()->findOrFail($paymentId);
 
         if ($payment->status !== PaymentStatus::PENDING) {
             session()->flash('error', 'Seuls les paiements en attente peuvent être annulés.');

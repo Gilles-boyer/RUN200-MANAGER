@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "wip": {
+    "doing": 3,
+    "review": 2
+  },
+  "cards": [
+    {
+      "id": "AUD-01",
+      "title": "Audit technique et parcours du site",
+      "owner": "it_qa",
+      "priority": 1,
+      "state": "deliver",
+      "acceptance": [
+        "Rapport avec risques prouvés, priorités et 20 contrôles audit-sites sur état observé"
+      ],
+      "depends_on": [],
+      "files": [
+        "docs/project/AUDIT_2026-10-15.md"
+      ],
+      "author": "coordinator",
+      "reviewer": "audit_site",
+      "evidence": [
+        "20 contrôles et audit technique documentés; QA audit_site a relu et proposé trois précisions intégrées"
+      ],
+      "revision": "audit-doc-2026-10-15",
+      "review_evidence": "Revue indépendante du document et des 20 statuts, trois précisions éditoriales appliquées; état local audit de référence",
+      "blocked": ""
+    },
+    {
+      "id": "PAY-01",
+      "title": "Reçus de paiement nouveaux et historiques",
+      "owner": "it_backend",
+      "priority": 1,
+      "state": "review",
+      "acceptance": [
+        "Chaque paiement payé dispose d'un reçu individuel téléchargeable ; nouveaux paiements automatisés ; historique idempotent ; accès autorisé ; tests"
+      ],
+      "depends_on": [],
+      "files": [
+        "app/Models/PaymentReceipt.php",
+        "app/Models/Payment.php",
+        "app/Application/Payments/UseCases/IssuePaymentReceipt.php",
+        "app/Livewire/Staff/Registrations/PaymentManager.php",
+        "app/Listeners/SendPaymentConfirmation.php",
+        "resources/views/pdf/payment-receipt.blade.php",
+        "resources/views/livewire/pilot/registrations/index.blade.php",
+        "resources/views/livewire/staff/registrations/payment-manager.blade.php",
+        "routes/web.php"
+      ],
+      "author": "payments_design",
+      "reviewer": "audit_site",
+      "evidence": [
+        "34 tests paiements, 162 assertions; PDF A4 inspecté; en attente revue indépendante et production"
+      ],
+      "revision": "working-tree",
+      "review_evidence": "",
+      "blocked": ""
+    },
+    {
+      "id": "SEC-01",
+      "title": "Corriger les risques critiques avant publication",
+      "owner": "it_backend",
+      "priority": 1,
+      "state": "review",
+      "acceptance": [
+        "Aucun compte guichet à mot de passe fixe et aucune attribution de paiement par simple montant ; autorisations de remboursement vérifiées"
+      ],
+      "depends_on": [],
+      "files": [
+        "app/Livewire/Staff/Registrations/WalkInRegistration.php",
+        "app/Livewire/Staff/Registrations/Index.php",
+        "app/Livewire/Staff/Registrations/CheckpointsManager.php",
+        "app/Application/Payments/UseCases/HandleStripeWebhook.php",
+        "resources/views/livewire/staff/registrations/index.blade.php",
+        "docs/systeme_notifications_email.md"
+      ],
+      "author": "audit_tech",
+      "reviewer": "audit_site",
+      "evidence": [
+        "35 tests sécurité ciblés, 148 assertions; 16 tests webhook après revue, 59 assertions; en attente QA indépendante"
+      ],
+      "revision": "working-tree",
+      "review_evidence": "",
+      "blocked": ""
+    }
+  ]
+}

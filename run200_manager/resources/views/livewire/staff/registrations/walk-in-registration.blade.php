@@ -124,7 +124,7 @@
                         <div class="flex items-center justify-between">
                             <div class="flex items-center">
                                 @if($this->selectedPilot->photo_path)
-                                    <img src="{{ Storage::url($this->selectedPilot->photo_path) }}" class="h-12 w-12 rounded-xl object-cover ring-2 ring-status-success/30">
+                                    <img src="{{ Storage::url($this->selectedPilot->photo_path) }}" alt="Photo de {{ $this->selectedPilot->first_name }} {{ $this->selectedPilot->last_name }}" class="h-12 w-12 rounded-xl object-cover ring-2 ring-status-success/30">
                                 @else
                                     <div class="h-12 w-12 rounded-xl bg-carbon-700 flex items-center justify-center ring-2 ring-status-success/30">
                                         <span class="text-white font-bold">
@@ -170,7 +170,7 @@
                                     <button type="button" wire:click="selectPilot({{ $pilot->id }})"
                                         class="w-full px-4 py-3 flex items-center hover:bg-carbon-700/50 text-left transition-colors">
                                         @if($pilot->photo_path)
-                                            <img src="{{ Storage::url($pilot->photo_path) }}" class="h-10 w-10 rounded-lg object-cover">
+                                            <img src="{{ Storage::url($pilot->photo_path) }}" alt="Photo de {{ $pilot->first_name }} {{ $pilot->last_name }}" class="h-10 w-10 rounded-lg object-cover">
                                         @else
                                             <div class="h-10 w-10 rounded-lg bg-carbon-700 flex items-center justify-center">
                                                 <span class="text-gray-400 font-medium">{{ substr($pilot->first_name, 0, 1) }}{{ substr($pilot->last_name, 0, 1) }}</span>

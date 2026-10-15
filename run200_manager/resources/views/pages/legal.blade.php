@@ -77,11 +77,10 @@
                     <div class="pl-11 space-y-3 text-carbon-600 dark:text-carbon-400">
                         <p>Le Site est hébergé par :</p>
                         <div class="bg-carbon-50 dark:bg-carbon-800/50 rounded-xl p-4 space-y-2">
-                            <p><strong class="text-carbon-900 dark:text-white">OVH SAS</strong></p>
-                            <p>2, rue Kellermann – 59100 Roubaix – France</p>
-                            <p>RCS Lille Métropole 424 761 419 00045</p>
-                            <p>Téléphone : +33 9 72 10 10 07</p>
-                            <p>Site web : <a href="https://www.ovh.com" target="_blank" rel="noopener" class="text-racing-red-600 dark:text-racing-red-400 hover:underline">www.ovh.com</a></p>
+                            <p><strong class="text-carbon-900 dark:text-white">o2switch</strong></p>
+                            <p>Chemin des Pardiaux – 63000 Clermont-Ferrand – France</p>
+                            <p>Téléphone : 04 44 44 60 40</p>
+                            <p>Site web : <a href="https://www.o2switch.fr" target="_blank" rel="noopener" class="text-racing-red-600 dark:text-racing-red-400 hover:underline">www.o2switch.fr</a></p>
                         </div>
                     </div>
                 </section>

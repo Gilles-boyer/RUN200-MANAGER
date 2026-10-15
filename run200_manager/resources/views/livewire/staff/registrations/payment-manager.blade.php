@@ -27,7 +27,7 @@
                 </div>
 
                 {{-- Bouton ajouter paiement --}}
-                @if(!$this->isPaid)
+                @if(!$this->isPaid && auth()->user()->can('payment.manage'))
                     <button wire:click="openManualPaymentModal"
                             class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-status-success text-white font-medium hover:bg-status-success/90 transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -245,7 +245,14 @@
 
                             {{-- Actions --}}
                             <div class="flex items-center gap-2 lg:flex-col">
-                                @if($payment->canBeRefunded())
+                                @if($payment->canHaveReceipt() && auth()->user()->can('payment.view'))
+                                    <a href="{{ route('payments.receipt', $payment) }}"
+                                       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-status-success/50 text-status-success hover:bg-status-success/10 transition-colors text-sm font-medium">
+                                        Télécharger le reçu
+                                    </a>
+                                @endif
+
+                                @if($payment->canBeRefunded() && auth()->user()->can('payment.refund'))
                                     <button wire:click="openRefundModal({{ $payment->id }})"
                                             class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-status-danger/50 text-status-danger hover:bg-status-danger/10 transition-colors text-sm font-medium">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -255,7 +262,7 @@
                                     </button>
                                 @endif
 
-                                @if($payment->isPending())
+                                @if($payment->isPending() && auth()->user()->can('payment.manage'))
                                     <button wire:click="cancelPayment({{ $payment->id }})"
                                             wire:confirm="Êtes-vous sûr de vouloir annuler ce paiement ?"
                                             class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-carbon-600 text-carbon-400 hover:bg-carbon-700 transition-colors text-sm font-medium">
@@ -274,7 +281,7 @@
     </x-racing.card>
 
     {{-- Modal Paiement Manuel --}}
-    @if($showManualPaymentModal)
+    @if($showManualPaymentModal && auth()->user()->can('payment.manage'))
         <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div class="flex items-center justify-center min-h-screen p-4">
                 <div class="fixed inset-0 bg-carbon-950/80 backdrop-blur-sm transition-opacity" wire:click="closeManualPaymentModal"></div>

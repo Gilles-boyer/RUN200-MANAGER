@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Payment\Enums\PaymentStatus;
 use App\Domain\Registration\Enums\RegistrationStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -274,7 +275,7 @@ class RaceRegistration extends Model
      */
     public function isPaid(): bool
     {
-        return $this->payments()->where('status', 'paid')->exists();
+        return $this->getPaidAmountCents() > 0;
     }
 
     /**
@@ -291,7 +292,25 @@ class RaceRegistration extends Model
     public function getPaidAmountCents(): int
     {
         return $this->payments()
-            ->where('status', 'paid')
-            ->sum('amount_cents');
+            ->whereIn('status', [
+                PaymentStatus::PAID->value,
+                PaymentStatus::PARTIALLY_REFUNDED->value,
+                PaymentStatus::REFUNDED->value,
+            ])
+            ->get(['status', 'amount', 'amount_cents', 'refund_amount_cents'])
+            ->sum(function (Payment $payment): int {
+                $paidCents = ($payment->amount_cents ?? 0) > 0
+                    ? $payment->amount_cents
+                    : (int) round((float) $payment->amount * 100);
+                $refundedCents = (int) ($payment->refund_amount_cents ?? 0);
+
+                if ($payment->status === PaymentStatus::REFUNDED
+                    || ($payment->status === PaymentStatus::PARTIALLY_REFUNDED
+                        && ($refundedCents <= 0 || $refundedCents >= $paidCents))) {
+                    return 0;
+                }
+
+                return max(0, $paidCents - $refundedCents);
+            });
     }
 }
