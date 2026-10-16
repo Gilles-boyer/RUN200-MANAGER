@@ -28,7 +28,6 @@ Aucune carte.
 ## En revue
 
 - **REC-03** · P1 · Vérifier les adresses et envoyer les reçus Stripe historiques · `it_backend`
-- **REC-05** · P1 · Envoyer les reçus aux adresses des dossiers en lots contrôlés · `it_backend`
 
 ## À livrer
 
@@ -46,4 +45,4 @@ Aucune carte.
 
 ## Terminé
 
-Aucune carte.
+- **REC-05** · P1 · Envoyer les reçus aux adresses des dossiers en lots contrôlés · `it_backend`
