@@ -25,7 +25,7 @@ Ce document est un **plan**. Il ne vaut ni autorisation supplémentaire ni preuv
 
 Le serveur sert encore le SHA `150aa63b801b0223810a5dc42d96c86da54b9545` au moment du prévol. La configuration active reste `auto_send=true`, mode historique `pilot`, compte #46 et paiement #27. Ce pilote n'a pas confirmé son adresse ; aucun reçu #27 n'existe encore. Ces constatations précèdent le déploiement de la nouvelle commande et **aucun e-mail de cette campagne n'a été envoyé à ce stade**.
 
-| Méthode | Paiements `paid` | Adresses non vérifiées | Anomalies agrégées relevées |
+| Méthode | Paiements `paid` | Paiements liés à un compte à adresse non vérifiée | Anomalies agrégées relevées |
 | --- | ---: | ---: | ---: |
 | Stripe | 177 | 173 | 0 |
 | CB sur place | 28 | 17 | 0 |
@@ -34,7 +34,7 @@ Le serveur sert encore le SHA `150aa63b801b0223810a5dc42d96c86da54b9545` au mome
 | Virement | 1 | 0 | 0 |
 | **Total** | **252** | **222** | **0** |
 
-Le contrôle agrégé recherchait date d'encaissement absente, montant absent ou divergent entre euros et centimes, lien inscription/pilote/compte rompu et adresse nulle. Aucun dossier n'avait plusieurs paiements `paid`. Un seul reçu était déjà `sent` et aucun `sending` n'était présent avant la campagne. Cela ne prouve ni la réalité des 75 encaissements hors Stripe au-delà de la saisie de l'application, ni la propriété des 222 adresses non vérifiées.
+Le contrôle agrégé recherchait date d'encaissement absente, montant absent ou divergent entre euros et centimes, lien inscription/pilote/compte rompu et adresse nulle. Aucun dossier n'avait plusieurs paiements `paid`. Un seul reçu était déjà `sent` et aucun `sending` n'était présent avant la campagne. Cela ne prouve ni la réalité des 75 encaissements hors Stripe au-delà de la saisie de l'application, ni la propriété des boîtes liées aux 222 paiements dont le compte n'avait pas d'adresse vérifiée.
 
 Sauvegarde privée créée avant tout envoi : `/home/mepa3308/run200-receipts-pre-20261016.sql`, `mysqldump` terminé avec code 0, 11 815 460 octets, permissions `0600`. L'essai de restauration isolée du 15 octobre concerne la sauvegarde précédente ; celle-ci n'a pas encore été restaurée isolément.
 

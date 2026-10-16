@@ -2,7 +2,7 @@
 
 ## Périmètre et preuves
 
-Cet audit porte sur la **commande candidate** `payment-receipts:send-recorded-addresses` de la branche `codex/run200-recorded-receipt-campaign` (base HEAD `048e1aa`, modifications candidates encore non commitées lors du contrôle ; **SHA du candidat final à renseigner après commit**) et sur le **site actuellement accessible** à [run200cfg.clicksolutions.re](https://run200cfg.clicksolutions.re/). Il ne qualifie pas une campagne déjà publiée. Le SHA réellement servi après publication, sa configuration active, les envois et leurs résultats seront renseignés par le coordinateur dans le relevé de mise en service. Le dernier SHA de production documenté avant ce contrôle est `150aa63` dans [PILOT_RELEASE_2026-10-15.md](PILOT_RELEASE_2026-10-15.md) ; je ne l'ai pas relu sur le serveur ce 16 octobre.
+Les 20 lignes ci-dessous figent le contrôle **avant publication** de la commande `payment-receipts:send-recorded-addresses` et du site [run200cfg.clicksolutions.re](https://run200cfg.clicksolutions.re/). À cette étape, la branche `codex/run200-recorded-receipt-campaign` partait de `048e1aa`, les modifications étaient encore candidates et le dernier SHA de production documenté était `150aa63`. Le contrôle prépublication n'établissait donc pas la campagne réelle. La PR #24 a depuis été fusionnée et déployée au SHA `165bd5a3543f2f9bd50411f4e3386aae0bde4965` ; les preuves de publication et le recontrôle des points critiques sont dans l'addendum ci-dessous et dans `RECORDED_RECEIPTS_RELEASE_2026-10-16.md`.
 
 Lecture seule du site public et du code, sans compte pilote ni donnée nominative, sans soumission de formulaire ni envoi SMTP. Le 16 octobre, `php artisan list --raw` découvre la commande candidate. `php artisan test tests/Feature/Payments/RecordedAddressReceiptCampaignTest.php --compact` passe **13 tests et 85 assertions** sur la base de test avec `Mail::fake`, après les contrôles d'empreinte des champs PDF et de montant décimal non positif. Selon le coordinateur, la suite reçus a passé **69 tests et 426 assertions** et la suite complète **630 tests et 2 111 assertions** ; je n'ai relancé ici que le test de campagne. Une réponse HTTP ou un test simulé ne prouve pas la remise d'un reçu réel.
 
@@ -40,14 +40,14 @@ Lecture seule du site public et du code, sans compte pilote ni donnée nominativ
 3. **Lot réel maîtrisé :** commencer par un lot très petit, vérifier le nombre de reçus, leur montant/date/statut, les destinataires actuels, le PDF privé et les compteurs `sent`/`sending`/`failed`. `sent` signifie acceptation par le transport SMTP, **pas réception**. Un état `sending` ou un résultat SMTP incertain exige un rapprochement manuel avant toute relance.
 4. **Audit de la version servie :** après publication, revérifier au minimum les points **1, 3, 4, 5, 17 et 18**, le SHA, les accès autorisés/refusés au PDF et les liens du courriel. Reporter ici ou dans un relevé de release la commande/parcours, l'heure, le résultat, le SHA et les limites. Jusqu'à ces preuves, le point 17 reste **Non vérifié**.
 
-### Résultat après publication — à compléter par le coordinateur
+### Résultat après publication — contrôle du 16 octobre 2026
 
 | Preuve attendue | Résultat |
 | --- | --- |
-| SHA du candidat après commit | Non vérifié |
-| SHA Git servi et configuration mise en cache | Non vérifié |
-| Simulation du lot sélectionné, empreinte, retenus et déjà envoyés | Non vérifié |
-| Envoi réel contrôlé : nombre `sent` / `sending` / `failed`, sans identifiants personnels dans le rapport public | Non vérifié |
-| PDF privé, accès du pilote et refus pour un autre compte | Non vérifié |
-| Réception effective en boîte, si confirmée par le titulaire | Non vérifié |
-| Recontrôle des points critiques sur la version publiée | Non vérifié |
+| SHA du candidat après commit | `b319221`, fusionné par PR #24 en `165bd5a3543f2f9bd50411f4e3386aae0bde4965` |
+| SHA Git servi et configuration mise en cache | Même SHA relu sur o2switch ; environnement `production`, `auto_send=true`. Le mode historique automatique n'a pas été ouvert à `all`. |
+| Simulation du lot sélectionné, empreinte, retenus et déjà envoyés | 248 IDs figés, 13 lots ; sous-lots 100 % éligibles avec empreinte de 64 caractères. #226 retenu hors liste. Une simulation de 20 IDs s'est arrêtée code 137 sans envoi ; reprise par groupes de cinq après contrôle en base. |
+| Envoi réel contrôlé : nombre `sent` / `sending` / `failed`, sans identifiants personnels dans le rapport public | 252 paiements `paid`, 251 reçus `sent`, zéro `sending`/`failed`, un seul paiement retenu #226. Destinataires enregistrés concordants et dates d'envoi présentes. Détails dans `RECORDED_RECEIPTS_RELEASE_2026-10-16.md`. |
+| PDF privé, accès du pilote et refus pour un autre compte | PDF de deux cas pilotes générés avec signature `%PDF-` ; téléchargement authentifié par le titulaire et refus d'un autre compte **Non vérifiés** sur la version publiée. |
+| Réception effective en boîte, si confirmée par le titulaire | **Non vérifié** pour les titulaires réels ; `sent` établit l'acceptation SMTP seulement. Un PDF de test à `contact@cfg.re` avait été ouvert et confirmé avant cette campagne. |
+| Recontrôle des points critiques sur la version publiée | Points 1 et 3 : **À corriger** (adresses non vérifiées acceptées pour cette campagne, purge et secret Mailtrap ouverts). Point 4 : **OK** après nouvelle vérification de HTTP **307** vers HTTPS, GET HTTPS `/` et `/up` **200**, en-tête `Strict-Transport-Security: max-age=31536000; includeSubDomains`. Point 5 : **À corriger** (inventaire des tiers inchangé). Point 17 : campagne CLI **vérifiée** par les lots et le rapprochement en base, mais parcours authentifié des PDF et réception **Non vérifiés** ; le point global reste **Non vérifié**. Point 18 : **Non vérifié** en production pour l'anti-spam derrière le proxy. |

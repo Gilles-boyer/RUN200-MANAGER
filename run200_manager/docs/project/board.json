@@ -405,7 +405,7 @@
       "title": "Envoyer les reçus aux adresses des dossiers en lots contrôlés",
       "owner": "it_backend",
       "priority": 1,
-      "state": "review",
+      "state": "done",
       "acceptance": [
         "Simulation sans effet avec empreinte du lot et anomalies par paiement; Stripe live rapproché, hors Stripe contrôlé sur statut/montant/date et lien au pilote; lot explicite de 20 au maximum; adresse revérifiée juste avant SMTP; sent/sending non rejoués; QA indépendante, CI et contrôle production avant lots"
       ],
@@ -416,12 +416,14 @@
         "tests/Feature/Payments/RecordedAddressReceiptCampaignTest.php"
       ],
       "author": "payments_design",
-      "reviewer": "",
+      "reviewer": "campaign_release_qa",
       "evidence": [
-        "13 tests campagne/85 assertions, 69 tests reçus/426 assertions, suite complète 630/2111, Pint/PHPStan ciblés verts ; QA indépendante GO code"
+        "13 tests campagne/85 assertions, 69 tests reçus/426 assertions, suite complète 630/2111, Pint/PHPStan ciblés verts ; QA indépendante GO code",
+        "PR24 merged/deployed SHA 165bd5a; 252 paid, 251 sent, zero sending/failed, #226 held; HTTP/HTTPS healthy; release report 2026-10-16",
+        "Production reconciled on 2026-10-16: 251/252 paid receipts SMTP accepted, 250 new, 0 sending/failed, 75/75 non-Stripe, #226 held for manual Stripe allocation review; release and audit reports recorded"
       ],
       "revision": "b319221",
-      "review_evidence": "",
+      "review_evidence": "Independent QA GO code after two fixes, 630 tests/2111 assertions and CI 4/4; independent release documentation GO 2026-10-16. Production facts reviewed from coordinator evidence, not direct QA access.",
       "blocked": ""
     }
   ]
