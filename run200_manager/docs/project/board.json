@@ -399,6 +399,28 @@
       "revision": "0c030f2",
       "review_evidence": "Revue independante du garde pilote 0c030f2: GO code; 617 tests/2026 assertions, PHPStan/Pint/vues et CI 4/4; production 150aa63, mode pilot #46/#27, invitation unique SMTP acceptee et zero recu inattendu; livraison du PDF attend la validation du pilote",
       "blocked": ""
+    },
+    {
+      "id": "REC-05",
+      "title": "Envoyer les reçus aux adresses des dossiers en lots contrôlés",
+      "owner": "it_backend",
+      "priority": 1,
+      "state": "doing",
+      "acceptance": [
+        "Simulation sans effet avec empreinte du lot et anomalies par paiement; Stripe live rapproché, hors Stripe contrôlé sur statut/montant/date et lien au pilote; lot explicite de 20 au maximum; adresse revérifiée juste avant SMTP; sent/sending non rejoués; QA indépendante, CI et contrôle production avant lots"
+      ],
+      "depends_on": [],
+      "files": [
+        "app/Console/Commands/SendRecordedAddressPaymentReceipts.php",
+        "app/Application/Payments/UseCases/SendPaymentReceipt.php",
+        "tests/Feature/Payments/RecordedAddressReceiptCampaignTest.php"
+      ],
+      "author": "payments_design",
+      "reviewer": "",
+      "evidence": [],
+      "revision": "",
+      "review_evidence": "",
+      "blocked": ""
     }
   ]
 }

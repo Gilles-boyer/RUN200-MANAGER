@@ -23,7 +23,7 @@ Aucune carte.
 
 ## En cours
 
-Aucune carte.
+- **REC-05** · P1 · Envoyer les reçus aux adresses des dossiers en lots contrôlés · `it_backend`
 
 ## En revue
 

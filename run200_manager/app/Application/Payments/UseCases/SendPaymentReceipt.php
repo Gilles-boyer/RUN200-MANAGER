@@ -18,6 +18,7 @@ final class SendPaymentReceipt
         bool $historical = false,
         bool $requireVerifiedEmail = false,
         ?string $expectedEmail = null,
+        ?int $expectedUserId = null,
     ): bool {
         // Production delivery must be explicit; tests use Mail::fake().
         if (! app()->environment('production', 'testing')) {
@@ -39,7 +40,13 @@ final class SendPaymentReceipt
 
             return false;
         }
-        if ($requireVerifiedEmail && ($recipient->email_verified_at === null || $deliveryEmail !== $expectedEmail)) {
+        if (($expectedEmail !== null && $deliveryEmail !== $expectedEmail)
+            || ($expectedUserId !== null && $recipient->id !== $expectedUserId)) {
+            $this->recordRecipientFailure($receipt, $statuses, 'recipient_changed');
+
+            return false;
+        }
+        if ($requireVerifiedEmail && $recipient->email_verified_at === null) {
             $this->recordRecipientFailure($receipt, $statuses, 'recipient_unverified_or_changed');
 
             return false;
@@ -64,12 +71,16 @@ final class SendPaymentReceipt
 
         try {
             $receipt->refresh();
-            if ($requireVerifiedEmail) {
+            if ($requireVerifiedEmail || $expectedEmail !== null || $expectedUserId !== null) {
                 // Re-read after claiming: the command's precheck and the first lookup may be stale.
                 $payment = Payment::query()->with('registration.pilot.user')->find($receipt->payment_id);
                 $recipient = $payment?->registration?->pilot?->user;
-                if ($recipient?->email_verified_at === null || $recipient->email !== $expectedEmail) {
-                    $this->recordRecipientFailure($receipt, ['sending'], 'recipient_unverified_or_changed');
+                if ($recipient === null
+                    || $recipient->email !== $deliveryEmail
+                    || ($expectedEmail !== null && $recipient->email !== $expectedEmail)
+                    || ($expectedUserId !== null && $recipient->id !== $expectedUserId)
+                    || ($requireVerifiedEmail && $recipient->email_verified_at === null)) {
+                    $this->recordRecipientFailure($receipt, ['sending'], 'recipient_changed_or_unverified');
 
                     return false;
                 }
