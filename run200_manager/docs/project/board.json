@@ -405,7 +405,7 @@
       "title": "Envoyer les reçus aux adresses des dossiers en lots contrôlés",
       "owner": "it_backend",
       "priority": 1,
-      "state": "doing",
+      "state": "review",
       "acceptance": [
         "Simulation sans effet avec empreinte du lot et anomalies par paiement; Stripe live rapproché, hors Stripe contrôlé sur statut/montant/date et lien au pilote; lot explicite de 20 au maximum; adresse revérifiée juste avant SMTP; sent/sending non rejoués; QA indépendante, CI et contrôle production avant lots"
       ],
@@ -417,8 +417,10 @@
       ],
       "author": "payments_design",
       "reviewer": "",
-      "evidence": [],
-      "revision": "",
+      "evidence": [
+        "13 tests campagne/85 assertions, 69 tests reçus/426 assertions, suite complète 630/2111, Pint/PHPStan ciblés verts ; QA indépendante GO code"
+      ],
+      "revision": "b319221",
       "review_evidence": "",
       "blocked": ""
     }
