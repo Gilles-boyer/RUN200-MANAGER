@@ -204,12 +204,21 @@
                                     <div class="space-y-1">
                                         {{-- Statut du paiement --}}
                                         @if($latestPayment->isPaid())
-                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-status-success/20 text-status-success">
-                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                                </svg>
-                                                Payé
-                                            </span>
+                                            @php
+                                                $balanceCents = max(0, (int) $registration->race->entry_fee_cents - $registration->getPaidAmountCents());
+                                            @endphp
+                                            @if($balanceCents > 0)
+                                                <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-status-warning/20 text-status-warning">
+                                                    À régler · {{ number_format($balanceCents / 100, 2, ',', ' ') }} €
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-status-success/20 text-status-success">
+                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    Payé
+                                                </span>
+                                            @endif
                                         @elseif($latestPayment->isPending())
                                             <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-status-warning/20 text-status-warning">
                                                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -242,9 +251,13 @@
                                         </div>
                                     </div>
                                 @else
-                                    <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-carbon-700/50 text-carbon-500">
-                                        Aucun paiement
-                                    </span>
+                                    @if($registration->race?->entry_fee_cents > 0 && ($registration->isPendingPayment() || in_array($registration->status, \App\Models\RaceRegistration::engagedStatuses(), true)))
+                                        <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-status-warning/20 text-status-warning">
+                                            À régler · {{ $registration->race->formatted_entry_fee }}
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-carbon-700/50 text-carbon-500">Aucun paiement</span>
+                                    @endif
                                 @endif
                             </td>
                             <td class="px-4 py-4">
@@ -313,14 +326,16 @@
                                         </a>
                                     @endcan
 
-                                    @if($registration->isPending() && auth()->user()->can('race_registration.validate'))
+                                    @if(($registration->isPending() || $registration->isPendingPayment()) && auth()->user()->can('race_registration.validate'))
                                         <button wire:click="openValidationModal({{ $registration->id }}, 'accept')"
                                                 class="p-2 rounded-lg text-status-success hover:bg-status-success/20 transition-colors"
-                                                title="Accepter">
+                                                title="{{ $registration->isPendingPayment() ? 'Accepter avant paiement' : 'Accepter' }}"
+                                                aria-label="{{ $registration->isPendingPayment() ? 'Accepter avant paiement' : 'Accepter' }}">
                                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                             </svg>
                                         </button>
+                                        @if($registration->isPending())
                                         <button wire:click="openValidationModal({{ $registration->id }}, 'refuse')"
                                                 class="p-2 rounded-lg text-status-danger hover:bg-status-danger/20 transition-colors"
                                                 title="Refuser">
@@ -328,6 +343,7 @@
                                                 <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
                                             </svg>
                                         </button>
+                                        @endif
                                     @endif
 
                                     @if($registration->isAccepted() && auth()->user()->can('race_registration.assign_paddock'))
@@ -416,9 +432,18 @@
                             @if($latestPayment)
                                 <div class="flex items-center gap-2">
                                     @if($latestPayment->isPaid())
-                                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-status-success/20 text-status-success">
-                                            ✓ {{ $latestPayment->formatted_amount }}
-                                        </span>
+                                        @php
+                                            $balanceCents = max(0, (int) $registration->race->entry_fee_cents - $registration->getPaidAmountCents());
+                                        @endphp
+                                        @if($balanceCents > 0)
+                                            <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-status-warning/20 text-status-warning">
+                                                À régler · {{ number_format($balanceCents / 100, 2, ',', ' ') }} €
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-status-success/20 text-status-success">
+                                                ✓ {{ $latestPayment->formatted_amount }}
+                                            </span>
+                                        @endif
                                     @elseif($latestPayment->isPending())
                                         <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-status-warning/20 text-status-warning">
                                             ⏳ En attente
@@ -430,7 +455,11 @@
                                     @endif
                                 </div>
                             @else
-                                <span class="text-xs text-carbon-500">Aucun</span>
+                                @if($registration->race?->entry_fee_cents > 0 && ($registration->isPendingPayment() || in_array($registration->status, \App\Models\RaceRegistration::engagedStatuses(), true)))
+                                    <span class="text-xs font-medium text-status-warning">À régler · {{ $registration->race->formatted_entry_fee }}</span>
+                                @else
+                                    <span class="text-xs text-carbon-500">Aucun</span>
+                                @endif
                             @endif
                         </div>
 
@@ -474,14 +503,15 @@
                                 Paiements
                             </a>
                         @endcan
-                        @if($registration->isPending() && auth()->user()->can('race_registration.validate'))
+                        @if(($registration->isPending() || $registration->isPendingPayment()) && auth()->user()->can('race_registration.validate'))
                             <button wire:click="openValidationModal({{ $registration->id }}, 'accept')"
                                     class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-status-success/20 text-status-success text-sm font-medium hover:bg-status-success/30 transition-colors tap-target">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                 </svg>
-                                Accepter
+                                {{ $registration->isPendingPayment() ? 'Accepter avant paiement' : 'Accepter' }}
                             </button>
+                            @if($registration->isPending())
                             <button wire:click="openValidationModal({{ $registration->id }}, 'refuse')"
                                     class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-status-danger/20 text-status-danger text-sm font-medium hover:bg-status-danger/30 transition-colors tap-target">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -489,6 +519,7 @@
                                 </svg>
                                 Refuser
                             </button>
+                            @endif
                         @endif
                         @if($registration->isAccepted() && auth()->user()->can('race_registration.assign_paddock'))
                             <button wire:click="openPaddockModal({{ $registration->id }})"
@@ -539,7 +570,7 @@
                                 @endif
                             </div>
                             <h3 class="text-lg font-semibold text-white">
-                                {{ $validationAction === 'accept' ? 'Accepter l\'inscription' : 'Refuser l\'inscription' }}
+                                {{ $validationAction === 'accept' ? ($selectedRegistration->isPendingPayment() ? 'Accepter avant paiement' : 'Accepter l\'inscription') : 'Refuser l\'inscription' }}
                             </h3>
                         </div>
 
@@ -560,6 +591,12 @@
                             </div>
                         </div>
 
+                        @if($validationAction === 'accept' && $selectedRegistration->isPendingPayment())
+                            <div class="mb-6 p-4 rounded-xl border border-status-warning/40 bg-status-warning/10 text-sm text-carbon-100" role="status">
+                                Le paiement n'est pas encore enregistré. Cette décision accepte l'inscription et donne accès à l'E-Card et aux vérifications. Le règlement devra être confirmé séparément, notamment lors des VA/VT. Aucun reçu ne sera créé par cette validation.
+                            </div>
+                        @endif
+
                         @if($validationAction === 'refuse')
                             <x-racing.form.textarea
                                 wire:model="refusalReason"
@@ -577,9 +614,11 @@
                         </x-racing.button>
                         <x-racing.button
                             wire:click="confirmValidation"
+                            wire:loading.attr="disabled"
+                            wire:target="confirmValidation"
                             variant="{{ $validationAction === 'accept' ? 'primary' : 'danger' }}"
                         >
-                            {{ $validationAction === 'accept' ? 'Accepter' : 'Refuser' }}
+                            {{ $validationAction === 'accept' ? ($selectedRegistration->isPendingPayment() ? 'Accepter avant paiement' : 'Accepter') : 'Refuser' }}
                         </x-racing.button>
                     </div>
                 </div>

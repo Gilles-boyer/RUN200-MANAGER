@@ -1,0 +1,11 @@
+# TRD — REG-UNPAID-01
+
+Version de cadrage du 28/10/2026, base locale `1aaa13c`. Laravel 12 / Livewire 4 sur o2switch ; opération existante dans `app/Application/Registrations/UseCases/ValidateRegistration.php` appelée par `app/Livewire/Staff/Registrations/Index.php`.
+
+- REQ-AP-01/05 : conserver la permission `race_registration.validate` sur ouverture et confirmation ; relire l'inscription depuis la base au moment de confirmer. Autoriser `PENDING_PAYMENT` uniquement dans le chemin d'acceptation explicite ; le refus reste limité à `PENDING_VALIDATION`.
+- REQ-AP-02 : transaction et verrou de ligne sur l'inscription, journaliser le statut initial, l'acteur et l'absence de paiement au moment de la décision. Conserver `RegistrationAccepted` ; ne pas dispatcher `PaymentConfirmed`, toucher `payments` ou créer un reçu.
+- REQ-AP-03 : distinguer état d'inscription et somme restant due dans la liste staff, la confirmation et les e-mails `created`, `accepted`, `tech-inspection-completed`, `engagement-signed`, y compris lorsqu'il n'existe encore aucune ligne Payment. `created` présente la possibilité de validation manuelle, utilise `race.formatted_entry_fee` et renvoie à l'espace pilote pour un état à jour au lieu d'un statut potentiellement périmé dans la file. Les messages ultérieurs utilisent l'état réel au rendu ; `accepted` présente l'E-Card comme déjà accessible.
+- REQ-AP-04 : réutiliser `CreateStripeCheckout`, `HandleStripeWebhook` et `RecordManualPayment` ; Stripe accepte `ACCEPTED` et l'encaissement manuel accepte aussi les statuts engagés ultérieurs. `RecordManualPayment` doit toujours bloquer un Stripe `pending/processing`. Essais de non-rétrogradation et d'absence de double paiement.
+- Erreurs : statut devenu invalide entre ouverture et confirmation → message français sans mutation ; refus de permission → 403. Pas de nouveau service externe, configuration ou route. Observabilité par `activity_log`, sans donnée de carte.
+
+Exigence d'exploitation : aucun paiement réel pour les tests ; utiliser SQLite en mémoire / Stripe et mail simulés. La publication éventuelle requiert audit `audit-sites`, CI, SHA serveur et vérifications authentifiées, sans verdict global « prêt » tant que les P0 de l'audit du 26/10 demeurent ouverts.

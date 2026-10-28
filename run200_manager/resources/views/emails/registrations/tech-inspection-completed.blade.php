@@ -39,11 +39,18 @@
     <div class="racing-card">
         <h3 style="color: #FFFFFF; margin-top: 0;">📅 Prochaines étapes</h3>
         <ol>
-            <li>✅ Paiement effectué</li>
+            @php
+                $balanceCents = max(0, (int) $techInspection->registration->race->entry_fee_cents - $techInspection->registration->getPaidAmountCents());
+            @endphp
+            @if($balanceCents === 0)
+                <li>✅ Règlement enregistré</li>
+            @else
+                <li>⏳ Solde à régler auprès de l'organisation : {{ number_format($balanceCents / 100, 2, ',', ' ') }} €</li>
+            @endif
             <li>✅ Inscription validée</li>
             <li>✅ Validation technique effectuée</li>
             <li>⏳ Signature de la feuille d'engagement</li>
-            <li>⏳ Réception de votre E-Card avec QR code</li>
+            <li>✅ E-Card avec QR code accessible dans votre espace pilote</li>
         </ol>
     </div>
 

@@ -26,9 +26,16 @@
 <p>Vous êtes maintenant <strong>officiellement engagé</strong> pour cette course ! 🎉</p>
 
 <div class="racing-card">
-    <h3 style="color: #FFFFFF; margin-top: 0;">📅 Toutes les étapes complétées !</h3>
+    <h3 style="color: #FFFFFF; margin-top: 0;">📅 Suivi de vos étapes</h3>
     <ol>
-        <li>✅ Paiement effectué</li>
+        @php
+            $balanceCents = max(0, (int) $engagementForm->registration->race->entry_fee_cents - $engagementForm->registration->getPaidAmountCents());
+        @endphp
+        @if($balanceCents === 0)
+            <li>✅ Règlement enregistré</li>
+        @else
+            <li>⏳ Solde à régler auprès de l'organisation : {{ number_format($balanceCents / 100, 2, ',', ' ') }} €</li>
+        @endif
         <li>✅ Inscription validée</li>
         <li>✅ Validation technique effectuée</li>
         <li>✅ Feuille d'engagement signée</li>

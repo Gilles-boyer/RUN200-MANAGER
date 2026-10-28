@@ -57,7 +57,7 @@
         <li><strong>Contrôle administratif</strong> - Vérification de vos documents</li>
         <li><strong>Contrôle technique</strong> - Inspection de votre véhicule</li>
         <li><strong>Signature de la feuille d'engagement</strong></li>
-        <li><strong>Remise de votre E-Card</strong> avec QR code</li>
+        <li><strong>E-Card disponible dans votre espace pilote</strong> avec QR code</li>
     </ol>
 </div>
 
@@ -72,11 +72,18 @@
 <div class="racing-card">
     <h3 style="color: #FFFFFF; margin-top: 0;">📅 Prochaines étapes</h3>
     <ol>
-        <li>✅ Paiement effectué</li>
+        @php
+            $balanceCents = max(0, (int) $registration->race->entry_fee_cents - $registration->getPaidAmountCents());
+        @endphp
+        @if($balanceCents === 0)
+            <li>✅ Règlement enregistré</li>
+        @else
+            <li>⏳ Solde à régler auprès de l'organisation : {{ number_format($balanceCents / 100, 2, ',', ' ') }} €</li>
+        @endif
         <li>✅ Inscription validée</li>
         <li>⏳ <strong>Validation technique le samedi à 14h</strong></li>
         <li>⏳ Signature de la feuille d'engagement</li>
-        <li>⏳ Réception de votre E-Card avec QR code</li>
+        <li>✅ E-Card avec QR code accessible dans votre espace pilote</li>
     </ol>
 </div>
 
