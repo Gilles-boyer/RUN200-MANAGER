@@ -29,32 +29,45 @@
     </div>
     <div class="detail-line">
         <span class="detail-label">Statut</span>
-        <span class="status-badge status-pending">{{ $registration->status === 'PENDING_PAYMENT' ? 'En attente de paiement' : 'En attente de validation' }}</span>
+        <span class="detail-value">Consultez votre espace pilote pour connaître l'état à jour.</span>
     </div>
 </div>
 
-@if($registration->status === 'PENDING_PAYMENT')
+@php
+    $balanceCents = max(0, (int) $registration->race->entry_fee_cents - $registration->getPaidAmountCents());
+@endphp
+
+@if($balanceCents > 0 && ! in_array($registration->status, ['REFUSED', 'CANCELLED'], true))
 <div class="warning-box">
-    <h3>⚠️ Paiement requis</h3>
-    <p>Votre inscription sera validée après réception du paiement de l'engagement.</p>
-    <p style="margin-bottom: 0;"><strong>Montant :</strong> {{ config('stripe.registration_fee_cents') / 100 }} {{ config('stripe.currency') }}</p>
+    <h3>⚠️ Paiement restant dû</h3>
+    <p>L'organisateur peut accepter l'inscription avant encaissement. Le règlement reste dû et sa réception sera confirmée séparément lors des VA/VT.</p>
+    @if(in_array($registration->status, ['PENDING_PAYMENT', 'ACCEPTED'], true))
+        <p>Vous pouvez aussi payer en ligne depuis votre espace pilote.</p>
+    @endif
+    <p style="margin-bottom: 0;"><strong>Solde :</strong> {{ number_format($balanceCents / 100, 2, ',', ' ') }} €</p>
 </div>
 
+@if(in_array($registration->status, ['PENDING_PAYMENT', 'ACCEPTED'], true))
 <div style="text-align: center;">
     <a href="{{ route('pilot.registrations.payment', $registration) }}" class="button">
         💳 Payer mon engagement
     </a>
 </div>
 @endif
+@endif
 
 <div class="racing-card">
     <h3 style="color: #FFFFFF; margin-top: 0;">📅 Prochaines étapes</h3>
     <ol>
-        <li>Paiement de l'engagement ({{ config('stripe.registration_fee_cents') / 100 }}€)</li>
-        <li>Validation de votre inscription par l'organisation</li>
+        @if($balanceCents === 0)
+            <li>Règlement de l'engagement enregistré</li>
+        @else
+            <li>Solde de l'engagement ({{ number_format($balanceCents / 100, 2, ',', ' ') }} €) : à régler séparément</li>
+        @endif
+        <li>Décision de l'organisation concernant votre inscription</li>
         <li><strong>Validation technique le samedi à 14h</strong> (vérifications administratives et techniques)</li>
         <li>Signature de la feuille d'engagement</li>
-        <li>Réception de votre E-Card avec QR code</li>
+        <li>E-Card avec QR code accessible dès l'acceptation de l'inscription</li>
     </ol>
 </div>
 

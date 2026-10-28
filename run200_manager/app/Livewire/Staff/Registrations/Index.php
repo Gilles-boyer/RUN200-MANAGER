@@ -135,7 +135,18 @@ class Index extends Component
     {
         Gate::authorize('race_registration.validate');
 
-        $this->selectedRegistration = RaceRegistration::with(['pilot', 'car', 'race'])->find($registrationId);
+        if (! in_array($action, ['accept', 'refuse'], true)) {
+            throw ValidationException::withMessages(['validationAction' => 'Cette décision est invalide.']);
+        }
+
+        $registration = RaceRegistration::with(['pilot', 'car', 'race'])->findOrFail($registrationId);
+        if (! $registration->isPending() && ! ($action === 'accept' && $registration->isPendingPayment())) {
+            session()->flash('error', 'Le statut de cette inscription a changé. Actualisez la liste avant de continuer.');
+
+            return;
+        }
+
+        $this->selectedRegistration = $registration;
         $this->validationAction = $action;
         $this->refusalReason = '';
         $this->showValidationModal = true;
@@ -164,8 +175,13 @@ class Index extends Component
             $registration = RaceRegistration::findOrFail($this->selectedRegistration->id);
 
             if ($this->validationAction === 'accept') {
-                $useCase->accept($registration);
-                session()->flash('success', 'Inscription acceptée avec succès.');
+                $validated = $registration->isPendingPayment()
+                    ? $useCase->acceptBeforePayment($registration)
+                    : $useCase->accept($registration);
+                $balanceCents = max(0, (int) $validated->race->entry_fee_cents - $validated->getPaidAmountCents());
+                session()->flash('success', $balanceCents === 0
+                    ? 'Inscription acceptée avec succès.'
+                    : 'Inscription acceptée. Solde à régler : '.number_format($balanceCents / 100, 2, ',', ' ').' €.');
             } else {
                 $this->validate([
                     'refusalReason' => 'required|min:10',
@@ -180,7 +196,9 @@ class Index extends Component
         } catch (ValidationException $e) {
             throw $e;
         } catch (\InvalidArgumentException $e) {
-            session()->flash('error', $e->getMessage());
+            session()->flash('error', $e->getMessage() === 'Seules les inscriptions en attente peuvent être validées'
+                ? 'Le statut de cette inscription a changé. Actualisez la liste avant de continuer.'
+                : $e->getMessage());
         } catch (\Exception $e) {
             session()->flash('error', UserFacingError::message($e, 'Impossible de valider cette inscription.'));
         }
