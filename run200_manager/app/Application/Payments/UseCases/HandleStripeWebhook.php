@@ -130,7 +130,12 @@ final class HandleStripeWebhook
     {
         $sessionId = $sessionData['id'];
 
-        $payment = Payment::where('stripe_session_id', $sessionId)->first();
+        $matches = Payment::where('stripe_session_id', $sessionId)->limit(2)->get();
+        if ($matches->count() > 1) {
+            throw new InvalidArgumentException('Multiple payments found for the expired Stripe session');
+        }
+
+        $payment = $matches->first();
 
         if (! $payment) {
             throw new InvalidArgumentException(
@@ -143,10 +148,24 @@ final class HandleStripeWebhook
             return $payment;
         }
 
-        return DB::transaction(function () use ($payment) {
+        if ($payment->stripe_payment_intent_id !== null || ! empty($sessionData['payment_intent'])) {
+            Log::warning('Expired Checkout requires payment intent reconciliation', ['payment_id' => $payment->id]);
+
+            return $payment;
+        }
+
+        return DB::transaction(function () use ($payment, $sessionId) {
             $payment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
             if ($this->isSettled($payment) || $payment->isCancelled()) {
                 return $payment;
+            }
+            if ($payment->stripe_payment_intent_id !== null) {
+                Log::warning('Expired Checkout has a local payment intent', ['payment_id' => $payment->id]);
+
+                return $payment;
+            }
+            if (Payment::where('stripe_session_id', $sessionId)->count() !== 1) {
+                throw new InvalidArgumentException('Multiple payments found for the expired Stripe session');
             }
 
             $payment->update([
