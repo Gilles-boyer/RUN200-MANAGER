@@ -9,3 +9,9 @@ Version de cadrage du 28/10/2026 v1.4, base locale `1aaa13c`. Utilisateurs : sta
 - Accessibilité : texte clair sans se reposer sur la couleur, boutons nommés, message d'erreur attaché à l'action. Conserver les points mobiles existants ; les défauts d'accessibilité plus larges restent dans l'audit du 26/10.
 
 L'E-Card et les contrôles restent accessibles après `ACCEPTED` selon la logique actuelle ; l'écran de scan conserve son avertissement « NON PAYÉ ».
+
+## PAY-EXPIRED-01 — Interface pilote (29/10/2026, v1.3)
+
+Sur mobile comme sur bureau, remplacer le badge technique `PENDING_PAYMENT` par « En attente de paiement ». Le bouton de reprise annonce la vérification et se désactive pendant l'appel. Après expiration confirmée, actualiser immédiatement la carte et afficher « Cette tentative a expiré. Vous n'avez pas été débité pour cette tentative. Vous pouvez réessayer. » avec action explicite « Réessayer le paiement » si le statut sportif le permet ; sinon orienter vers le staff. En cas d'incertitude, ne pas promettre l'absence de débit : « Nous vérifions votre paiement. Réessayez plus tard ou contactez l'organisation. » Pour une session `complete/paid` non rapprochée localement : « Paiement reçu par Stripe. L'organisation finalise sa confirmation ; ne payez pas une seconde fois. » Les messages sont lisibles au clavier et sans dépendre de la couleur.
+
+La carte de reprise affiche le montant enregistré dans la tentative Stripe locale, car le tarif actuel de la course peut avoir changé. Après expiration confirmée, la nouvelle action affiche le tarif actuel. Si le statut sportif ne permet plus le règlement, masquer « Payer » et orienter vers les inscriptions/l'organisation.

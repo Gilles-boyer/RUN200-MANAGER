@@ -13,3 +13,16 @@ Version de cadrage du 28/10/2026, base locale `1aaa13c`. Périmètre limité à 
 L'acceptation donne les accès normalement liés à `ACCEPTED` (E-Card, paddock, VA/VT), avec indication « NON PAYÉ » au scanner jusqu'à encaissement. La demande de l'utilisateur couvre cette exception de validation ; aucun changement de tarif, de droit à remboursement ou de politique d'encaissement n'est demandé. Les dates et montants de paiement restent établis uniquement par les flux de paiement existants.
 
 Un paiement Stripe déjà en cours doit être vérifié/résolu avant un encaissement manuel aux VA/VT afin d'éviter un double paiement. Le paiement en ligne est disponible tant que l'inscription reste exactement `ACCEPTED` ; la possibilité de l'étendre aux statuts de contrôle ultérieurs est hors de cette itération.
+
+## PAY-EXPIRED-01 — Reprise d'un paiement Stripe (29/10/2026, v1.3)
+
+Constat vérifié sur un dossier de novembre : une tentative locale restait `pending` alors que Stripe indiquait `expired`, `unpaid` et aucun PaymentIntent. Après ce contrôle, la tentative locale a été clôturée ; aucun nouveau paiement n'a été créé. Les identités et URL Stripe ne sont pas conservées dans ce contrat.
+
+| Exigence | Critère observable |
+| --- | --- |
+| REQ-PE-01 | Une session Stripe encore `open` se reprend via son URL actuelle. |
+| REQ-PE-02 | Une session `expired` et `unpaid`, sans intention de paiement, est clôturée localement après contrôle serveur ; le pilote peut alors démarrer une nouvelle tentative. |
+| REQ-PE-03 | Une session `complete` et `paid` bloque tout second paiement et affiche qu'un rapprochement par l'organisation est en cours. Le rapprochement historique doit préserver la date réelle d'encaissement et sera traité séparément. Une session en traitement, ambiguë ou inaccessible reste bloquée sans mutation financière. |
+| REQ-PE-04 | Le pilote reçoit un message français utile, voit « En attente de paiement » à la place du code `PENDING_PAYMENT`, et le montant de la tentative Stripe encore ouverte plutôt qu'un tarif de course éventuellement modifié. |
+
+Le correctif ne modifie ni le tarif ni la possibilité d'accepter l'inscription avant paiement. Le nouveau paiement est proposé seulement si l'inscription reste `PENDING_PAYMENT` ou `ACCEPTED`. Il ne lance jamais un nouveau Checkout automatiquement sans action du pilote.

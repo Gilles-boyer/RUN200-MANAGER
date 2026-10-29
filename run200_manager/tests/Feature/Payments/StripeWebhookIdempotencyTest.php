@@ -127,6 +127,53 @@ class StripeWebhookIdempotencyTest extends TestCase
         $this->assertEquals($paidAt, $this->payment->fresh()->paid_at);
     }
 
+    public function test_expiration_keeps_a_pending_payment_with_a_local_intent_for_reconciliation(): void
+    {
+        $this->payment->update(['stripe_payment_intent_id' => 'pi_test_must_reconcile']);
+
+        $result = $this->webhookHandler->handleCheckoutExpired(['id' => 'cs_test_123456']);
+
+        $this->assertEquals('pending', $result->status->value);
+        $this->assertEquals('pending', $this->payment->fresh()->status->value);
+        $this->assertEquals('pi_test_must_reconcile', $this->payment->fresh()->stripe_payment_intent_id);
+        $this->assertNull($this->payment->fresh()->failure_reason);
+    }
+
+    public function test_expiration_keeps_a_pending_payment_when_stripe_event_has_an_intent(): void
+    {
+        $result = $this->webhookHandler->handleCheckoutExpired([
+            'id' => 'cs_test_123456',
+            'payment_intent' => 'pi_test_remote',
+        ]);
+
+        $this->assertEquals('pending', $result->status->value);
+        $this->assertEquals('pending', $this->payment->fresh()->status->value);
+    }
+
+    public function test_expiration_refuses_a_duplicated_session_id_without_cancelling_either_payment(): void
+    {
+        $other = Payment::create([
+            'race_registration_id' => $this->registration->id,
+            'user_id' => $this->user->id,
+            'amount' => 50.00,
+            'amount_cents' => 5000,
+            'currency' => 'EUR',
+            'method' => 'stripe',
+            'status' => 'pending',
+            'stripe_session_id' => 'cs_test_123456',
+        ]);
+
+        try {
+            $this->webhookHandler->handleCheckoutExpired(['id' => 'cs_test_123456']);
+            $this->fail('Duplicated session should be rejected');
+        } catch (\InvalidArgumentException $e) {
+            $this->assertStringContainsString('Multiple payments', $e->getMessage());
+        }
+
+        $this->assertEquals('pending', $this->payment->fresh()->status->value);
+        $this->assertEquals('pending', $other->fresh()->status->value);
+    }
+
     public function test_late_payment_failure_cannot_replace_a_confirmed_payment(): void
     {
         $this->webhookHandler->handleCheckoutCompleted([

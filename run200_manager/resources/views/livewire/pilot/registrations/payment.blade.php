@@ -48,9 +48,15 @@
             <div class="lg:col-span-3">
                 <x-racing.card>
                     @if($errorMessage)
-                        <x-racing.alert type="danger" class="mb-6">
+                        <x-racing.alert type="danger" class="mb-6" role="alert">
                             {{ $errorMessage }}
                             <a href="{{ route('pilot.registrations.index') }}" class="font-semibold underline">Voir mes inscriptions</a>
+                        </x-racing.alert>
+                    @endif
+
+                    @if($noticeMessage)
+                        <x-racing.alert type="info" class="mb-6" role="status" aria-live="polite">
+                            {{ $noticeMessage }}
                         </x-racing.alert>
                     @endif
 
@@ -94,33 +100,44 @@
                             <h3 class="mt-6 text-xl font-bold text-carbon-900 dark:text-white">
                                 Paiement en attente
                             </h3>
-                            <p class="mt-2 text-sm text-carbon-500 dark:text-carbon-400">
-                                Vous avez un paiement en cours. Reprenez cette session pour le finaliser. Si elle a expiré, attendez la mise à jour de son statut avant de réessayer.
+                            <p id="payment-pending-help" class="mt-2 text-sm text-carbon-500 dark:text-carbon-400">
+                                @if(in_array($registration->status, ['PENDING_PAYMENT', 'ACCEPTED'], true))
+                                    Vérifiez cette tentative pour reprendre une session encore ouverte. Si elle a expiré sans paiement, vous pourrez réessayer.
+                                @else
+                                    Cette inscription ne peut plus être réglée en ligne dans son état actuel. Vérifiez la tentative et contactez l’organisation pour la suite.
+                                @endif
                             </p>
                             <p class="mt-4 text-3xl font-bold text-racing-red-500">
-                                {{ $this->formattedFee }}
+                                {{ $this->pendingPayment->formatted_amount }}
                             </p>
                             <div class="mt-8 space-y-3">
                                 <x-racing.button
                                     wire:click="resumePayment"
                                     wire:loading.attr="disabled"
+                                    wire:target="resumePayment"
+                                    aria-describedby="payment-pending-help"
                                     variant="primary"
                                     class="w-full justify-center"
                                 >
-                                    <span wire:loading.remove wire:target="resumePayment">Reprendre le paiement</span>
-                                    <span wire:loading wire:target="resumePayment">Redirection...</span>
+                                    <span wire:loading.remove wire:target="resumePayment">
+                                        {{ in_array($registration->status, ['PENDING_PAYMENT', 'ACCEPTED'], true) ? 'Vérifier et reprendre le paiement' : 'Vérifier le paiement' }}
+                                    </span>
+                                    <span wire:loading wire:target="resumePayment" role="status">Vérification du paiement...</span>
                                 </x-racing.button>
                             </div>
                         </div>
 
                     @else
                         {{-- New Payment --}}
+                        @if(in_array($registration->status, ['PENDING_PAYMENT', 'ACCEPTED'], true))
                         <div class="text-center py-6">
                             <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-racing-red-500/20">
                                 <span class="text-4xl">💳</span>
                             </div>
                             <h3 class="mt-6 text-xl font-bold text-carbon-900 dark:text-white">
-                                @if($registration->status === 'PENDING_PAYMENT')
+                                @if($canRetryExpiredPayment)
+                                    Réessayer le paiement
+                                @elseif($registration->status === 'PENDING_PAYMENT')
                                     Finalisez votre inscription
                                 @else
                                     Frais d'inscription
@@ -150,7 +167,11 @@
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                                         </svg>
-                                        Payer {{ $this->formattedFee }}
+                                        @if($canRetryExpiredPayment)
+                                            Réessayer le paiement de {{ $this->formattedFee }}
+                                        @else
+                                            Payer {{ $this->formattedFee }}
+                                        @endif
                                     </span>
                                     <span wire:loading wire:target="initiateStripePayment" class="flex items-center gap-2">
                                         <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
@@ -169,6 +190,24 @@
                                 Paiement sécurisé par Stripe
                             </p>
                         </div>
+                        @else
+                            <div class="text-center py-6">
+                                <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-status-warning/20" aria-hidden="true">
+                                    <span class="text-4xl">ℹ️</span>
+                                </div>
+                                <h3 class="mt-6 text-xl font-bold text-carbon-900 dark:text-white">
+                                    Paiement en ligne indisponible
+                                </h3>
+                                <p class="mt-2 text-sm text-carbon-600 dark:text-carbon-300">
+                                    Votre inscription ne peut plus être réglée en ligne dans son état actuel. Contactez l’organisation pour connaître la suite.
+                                </p>
+                                <div class="mt-8">
+                                    <x-racing.button href="{{ route('pilot.registrations.index') }}" variant="secondary" class="w-full justify-center">
+                                        Voir mes inscriptions
+                                    </x-racing.button>
+                                </div>
+                            </div>
+                        @endif
                     @endif
                 </x-racing.card>
             </div>
@@ -235,9 +274,7 @@
                         <div class="pt-4 border-t border-carbon-200 dark:border-carbon-700">
                             <div class="flex items-center justify-between">
                                 <span class="text-sm text-carbon-500 dark:text-carbon-400">Statut</span>
-                                <x-racing.badge-status :status="$registration->status">
-                                    {{ $registration->status_label ?? $registration->status }}
-                                </x-racing.badge-status>
+                                <x-racing.badge-status :status="$registration->status" />
                             </div>
                         </div>
                     </div>
