@@ -198,14 +198,38 @@
                             {{-- Colonne Paiement --}}
                             <td class="px-4 py-4">
                                 @php
-                                    $latestPayment = $registration->payments->sortByDesc('created_at')->first();
+                                    $paymentRows = $registration->payments->sortByDesc('created_at')->map(function ($payment) {
+                                        $netCents = 0;
+                                        if ($payment->isPaid() || $payment->isPartiallyRefunded() || $payment->isRefunded()) {
+                                            $paidCents = ($payment->amount_cents ?? 0) > 0
+                                                ? $payment->amount_cents : (int) round((float) $payment->amount * 100);
+                                            $refundedCents = (int) $payment->refund_amount_cents;
+                                            if (!$payment->isRefunded() && (!$payment->isPartiallyRefunded()
+                                                || ($refundedCents > 0 && $refundedCents < $paidCents))) {
+                                                $netCents = max(0, $paidCents - $refundedCents);
+                                            }
+                                        }
+                                        return ['payment' => $payment, 'net_cents' => $netCents];
+                                    });
+                                    $paidAmountCents = $paymentRows->sum('net_cents');
+                                    $latestPayment = $paymentRows->first()['payment'] ?? null;
+                                    $activePayment = $latestPayment?->isCancelled()
+                                        ? ($paymentRows->first(fn ($row) => $row['net_cents'] > 0)['payment'] ?? null)
+                                        : null;
+                                    $displayPayment = $activePayment ?? $latestPayment;
+                                    $cancelledWithoutPayment = $latestPayment?->isCancelled() && $activePayment === null;
                                 @endphp
-                                @if($latestPayment)
+                                @if($cancelledWithoutPayment)
+                                    <div class="space-y-1">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-status-warning/20 text-status-warning">Non payé</span>
+                                        <div class="text-xs text-carbon-400">Dernière saisie annulée</div>
+                                    </div>
+                                @elseif($displayPayment)
                                     <div class="space-y-1">
                                         {{-- Statut du paiement --}}
-                                        @if($latestPayment->isPaid())
+                                        @if($displayPayment->isPaid())
                                             @php
-                                                $balanceCents = max(0, (int) $registration->race->entry_fee_cents - $registration->getPaidAmountCents());
+                                                $balanceCents = max(0, (int) $registration->race->entry_fee_cents - $paidAmountCents);
                                             @endphp
                                             @if($balanceCents > 0)
                                                 <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-status-warning/20 text-status-warning">
@@ -219,20 +243,20 @@
                                                     Payé
                                                 </span>
                                             @endif
-                                        @elseif($latestPayment->isPending())
+                                        @elseif($displayPayment->isPending())
                                             <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-status-warning/20 text-status-warning">
                                                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
                                                 </svg>
                                                 En attente
                                             </span>
-                                        @elseif($latestPayment->isFailed())
+                                        @elseif($displayPayment->isFailed())
                                             <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-status-danger/20 text-status-danger">
                                                 ✗ Échoué
                                             </span>
                                         @else
                                             <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-carbon-700 text-carbon-400">
-                                                {{ $latestPayment->status_label }}
+                                                {{ $displayPayment->status_label }}
                                             </span>
                                         @endif
                                         {{-- Méthode et montant --}}
@@ -246,8 +270,8 @@
                                                     'manual' => '✋',
                                                 ];
                                             @endphp
-                                            {{ $methodIcons[$latestPayment->method->value] ?? '❓' }}
-                                            {{ $latestPayment->formatted_amount }}
+                                            {{ $methodIcons[$displayPayment->method->value] ?? '❓' }}
+                                            {{ $displayPayment->formatted_amount }}
                                         </div>
                                     </div>
                                 @else
@@ -425,15 +449,36 @@
 
                         {{-- Paiement (Mobile) --}}
                         @php
-                            $latestPayment = $registration->payments->sortByDesc('created_at')->first();
+                            $paymentRows = $registration->payments->sortByDesc('created_at')->map(function ($payment) {
+                                $netCents = 0;
+                                if ($payment->isPaid() || $payment->isPartiallyRefunded() || $payment->isRefunded()) {
+                                    $paidCents = ($payment->amount_cents ?? 0) > 0
+                                        ? $payment->amount_cents : (int) round((float) $payment->amount * 100);
+                                    $refundedCents = (int) $payment->refund_amount_cents;
+                                    if (!$payment->isRefunded() && (!$payment->isPartiallyRefunded()
+                                        || ($refundedCents > 0 && $refundedCents < $paidCents))) {
+                                        $netCents = max(0, $paidCents - $refundedCents);
+                                    }
+                                }
+                                return ['payment' => $payment, 'net_cents' => $netCents];
+                            });
+                            $paidAmountCents = $paymentRows->sum('net_cents');
+                            $latestPayment = $paymentRows->first()['payment'] ?? null;
+                            $activePayment = $latestPayment?->isCancelled()
+                                ? ($paymentRows->first(fn ($row) => $row['net_cents'] > 0)['payment'] ?? null)
+                                : null;
+                            $displayPayment = $activePayment ?? $latestPayment;
+                            $cancelledWithoutPayment = $latestPayment?->isCancelled() && $activePayment === null;
                         @endphp
                         <div class="flex justify-between items-center">
                             <span class="text-xs text-carbon-400 uppercase tracking-wider">Paiement</span>
-                            @if($latestPayment)
+                            @if($cancelledWithoutPayment)
+                                <span class="text-xs font-medium text-status-warning">Non payé · saisie annulée</span>
+                            @elseif($displayPayment)
                                 <div class="flex items-center gap-2">
-                                    @if($latestPayment->isPaid())
+                                    @if($displayPayment->isPaid())
                                         @php
-                                            $balanceCents = max(0, (int) $registration->race->entry_fee_cents - $registration->getPaidAmountCents());
+                                            $balanceCents = max(0, (int) $registration->race->entry_fee_cents - $paidAmountCents);
                                         @endphp
                                         @if($balanceCents > 0)
                                             <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-status-warning/20 text-status-warning">
@@ -441,16 +486,16 @@
                                             </span>
                                         @else
                                             <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-status-success/20 text-status-success">
-                                                ✓ {{ $latestPayment->formatted_amount }}
+                                                ✓ {{ $displayPayment->formatted_amount }}
                                             </span>
                                         @endif
-                                    @elseif($latestPayment->isPending())
+                                    @elseif($displayPayment->isPending())
                                         <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-status-warning/20 text-status-warning">
                                             ⏳ En attente
                                         </span>
                                     @else
                                         <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-carbon-700 text-carbon-400">
-                                            {{ $latestPayment->status_label }}
+                                            {{ $displayPayment->status_label }}
                                         </span>
                                     @endif
                                 </div>

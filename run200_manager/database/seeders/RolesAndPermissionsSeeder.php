@@ -64,6 +64,7 @@ class RolesAndPermissionsSeeder extends Seeder
             // Payment permissions
             'payment.view',
             'payment.manage',
+            'payment.void',
             'payment.refund',
 
             // Season permissions

@@ -18,3 +18,26 @@ Périmètre : acceptation manuelle d'une inscription avant paiement, demande uti
 **Revue complémentaire IA du 28/10 :** `registration_qa` a relu et validé les quatre rubriques v1.3 modifiées après découverte du tarif de course et du message différé. APPFLOW et BACKEND SCHEMA v1.1 restent inchangés et validés. Les critères testables couvrent les quatre e-mails, les rôles, la transition, les paiements tardifs et l'absence de faux reçu. Cette validation autorise la préparation du code local, pas une publication.
 
 **Revue UI v1.4 du 28/10 :** après un test de paiement partiel, `registration_qa` a relu le calcul du solde dans le message de confirmation et les deux vues staff. Le brief borné au dernier paiement `paid` est cohérent avec ce code. Le cas `PARTIALLY_REFUNDED` ou d'un statut plus récent reste une limite à traiter séparément. La revue reste locale ; elle ne prouve ni le navigateur ni le serveur publié.
+
+## PAY-VOID-01 — Registre de cadrage du 06/11/2026
+
+La demande humaine autorise la correction d'un paiement attribué à tort et la préparation d'une action staff pour les erreurs de saisie. Le relevé de production communiqué par le coordinateur indique une inscription `ACCEPTED`, une écriture en espèces `paid` sans référence Stripe et un reçu `pending` sans date d'envoi. Le coordinateur reste responsable de la vérification et de la mutation exactes en production. La revue documentaire IA ci-dessous ne valide ni code, ni interface, ni déploiement, ni les itérations précédentes.
+
+| Livrable/source | Version examinée | Auteur | Relecteur | Date/environnement | Verdict | Preuves et points ouverts |
+| --- | --- | --- | --- | --- | --- | --- |
+| [PRD](PRD.md) | PAY-VOID-01 v0.4 | payment_contracts (PO) | payment_qa | 06/11, code local + relevé prod anonymisé | Validé pour ce périmètre | REQ-PV-05, liste staff et exception de statut ; revue IA documentaire favorable. |
+| [TRD](TRD.md) | PAY-VOID-01 v0.5 | payment_contracts (PO) | payment_qa | 06/11, code local | Validé pour ce périmètre | Snapshot du reçu, comparaison sous verrou et exception de statut. |
+| [APPFLOW](APPFLOW.md) | PAY-VOID-01 v0.4 | payment_contracts (PO) | payment_qa | 06/11, local | Validé pour ce périmètre | Retour liste bureau/mobile et transition conditionnelle de statut. |
+| [UI/UX DESIGN BRIEF](UI-UX-BRIEF.md) | PAY-VOID-01 v0.5 | payment_contracts (PO) | payment_qa | 06/11, local | Validé pour ce périmètre | Message de conflit sur reçu + badge liste ; rendu réel encore à vérifier. |
+| [IMPLEMENTATION PLAN](IMPLEMENTATION-PLAN.md) | PAY-VOID-01 v0.5 | payment_contracts (PO) | payment_qa | 06/11, local | Validé pour ce périmètre | Tests du reçu changé et liste bureau/mobile prévus ; exécution séparée. |
+| [BACKEND SCHEMA](BACKEND-SCHEMA.md) | PAY-VOID-01 v0.5 | payment_contracts (PO) | payment_qa | 06/11, code local | Validé pour ce périmètre | Snapshot du reçu et transition conditionnelle cohérents. |
+
+Matrice : REQ-PV-01 → APPFLOW succès → TRD transition verrouillée → carte PAY-VOID-01 → test solde/statut ; REQ-PV-02 → APPFLOW refus → BACKEND SCHEMA gardes → tests Stripe/permission/concurrence ; REQ-PV-03 → UI reçu → TRD gel d'envoi et journal → tests reçu pending/sending/sent ; REQ-PV-04 → UI solde dû → plan QA parcours pilote/staff. Une revue IA, une modification de la base et une publication sont trois événements distincts.
+
+**Verdict documentaire IA du 06/11 :** payment_qa a relu v0.3 des six contrats après intégration des points v0.1/v0.2 ; cohérence favorable au développement ciblé, sans contradiction bloquante. Ce verdict ne prouve aucun test de code, rendu réel ou effet en production. La décision humaine explicite porte sur la correction de l'écriture signalée et l'ajout d'un bouton ; les détails de sécurité sont cadrés par le coordinateur dans ce mandat.
+
+**Complément v0.4 :** le retour vers « Toutes les inscriptions » a révélé un badge de synthèse pouvant afficher le montant de l'écriture annulée. REQ-PV-05 borne le libellé bureau/mobile. Les six contrats précisent l'exception étroite `PENDING_VALIDATION → PENDING_PAYMENT` lorsque plus aucun encaissement ne subsiste ; `ACCEPTED` et ses checkpoints restent inchangés. Le code et le rendu réel demandent une revue distincte de cette relecture documentaire.
+
+**Réserve QA v0.4 levée en v0.5 :** le modal nomme l'état du reçu, mais son snapshot ne le figeait pas. TRD, BACKEND SCHEMA, UI/UX et plan exigent désormais la comparaison du reçu sous verrou et un message de conflit. PRD et APPFLOW v0.4 restent inchangés ; QA a relu les quatre rubriques modifiées.
+
+**Verdict documentaire IA final du 06/11 :** payment_qa a relu PRD/APPFLOW v0.4 et TRD/UI/PLAN/SCHEMA v0.5 après correction de ses réserves. Cohérence favorable au développement ciblé ; aucun défaut documentaire bloquant relevé. Ce verdict ne certifie ni code, ni tests exécutés, ni rendu navigateur, ni production.
