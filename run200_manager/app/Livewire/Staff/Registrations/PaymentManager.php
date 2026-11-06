@@ -6,6 +6,7 @@ namespace App\Livewire\Staff\Registrations;
 
 use App\Application\Payments\UseCases\RecordManualPayment;
 use App\Application\Payments\UseCases\RefundStripePayment;
+use App\Application\Payments\UseCases\VoidRecordedPayment;
 use App\Domain\Payment\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Models\RaceRegistration;
@@ -16,6 +17,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Stripe\Exception\ApiErrorException;
 
@@ -29,6 +31,8 @@ class PaymentManager extends Component
 
     public bool $showRefundModal = false;
 
+    public bool $showVoidPaymentModal = false;
+
     public string $manualAmount = '50,00';
 
     public string $manualMethod = 'cash';
@@ -38,6 +42,14 @@ class PaymentManager extends Component
     public ?int $selectedPaymentId = null;
 
     public string $refundReason = '';
+
+    public string $voidReason = '';
+
+    #[Locked]
+    public array $voidSnapshot = [];
+
+    #[Locked]
+    public array $voidSummary = [];
 
     public function mount(RaceRegistration $registration): void
     {
@@ -195,6 +207,102 @@ class PaymentManager extends Component
         $this->registration->refresh();
 
         session()->flash('success', 'Paiement annulé.');
+    }
+
+    public function openVoidPaymentModal(int $paymentId): void
+    {
+        abort_unless(auth()->user()?->can('payment.void'), 403);
+
+        $payment = $this->payment($paymentId)->load('receipt');
+        $registration = RaceRegistration::query()
+            ->with(['pilot', 'race'])
+            ->findOrFail($this->registration->id);
+
+        if (! $payment->isPaid() || $payment->isStripePayment()
+            || $payment->stripe_session_id || $payment->stripe_payment_intent_id
+            || $payment->stripe_customer_id || $payment->stripe_event_id
+            || $payment->refunded_at || (int) $payment->refund_amount_cents > 0) {
+            session()->flash('error', 'Cette action est réservée à un paiement local saisi comme payé par erreur.');
+
+            return;
+        }
+
+        if (in_array($payment->receipt?->email_status, ['sending', 'failed'], true)) {
+            session()->flash('error', 'L’envoi du reçu doit être vérifié par un responsable avant cette correction.');
+
+            return;
+        }
+
+        $this->voidSnapshot = [
+            'payment_id' => $payment->id,
+            'registration_id' => $registration->id,
+            'pilot_id' => $registration->pilot_id,
+            'status' => $payment->status->value,
+            'method' => $payment->method->value,
+            'amount_cents' => $payment->amount_cents,
+            'receipt_id' => $payment->receipt?->id,
+            'receipt_email_status' => $payment->receipt?->email_status,
+            'receipt_email_sent_at' => $payment->receipt?->email_sent_at?->toISOString(),
+        ];
+        $this->voidSummary = [
+            'pilot' => trim($registration->pilot->first_name.' '.$registration->pilot->last_name),
+            'race' => $registration->race->name,
+            'amount' => $payment->formatted_amount,
+            'method' => $payment->method_label,
+            'receipt_status' => $payment->receipt?->email_status,
+        ];
+        $this->voidReason = '';
+        $this->resetValidation();
+        $this->showVoidPaymentModal = true;
+    }
+
+    public function closeVoidPaymentModal(): void
+    {
+        $this->showVoidPaymentModal = false;
+        $this->voidSnapshot = [];
+        $this->voidSummary = [];
+        $this->voidReason = '';
+        $this->resetValidation();
+    }
+
+    public function voidRecordedPayment(VoidRecordedPayment $useCase): void
+    {
+        abort_unless(auth()->user()?->can('payment.void'), 403);
+
+        if (! $this->showVoidPaymentModal || ! isset($this->voidSnapshot['payment_id'])) {
+            session()->flash('error', 'Sélectionnez le paiement à corriger.');
+
+            return;
+        }
+
+        $this->validate([
+            'voidReason' => ['required', 'string', 'min:10', 'max:500'],
+        ], [
+            'voidReason.required' => 'Indiquez pourquoi ce paiement a été enregistré par erreur.',
+            'voidReason.min' => 'Expliquez l’erreur en au moins 10 caractères.',
+            'voidReason.max' => 'Le motif ne doit pas dépasser 500 caractères.',
+        ]);
+
+        $user = auth()->user();
+        abort_unless($user instanceof User, 403);
+
+        try {
+            $useCase->execute(
+                $this->payment((int) $this->voidSnapshot['payment_id']),
+                $user,
+                $this->voidReason,
+                $this->voidSnapshot,
+            );
+        } catch (InvalidArgumentException $e) {
+            session()->flash('error', $e->getMessage());
+
+            return;
+        }
+
+        $this->closeVoidPaymentModal();
+        $this->registration->refresh();
+
+        session()->flash('success', 'Paiement annulé dans le dossier ; le règlement reste dû.');
     }
 
     public function render(): View

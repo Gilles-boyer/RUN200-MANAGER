@@ -13,3 +13,19 @@ Version de cadrage du 28/10/2026, base locale `1aaa13c`. Périmètre limité à 
 L'acceptation donne les accès normalement liés à `ACCEPTED` (E-Card, paddock, VA/VT), avec indication « NON PAYÉ » au scanner jusqu'à encaissement. La demande de l'utilisateur couvre cette exception de validation ; aucun changement de tarif, de droit à remboursement ou de politique d'encaissement n'est demandé. Les dates et montants de paiement restent établis uniquement par les flux de paiement existants.
 
 Un paiement Stripe déjà en cours doit être vérifié/résolu avant un encaissement manuel aux VA/VT afin d'éviter un double paiement. Le paiement en ligne est disponible tant que l'inscription reste exactement `ACCEPTED` ; la possibilité de l'étendre aux statuts de contrôle ultérieurs est hors de cette itération.
+
+## PAY-VOID-01 — Annulation d'un paiement saisi par erreur (06/11/2026, cadrage v0.4)
+
+Précision de concurrence : pilote, méthode et montant affichés à l'ouverture doivent encore correspondre à la confirmation. Une E-Card différée déclenchée par le paiement annulé ne doit plus partir.
+
+Demande humaine : corriger un paiement attribué à tort à un pilote, puis donner au responsable autorisé un bouton pour corriger les mêmes erreurs de saisie. Le dossier et son paiement exact seront identifiés et contrôlés en production avant toute mutation. Le terme « annuler » désigne ici l'invalidation d'une écriture locale **sans encaissement réel** ; un paiement Stripe reçu ou un paiement réellement encaissé relève d'un autre parcours de rapprochement/remboursement.
+
+| Exigence | Critère observable |
+| --- | --- |
+| REQ-PV-01 | Un administrateur autorisé peut invalider un paiement local `paid` saisi à tort pour la bonne inscription, avec motif obligatoire et confirmation explicite ; le paiement reste dans l'historique comme `cancelled` et ne compte plus dans le solde encaissé. Si l'inscription est encore `PENDING_VALIDATION` et qu'aucun autre paiement n'est encaissé, elle revient à `PENDING_PAYMENT` pour permettre le règlement. Une inscription déjà `ACCEPTED` et ses checkpoints ne sont pas rétrogradés. |
+| REQ-PV-02 | Un paiement Stripe, une référence Stripe présente, un paiement remboursé/partiellement remboursé, un dossier étranger, une seconde action et un état modifié entre ouverture et confirmation sont refusés sans effet. Aucun remboursement ni nouvel encaissement n'est lancé. |
+| REQ-PV-03 | L'acteur, l'heure, le paiement exact et le motif sont conservés dans une trace d'audit durable. Montant, méthode, date originale et ancien reçu éventuel restent consultables dans l'historique autorisé. Un reçu encore `pending` est invalidé avant tout envoi ; un reçu déjà `sent` n'est jamais présenté comme effacé ou repris chez le destinataire. Un état d'envoi incertain bloque l'annulation automatique jusqu'au rapprochement. |
+| REQ-PV-04 | Le staff et le pilote voient ensuite le règlement restant dû. La date `paid_at` d'une écriture annulée est libellée comme saisie historique erronée, jamais « Payé le ». Si un reçu avait été envoyé, l'action de régularisation reste visible dans le dossier jusqu'à traitement ; aucun nouveau reçu n'est émis pour l'annulation. |
+| REQ-PV-05 | Dans « Toutes les inscriptions », si aucune somme n'est encaissée mais qu'une saisie de paiement a été annulée, les vues bureau et mobile affichent « Non payé · saisie annulée » sans accoler le montant de l'écriture annulée. L'historique détaillé conserve ce montant et la trace de correction. |
+
+Le cas réel relevé en production concerne une écriture en espèces `paid` sans référence Stripe et un reçu `pending` non envoyé au moment du contrôle. Cette observation ne prouve pas à elle seule l'absence de paiement physique : l'utilisateur la confirme expressément. La permission dédiée et le traitement des reçus déjà envoyés ont été inclus dans la revue de cohérence de cette itération. Aucune règle fiscale n'est déduite de cette demande.

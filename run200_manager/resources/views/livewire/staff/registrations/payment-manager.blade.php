@@ -207,11 +207,15 @@
                                         Créé le {{ $payment->created_at->format('d/m/Y à H:i') }}
                                     </span>
                                     @if($payment->paid_at)
-                                        <span class="flex items-center gap-1.5 text-status-success">
+                                        <span class="flex items-center gap-1.5 {{ $payment->isCancelled() ? 'text-carbon-400' : 'text-status-success' }}">
                                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                             </svg>
-                                            Payé le {{ $payment->paid_at->format('d/m/Y à H:i') }}
+                                            @if($payment->isCancelled())
+                                                Saisie initiale du {{ $payment->paid_at->format('d/m/Y à H:i') }} (annulée)
+                                            @else
+                                                Payé le {{ $payment->paid_at->format('d/m/Y à H:i') }}
+                                            @endif
                                         </span>
                                     @endif
                                     @if($payment->refunded_at)
@@ -232,6 +236,18 @@
                                 @if($payment->metadata && isset($payment->metadata['notes']) && $payment->metadata['notes'])
                                     <div class="text-sm text-carbon-300 bg-carbon-900/30 p-3 rounded-lg border-l-2 border-carbon-600">
                                         <span class="text-carbon-500">📝 Note :</span> {{ $payment->metadata['notes'] }}
+                                    </div>
+                                @endif
+
+                                @if($payment->isCancelled() && !empty($payment->metadata['void_reason']))
+                                    <div class="text-sm text-carbon-300 bg-carbon-900/30 p-3 rounded-lg border-l-2 border-carbon-500">
+                                        <span class="font-medium">Saisie annulée :</span> {{ $payment->metadata['void_reason'] }}
+                                    </div>
+                                @endif
+
+                                @if(!empty($payment->metadata['void_receipt_followup_required']))
+                                    <div class="text-sm text-status-warning bg-status-warning/10 p-3 rounded-lg border border-status-warning/30" role="status">
+                                        Reçu envoyé : régularisation à faire auprès du pilote. L’e-mail déjà reçu ne peut pas être retiré.
                                     </div>
                                 @endif
 
@@ -271,8 +287,27 @@
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                         </svg>
-                                        Annuler
+                                        Annuler la tentative
                                     </button>
+                                @endif
+
+
+                                @if($payment->isPaid() && !$payment->isStripePayment()
+                                    && !$payment->stripe_session_id && !$payment->stripe_payment_intent_id
+                                    && !$payment->stripe_customer_id && !$payment->stripe_event_id
+                                    && !$payment->refunded_at && (int) $payment->refund_amount_cents === 0
+                                    && auth()->user()->can('payment.void'))
+                                    @if(in_array($payment->receipt?->email_status, ['sending', 'failed'], true))
+                                        <span class="max-w-64 text-sm text-status-warning" role="status">
+                                            Envoi du reçu à vérifier avant toute annulation. Contactez un responsable.
+                                        </span>
+                                    @else
+                                        <button type="button"
+                                                wire:click="openVoidPaymentModal({{ $payment->id }})"
+                                                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-status-warning/50 text-status-warning hover:bg-status-warning/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-warning transition-colors text-sm font-medium text-left">
+                                            Annuler ce paiement saisi par erreur
+                                        </button>
+                                    @endif
                                 @endif
                             </div>
                         </div>
@@ -370,6 +405,65 @@
                             </div>
                         </form>
                     </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Modal de correction d'une saisie locale déclarée encaissée à tort --}}
+    @if($showVoidPaymentModal && auth()->user()->can('payment.void'))
+        <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="void-payment-title" aria-describedby="void-payment-warning"
+             x-data x-init="$nextTick(() => $refs.voidReason.focus())"
+             x-on:keydown.escape.window="$wire.closeVoidPaymentModal()">
+            <div class="flex min-h-screen items-center justify-center p-4">
+                <div class="fixed inset-0 bg-carbon-950/80 backdrop-blur-sm" wire:click="closeVoidPaymentModal"></div>
+                <div class="relative w-full max-w-lg rounded-xl border border-carbon-700 bg-carbon-800 p-6 shadow-2xl">
+                    <h3 id="void-payment-title" class="text-lg font-semibold text-white">Annuler une saisie de paiement erronée</h3>
+                    <p id="void-payment-warning" class="mt-2 text-sm text-carbon-300">
+                        Cette action corrige l’enregistrement ; elle ne rembourse aucun paiement réel.
+                    </p>
+
+                    <dl class="mt-5 grid grid-cols-1 gap-3 rounded-lg border border-carbon-700 bg-carbon-900/50 p-4 text-sm sm:grid-cols-2">
+                        <div><dt class="text-carbon-400">Pilote</dt><dd class="font-medium text-white">{{ $voidSummary['pilot'] ?? '' }}</dd></div>
+                        <div><dt class="text-carbon-400">Course</dt><dd class="font-medium text-white">{{ $voidSummary['race'] ?? '' }}</dd></div>
+                        <div><dt class="text-carbon-400">Montant</dt><dd class="font-medium text-white">{{ $voidSummary['amount'] ?? '' }}</dd></div>
+                        <div><dt class="text-carbon-400">Mode indiqué</dt><dd class="font-medium text-white">{{ $voidSummary['method'] ?? '' }}</dd></div>
+                    </dl>
+
+                    @if(!empty($voidSummary['receipt_status']))
+                        <div class="mt-4 rounded-lg border border-status-warning/30 bg-status-warning/10 p-3 text-sm text-status-warning" role="status">
+                            <strong>Un reçu a déjà été émis.</strong>
+                            @if(($voidSummary['receipt_status'] ?? '') === 'sent')
+                                Il a été envoyé : contactez le pilote pour la régularisation. Cette action ne retire pas l’e-mail déjà reçu.
+                            @else
+                                Il n’a pas été envoyé : son envoi sera annulé.
+                            @endif
+                        </div>
+                    @endif
+
+                    <form wire:submit.prevent="voidRecordedPayment" class="mt-5 space-y-4">
+                        <div>
+                            <label for="voidReason" class="mb-2 block text-sm font-medium text-carbon-300">Pourquoi cette saisie est-elle erronée ? <span class="text-status-danger">*</span></label>
+                            <textarea id="voidReason" x-ref="voidReason" wire:model="voidReason" rows="3" required minlength="10" maxlength="500"
+                                      aria-describedby="void-reason-help" @error('voidReason') aria-invalid="true" @enderror
+                                      class="block w-full rounded-lg border-carbon-600 bg-carbon-900 text-white placeholder-carbon-500 focus:border-racing-red-500 focus:ring-racing-red-500"
+                                      placeholder="Ex. Paiement indiqué en espèces, mais aucun règlement reçu"></textarea>
+                            <p id="void-reason-help" class="mt-1 text-xs text-carbon-400">Le motif sera conservé dans l’historique du dossier (10 à 500 caractères).</p>
+                            @error('voidReason') <p class="mt-1 text-sm text-status-danger" role="alert">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div class="flex flex-col-reverse gap-3 border-t border-carbon-700 pt-4 sm:flex-row sm:justify-end">
+                            <button type="button" wire:click="closeVoidPaymentModal"
+                                    class="rounded-lg border border-carbon-600 px-4 py-2.5 font-medium text-carbon-300 hover:bg-carbon-700">
+                                Retour au dossier
+                            </button>
+                            <button type="submit" wire:loading.attr="disabled" wire:target="voidRecordedPayment"
+                                    class="rounded-lg bg-status-warning px-4 py-2.5 font-medium text-carbon-950 hover:bg-status-warning/90 disabled:cursor-wait disabled:opacity-60">
+                                <span wire:loading.remove wire:target="voidRecordedPayment">Confirmer l’annulation</span>
+                                <span wire:loading wire:target="voidRecordedPayment">Annulation en cours…</span>
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

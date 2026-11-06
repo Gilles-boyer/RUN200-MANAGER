@@ -33,6 +33,9 @@ final class SendPaymentReceipt
 
             return false;
         }
+        if (! $payment?->canHaveReceipt()) {
+            return false;
+        }
         $recipient = $payment?->registration?->pilot?->user;
         $deliveryEmail = $recipient?->email;
         if (! filter_var($deliveryEmail, FILTER_VALIDATE_EMAIL)) {
@@ -71,9 +74,14 @@ final class SendPaymentReceipt
 
         try {
             $receipt->refresh();
+            $payment = Payment::query()->with('registration.pilot.user')->find($receipt->payment_id);
+            if (! $payment?->canHaveReceipt()) {
+                $this->recordRecipientFailure($receipt, ['sending'], 'payment_no_longer_receiptable');
+
+                return false;
+            }
             if ($requireVerifiedEmail || $expectedEmail !== null || $expectedUserId !== null) {
                 // Re-read after claiming: the command's precheck and the first lookup may be stale.
-                $payment = Payment::query()->with('registration.pilot.user')->find($receipt->payment_id);
                 $recipient = $payment?->registration?->pilot?->user;
                 if ($recipient === null
                     || $recipient->email !== $deliveryEmail

@@ -9,3 +9,13 @@ Version de cadrage du 28/10/2026 v1.4, base locale `1aaa13c`. Utilisateurs : sta
 - Accessibilité : texte clair sans se reposer sur la couleur, boutons nommés, message d'erreur attaché à l'action. Conserver les points mobiles existants ; les défauts d'accessibilité plus larges restent dans l'audit du 26/10.
 
 L'E-Card et les contrôles restent accessibles après `ACCEPTED` selon la logique actuelle ; l'écran de scan conserve son avertissement « NON PAYÉ ».
+
+## PAY-VOID-01 — Correction staff (06/11/2026, cadrage v0.5)
+
+Si le reçu change après l'ouverture du modal, afficher « L'état du reçu a changé. Rechargez le dossier avant de confirmer. » ; aucune annulation n'est effectuée.
+
+Après un changement de dossier entre ouverture et confirmation, afficher « Le paiement ou le pilote a changé. Rechargez la page avant de décider. »
+
+Dans « Gestion des paiements », distinguer « Annuler la tentative » (`pending`) de « Annuler ce paiement saisi par erreur » (`paid` local) et de « Rembourser » (Stripe). Réserver la seconde action au rôle doté de `payment.void`. La fenêtre de confirmation affiche les éléments discriminants du dossier, le motif obligatoire et le texte « Cette action corrige l'enregistrement ; elle ne rembourse aucun paiement réel ». Si un reçu existe, afficher « Un reçu a déjà été émis » et, selon son état, « non envoyé : l'envoi sera annulé », « envoyé : contacter le pilote pour la régularisation » ou « état d'envoi incertain : contactez un responsable avant correction ». Ne jamais présenter ce bouton pour Stripe ou un paiement déjà remboursé. Après succès, montrer « Paiement annulé dans le dossier ; règlement encore dû » et le nouveau total. Sur une ligne annulée, remplacer « Payé le » par « Saisie initiale du ... (annulée) » ; si un reçu avait été envoyé, conserver un badge staff « Reçu envoyé : régularisation à faire » après rechargement. Le contrôle et les erreurs sont utilisables au clavier, lisibles sur téléphone et ne reposent pas seulement sur une couleur.
+
+Dans la liste « Toutes les inscriptions », le badge synthétique bureau et mobile dit « Non payé · saisie annulée » quand la somme encaissée est nulle et qu'une saisie a été annulée. Il n'affiche aucun montant issu de l'écriture annulée. Le détail financier reste dans la page des paiements, avec son historique et sa justification.

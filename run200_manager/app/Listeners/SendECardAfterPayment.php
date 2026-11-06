@@ -15,7 +15,10 @@ class SendECardAfterPayment implements ShouldQueue
 {
     public function handle(PaymentConfirmed $event): void
     {
-        $payment = $event->payment;
+        $payment = $event->payment->fresh();
+        if (! $payment?->isPaid()) {
+            return;
+        }
 
         /** @var RaceRegistration|null $registration */
         $registration = $payment->registration;
