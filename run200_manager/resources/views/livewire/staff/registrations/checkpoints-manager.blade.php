@@ -88,6 +88,10 @@
 
         {{-- Status badges --}}
         <div class="mt-6 flex flex-wrap items-center gap-3 pt-4 border-t border-carbon-700/50">
+            <x-racing.license-check-badge :registration="$registration" />
+            @if($registration->licenseCheckState() !== 'not_applicable' && $registration->licenseCheckState() !== 'valid')
+                <p class="w-full text-sm text-status-warning" role="status">Licence {{ $registration->race->required_license_code }} à examiner avant la décision administrative. Les étapes restent sous décision humaine.</p>
+            @endif
             <span class="inline-flex items-center px-3 py-1 rounded-lg text-sm font-semibold
                 @if($registration->status === 'PENDING_VALIDATION') bg-status-warning/20 text-status-warning border border-status-warning/30
                 @elseif($registration->status === 'ACCEPTED') bg-status-success/20 text-status-success border border-status-success/30

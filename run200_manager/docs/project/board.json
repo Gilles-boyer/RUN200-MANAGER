@@ -425,6 +425,53 @@
       "revision": "b319221",
       "review_evidence": "Independent QA GO code after two fixes, 630 tests/2111 assertions and CI 4/4; independent release documentation GO 2026-10-16. Production facts reviewed from coordinator evidence, not direct QA access.",
       "blocked": ""
+    },
+    {
+      "id": "LIC-2026-01",
+      "title": "Contrôler et signaler la licence RCCR 2026 aux VA/VT",
+      "owner": "it_backend",
+      "priority": 1,
+      "state": "review",
+      "acceptance": [
+        "La liste des inscriptions affiche sans faux positif un etat de licence par inscription, en bureau et mobile, avec alerte si RCCR 2026 non confirmee",
+        "Un agent VA autorise enregistre le resultat d'un controle FFSA avec source, date, motif et audit ; autre licence et service indisponible restent a examiner, sans blocage automatique de checkpoint"
+      ],
+      "depends_on": [],
+      "files": [
+        "app/Livewire/Staff/Registrations/Index.php",
+        "resources/views/livewire/staff/registrations/index.blade.php",
+        "app/Models/RaceRegistration.php",
+        "database/migrations"
+      ],
+      "author": "licence_data + licence_frontend",
+      "reviewer": "licence_contract_qa",
+      "evidence": [
+        "07/11 : verification.ffsa.org donne numero, identite, annee et suspension mais pas le type ; licence.ffsa.org redirige apres connexion vers recherche ligue.ffsa.org ; detail Licences affiche code RCCR, 2026, etat Active et date de fin",
+        "07/11 production cPanel lecture seule : Git ebdb319, races.id=5 = Epreuve D'acceleration Run 200 - Novembre, race_date=2026-11-08",
+        "07/11 QA independante : 40 tests LIC / 108 assertions ; garde vert et rouge, permissions, concurrence, filtres et alerte VA non bloquante ; build Vite de la branche isolee reussi"
+      ],
+      "revision": "LIC-local-2026-11-07",
+      "review_evidence": "QA locale favorable, publication non verifiee ; voir DOCUMENT-VALIDATION.md",
+      "blocked": "CI, audit de publication, migration, configuration de la course et parcours staff en production restent a verifier"
+    },
+    {
+      "id": "LIC-2026-02",
+      "title": "Etudier une liaison officielle FFSA pour precontroler les licences",
+      "owner": "it_backend",
+      "priority": 1,
+      "state": "clarify",
+      "acceptance": [
+        "Une interface ou un export FFSA autorise est identifie, documente et teste avant integration ; rapprochement strict identite et numero, sans validation abusive",
+        "Les licences RCCR 2026 concordantes sont signalees, les autres types et informations manquantes restent en revue humaine"
+      ],
+      "depends_on": ["LIC-2026-01"],
+      "files": [],
+      "author": "",
+      "reviewer": "it_qa",
+      "evidence": ["07/11 : aucun fichier export fourni par l'utilisateur ; portail ligue.ffsa.org propose Extractions et Statistiques > Licences actives par saison, filtres 2026/RCCR/club et export CSV ; aucun CSV telecharge, colonnes non verifiees"],
+      "revision": "",
+      "review_evidence": "",
+      "blocked": "Colonnes, perimetre, conditions d'usage et fraicheur de l'export CSV a verifier avant contrat d'import"
     }
   ]
 }

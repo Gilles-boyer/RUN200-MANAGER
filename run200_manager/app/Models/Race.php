@@ -25,6 +25,7 @@ class Race extends Model
         'location',
         'status',
         'entry_fee_cents',
+        'required_license_code',
     ];
 
     protected $casts = [

@@ -15,7 +15,8 @@ Vue dérivée de board.json. Modifier la source avec le coordinateur.
 
 ## À préciser
 
-Aucune carte.
+- **LIC-2026-02** · P1 · Etudier une liaison officielle FFSA pour precontroler les licences · `it_backend`
+  Blocage : Colonnes, perimetre, conditions d'usage et fraicheur de l'export CSV a verifier avant contrat d'import
 
 ## Prêt
 
@@ -28,6 +29,8 @@ Aucune carte.
 ## En revue
 
 - **REC-03** · P1 · Vérifier les adresses et envoyer les reçus Stripe historiques · `it_backend`
+- **LIC-2026-01** · P1 · Contrôler et signaler la licence RCCR 2026 aux VA/VT · `it_backend`
+  Blocage : CI, audit de publication, migration, configuration de la course et parcours staff en production restent a verifier
 
 ## À livrer
 

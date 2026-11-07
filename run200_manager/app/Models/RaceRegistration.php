@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -158,6 +159,77 @@ class RaceRegistration extends Model
     public function engagementForm(): HasOne
     {
         return $this->hasOne(EngagementForm::class);
+    }
+
+    public function licenseCheck(): HasOne
+    {
+        return $this->hasOne(RaceRegistrationLicenseCheck::class);
+    }
+
+    /** The effective check state; snapshots become stale when the pilot or race changes. */
+    public function licenseCheckState(): string
+    {
+        if ($this->race?->required_license_code === null) {
+            return 'not_applicable';
+        }
+
+        $check = $this->licenseCheck;
+        if ($check === null) {
+            return 'not_checked';
+        }
+
+        return $check->isCurrentFor($this) ? $check->result : 'stale';
+    }
+
+    /** Filter the full query before pagination; the subquery works with or without caller joins. */
+    public function scopeWhereLicenseCheckState(Builder $query, string $state): Builder
+    {
+        if ($state === 'not_applicable') {
+            return $query->whereHas('race', fn (Builder $race) => $race->whereNull('required_license_code'));
+        }
+
+        $query->whereHas('race', fn (Builder $race) => $race->whereNotNull('required_license_code'));
+
+        if ($state === 'not_checked') {
+            return $query->whereDoesntHave('licenseCheck');
+        }
+
+        if (! in_array($state, ['stale', 'valid', 'invalid', 'needs_review'], true)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereExists(function (QueryBuilder $subquery) use ($state): void {
+            $subquery->selectRaw('1')
+                ->from('race_registration_license_checks as lc')
+                ->join('race_registrations as lrr', 'lrr.id', '=', 'lc.race_registration_id')
+                ->join('pilots as lp', 'lp.id', '=', 'lrr.pilot_id')
+                ->join('races as lr', 'lr.id', '=', 'lrr.race_id')
+                ->whereColumn('lrr.id', 'race_registrations.id');
+
+            $compare = static function (QueryBuilder $columns, string $operator): void {
+                $conditions = [
+                    ['lc.license_number_snapshot', 'lp.license_number'],
+                    ['lc.pilot_first_name_snapshot', 'lp.first_name'],
+                    ['lc.pilot_last_name_snapshot', 'lp.last_name'],
+                    ['lc.race_date_snapshot', 'lr.race_date'],
+                    ['lc.required_license_code_snapshot', 'lr.required_license_code'],
+                ];
+                foreach ($conditions as [$snapshot, $current]) {
+                    if ($operator === '=') {
+                        $columns->whereColumn($snapshot, '=', $current);
+                    } else {
+                        $columns->orWhereColumn($snapshot, '<>', $current);
+                    }
+                }
+            };
+
+            if ($state === 'stale') {
+                $subquery->where(fn (QueryBuilder $columns) => $compare($columns, '<>'));
+            } else {
+                $subquery->where(fn (QueryBuilder $columns) => $compare($columns, '='))
+                    ->where('lc.result', $state);
+            }
+        });
     }
 
     public function payments(): HasMany

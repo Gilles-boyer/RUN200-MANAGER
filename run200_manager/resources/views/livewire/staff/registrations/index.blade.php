@@ -1,4 +1,4 @@
-<div class="space-y-6">
+<div class="space-y-6" x-on:license-modal-closed.window="requestAnimationFrame(() => (document.getElementById($event.detail.id) || document.getElementById('registration-page-title'))?.focus())">
     {{-- Header avec style Racing --}}
     <div class="relative overflow-hidden rounded-xl bg-racing-gradient-subtle p-6 border border-carbon-700">
         <div class="absolute top-0 right-0 w-64 h-64 bg-racing-red-500/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
@@ -11,7 +11,7 @@
                     </svg>
                 </div>
                 <div>
-                    <h1 class="text-2xl font-bold text-white">Gestion des Inscriptions</h1>
+                    <h1 id="registration-page-title" tabindex="-1" class="text-2xl font-bold text-white">Gestion des Inscriptions</h1>
                     <p class="text-carbon-400 text-sm">Valider les inscriptions et assigner les paddocks</p>
                 </div>
             </div>
@@ -33,7 +33,7 @@
 
     {{-- Filtres --}}
     <x-racing.card>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <x-racing.form.select
                 wire:model.live="raceId"
                 label="Course"
@@ -55,6 +55,19 @@
                     'BRACELET_GIVEN' => 'Bracelet remis',
                     'RESULTS_IMPORTED' => 'Résultats importés',
                     'PUBLISHED' => 'Résultats publiés',
+                ]"
+            />
+            <x-racing.form.select
+                wire:model.live="licenseFilter"
+                label="Contrôle licence"
+                :options="[
+                    '' => 'Tous les contrôles',
+                    'not_checked' => 'À contrôler',
+                    'valid' => 'RCCR vérifiée',
+                    'invalid' => 'Alerte non conforme',
+                    'needs_review' => 'À examiner',
+                    'stale' => 'À recontrôler',
+                    'not_applicable' => 'Sans objet',
                 ]"
             />
             <x-racing.form.input
@@ -146,6 +159,7 @@
                             </button>
                         </th>
                         <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">Paiement</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">Licence requise</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">Étapes</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wider">Paddock</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold text-carbon-400 uppercase tracking-wider">Actions</th>
@@ -285,6 +299,18 @@
                                 @endif
                             </td>
                             <td class="px-4 py-4">
+                                <div class="flex flex-col items-start gap-2">
+                                    <x-racing.license-check-badge :registration="$registration" />
+                                    @if($registration->licenseCheckState() !== 'not_applicable' && auth()->user()->can('license.verify'))
+                                        <button id="license-check-desktop-{{ $registration->id }}" type="button" wire:click="openLicenseModal({{ $registration->id }}, 'desktop')"
+                                                wire:loading.attr="disabled" wire:target="openLicenseModal"
+                                                class="text-xs font-semibold text-checkered-yellow-500 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-checkered-yellow-500">
+                                            Contrôler la licence
+                                        </button>
+                                    @endif
+                                </div>
+                            </td>
+                            <td class="px-4 py-4">
                                 @php
                                     $passedCheckpoints = $registration->passages->pluck('checkpoint_id')->toArray();
                                     $totalCheckpoints = $this->checkpoints->count();
@@ -385,7 +411,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-4 py-12">
+                            <td colspan="9" class="px-4 py-12">
                                 <x-racing.empty-state
                                     title="Aucune inscription trouvée"
                                     description="Modifiez vos filtres ou attendez de nouvelles inscriptions."
@@ -433,6 +459,10 @@
                         <div class="flex justify-between items-center">
                             <span class="text-xs text-carbon-400 uppercase tracking-wider">Licence</span>
                             <span class="text-sm text-white">{{ $registration->pilot->license_number }}</span>
+                        </div>
+                        <div class="flex flex-wrap justify-between items-center gap-2">
+                            <span class="text-xs text-carbon-400 uppercase tracking-wider">Contrôle licence</span>
+                            <x-racing.license-check-badge :registration="$registration" />
                         </div>
                         <div class="flex justify-between items-center">
                             <span class="text-xs text-carbon-400 uppercase tracking-wider">Catégorie</span>
@@ -532,6 +562,13 @@
 
                     {{-- Actions --}}
                     <div class="p-4 bg-carbon-800/50 border-t border-carbon-700 flex flex-wrap gap-2">
+                        @if($registration->licenseCheckState() !== 'not_applicable' && auth()->user()->can('license.verify'))
+                            <button id="license-check-mobile-{{ $registration->id }}" type="button" wire:click="openLicenseModal({{ $registration->id }}, 'mobile')"
+                                    wire:loading.attr="disabled" wire:target="openLicenseModal"
+                                    class="flex-1 flex items-center justify-center px-4 py-2.5 rounded-lg bg-checkered-yellow-500/20 text-checkered-yellow-500 text-sm font-medium hover:bg-checkered-yellow-500/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-checkered-yellow-500 tap-target">
+                                Contrôler la licence
+                            </button>
+                        @endif
                         <a href="{{ route('staff.registrations.checkpoints', $registration) }}"
                            class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-carbon-700 text-white text-sm font-medium hover:bg-carbon-600 transition-colors tap-target">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -593,6 +630,156 @@
             </div>
         @endif
     </x-racing.card>
+
+    {{-- Contrôle manuel d'une licence FFSA --}}
+    @if($showLicenseModal && $licenseRegistration)
+        <div class="fixed inset-0 z-50 overflow-y-auto bg-carbon-950/80 px-4 py-6 sm:py-10"
+             role="dialog" aria-modal="true" aria-labelledby="license-modal-title"
+             x-data x-init="$nextTick(() => $el.querySelector('#license-modal-title')?.focus())"
+             x-on:keydown.escape.window="$wire.closeLicenseModal()"
+             x-on:keydown.tab="const controls = [...$el.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])')].filter(control => control.getClientRects().length); if (controls.length && $event.shiftKey && document.activeElement === controls[0]) { $event.preventDefault(); controls[controls.length - 1].focus(); } else if (controls.length && !$event.shiftKey && document.activeElement === controls[controls.length - 1]) { $event.preventDefault(); controls[0].focus(); }">
+            <div class="mx-auto w-full max-w-2xl rounded-xl border border-carbon-600 bg-carbon-900 shadow-2xl">
+                <div class="flex items-start justify-between gap-4 border-b border-carbon-700 p-5 sm:p-6">
+                    <div>
+                        <h2 id="license-modal-title" tabindex="-1" class="text-xl font-bold text-white">Contrôle de licence FFSA</h2>
+                        <p class="mt-1 text-sm text-carbon-300">
+                            {{ $licenseRegistration->pilot->first_name }} {{ $licenseRegistration->pilot->last_name }} ·
+                            licence {{ $licenseRegistration->pilot->license_number }} ·
+                            {{ $licenseRegistration->race->name }}
+                        </p>
+                        <p class="mt-1 text-sm text-checkered-yellow-500">
+                            Requis : {{ $licenseRegistration->race->required_license_code }} pour {{ $licenseRegistration->race->race_date->format('Y') }},
+                            valable le {{ $licenseRegistration->race->race_date->format('d/m/Y') }}.
+                        </p>
+                    </div>
+                    <button type="button" wire:click="closeLicenseModal" aria-label="Fermer le contrôle de licence"
+                            class="rounded-lg p-2 text-carbon-300 hover:bg-carbon-700 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-checkered-yellow-500">✕</button>
+                </div>
+
+                <div class="space-y-5 p-5 sm:p-6">
+                    <div class="rounded-lg border border-status-info/40 bg-status-info/10 p-4 text-sm text-carbon-100">
+                        <p>Ouvrez la recherche FFSA dans un autre onglet, recherchez le pilote, puis lisez le bloc de l’année de course : « Code type : RCCR », « État : Active » et « Date de fin ». Aucun nom ni numéro n’est transmis par ces liens.</p>
+                        <div class="mt-3 flex flex-wrap gap-3">
+                            <a href="https://ligue.ffsa.org/federation/ma_structure-rechercher.html" target="_blank" rel="noopener noreferrer"
+                               class="font-semibold text-checkered-yellow-500 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-checkered-yellow-500">Ouvrir la recherche FFSA ↗</a>
+                            <a href="https://verification.ffsa.org/" target="_blank" rel="noopener noreferrer"
+                               class="text-carbon-100 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-checkered-yellow-500">Vérifier le numéro ↗</a>
+                        </div>
+                        <p class="mt-3 text-xs text-carbon-200">La vérification du numéro indique l’identité, l’année et la suspension, mais pas le code type de licence. Elle ne suffit pas à confirmer une RCCR. Le contrôle ne modifie pas les étapes VA/VT.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <label class="block text-sm font-medium text-carbon-100">Source consultée
+                            <select wire:model.live="licenseSource" class="mt-1 block w-full rounded-lg border border-carbon-600 bg-carbon-800 text-white focus:border-checkered-yellow-500 focus:ring-checkered-yellow-500">
+                                <option value="ligue_ffsa">Recherche ligue.ffsa.org</option>
+                                <option value="licence_ffsa">Portail licence.ffsa.org</option>
+                                <option value="verification_ffsa">Vérification du numéro FFSA</option>
+                                <option value="official_ffsa_document">Document officiel FFSA</option>
+                            </select>
+                        </label>
+                        <label class="block text-sm font-medium text-carbon-100">Accès à la source
+                            <select wire:model.live="licenseSourceAccessStatus" class="mt-1 block w-full rounded-lg border border-carbon-600 bg-carbon-800 text-white focus:border-checkered-yellow-500 focus:ring-checkered-yellow-500">
+                                <option value="consulted">Consultée</option>
+                                <option value="unavailable">Indisponible</option>
+                                <option value="incomplete">Information incomplète</option>
+                            </select>
+                        </label>
+                        <label class="block text-sm font-medium text-carbon-100">Code type observé
+                            <input type="text" wire:model.live.debounce.250ms="licenseTypeObserved" maxlength="30" placeholder="Ex. RCCR"
+                                   class="mt-1 block w-full rounded-lg border border-carbon-600 bg-carbon-800 text-white placeholder-carbon-500 focus:border-checkered-yellow-500 focus:ring-checkered-yellow-500">
+                        </label>
+                        <label class="block text-sm font-medium text-carbon-100">État observé
+                            <select wire:model.live="licenseStateObserved" class="mt-1 block w-full rounded-lg border border-carbon-600 bg-carbon-800 text-white focus:border-checkered-yellow-500 focus:ring-checkered-yellow-500">
+                                <option value="">Non vérifié</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="expired">Expirée</option>
+                                <option value="suspended">Suspendue</option>
+                                <option value="unknown">Inconnu</option>
+                            </select>
+                        </label>
+                        <label class="block text-sm font-medium text-carbon-100">Année observée
+                            <input type="text" inputmode="numeric" wire:model.live.debounce.250ms="licenseYearObserved" maxlength="4" placeholder="{{ $licenseRegistration->race->race_date->format('Y') }}"
+                                   class="mt-1 block w-full rounded-lg border border-carbon-600 bg-carbon-800 text-white placeholder-carbon-500 focus:border-checkered-yellow-500 focus:ring-checkered-yellow-500">
+                        </label>
+                        <label class="block text-sm font-medium text-carbon-100">Identité concordante ?
+                            <select wire:model.live="licenseIdentityMatches" class="mt-1 block w-full rounded-lg border border-carbon-600 bg-carbon-800 text-white focus:border-checkered-yellow-500 focus:ring-checkered-yellow-500">
+                                <option value="">Non vérifié</option><option value="yes">Oui</option><option value="no">Non</option>
+                            </select>
+                        </label>
+                        <label class="block text-sm font-medium text-carbon-100">Numéro concordant ?
+                            <select wire:model.live="licenseNumberMatches" class="mt-1 block w-full rounded-lg border border-carbon-600 bg-carbon-800 text-white focus:border-checkered-yellow-500 focus:ring-checkered-yellow-500">
+                                <option value="">Non vérifié</option><option value="yes">Oui</option><option value="no">Non</option>
+                            </select>
+                        </label>
+                        <label class="block text-sm font-medium text-carbon-100">Valable le jour de la course ?
+                            <select wire:model.live="licenseValidForRaceDate" class="mt-1 block w-full rounded-lg border border-carbon-600 bg-carbon-800 text-white focus:border-checkered-yellow-500 focus:ring-checkered-yellow-500">
+                                <option value="">Non vérifié</option><option value="yes">Oui</option><option value="no">Non</option>
+                            </select>
+                        </label>
+                        <label class="block text-sm font-medium text-carbon-100">Date de fin observée (obligatoire pour valider)
+                            <input type="date" wire:model.live="licenseValidUntil" class="mt-1 block w-full rounded-lg border border-carbon-600 bg-carbon-800 text-white focus:border-checkered-yellow-500 focus:ring-checkered-yellow-500">
+                        </label>
+                    </div>
+
+                    <label class="block text-sm font-medium text-carbon-100">Décision du contrôleur
+                        <select wire:model.live="licenseResult" class="mt-1 block w-full rounded-lg border border-carbon-600 bg-carbon-800 text-white focus:border-checkered-yellow-500 focus:ring-checkered-yellow-500">
+                            <option value="needs_review">À examiner ou vérification impossible</option>
+                            <option value="invalid" @disabled($licenseSource !== 'ligue_ffsa' || $licenseSourceAccessStatus !== 'consulted')>Alerte : licence non conforme</option>
+                            <option value="valid" @disabled(! $this->canConfirmValidLicense)>RCCR {{ $licenseRegistration->race->race_date->format('Y') }} vérifiée</option>
+                        </select>
+                    </label>
+                    @if(! $this->canConfirmValidLicense)
+                        <p class="text-xs text-status-warning">Le statut vert nécessite la recherche FFSA consultée, le code RCCR, l’année et l’état Active, une date de fin valable, l’identité et le numéro concordants.</p>
+                    @endif
+                    <p class="text-xs text-carbon-300">Une identité, un numéro ou un autre type de licence incertain reste « À examiner ». L’alerte rouge exige une preuve FFSA de licence expirée, suspendue ou inactive.</p>
+                    @if($licenseResult === 'invalid' && ! $this->canConfirmInvalidLicense)
+                        <p class="text-xs text-status-warning" role="status">Pour l’alerte rouge, sélectionnez « Non » à la validité le jour de la course, confirmez l’identité et le numéro, puis indiquez un motif cohérent avec l’état et la date de fin observés. En cas de doute, choisissez « À examiner ».</p>
+                    @endif
+                    @if($licenseResult !== 'valid')
+                        <label class="block text-sm font-medium text-carbon-100">Motif du contrôle
+                            <select wire:model.live="licenseReasonCode" class="mt-1 block w-full rounded-lg border border-carbon-600 bg-carbon-800 text-white focus:border-checkered-yellow-500 focus:ring-checkered-yellow-500">
+                                @if($licenseResult === 'invalid')
+                                    <option value="">Choisir un motif</option>
+                                    <option value="expired">Licence expirée</option>
+                                    <option value="revoked">Licence suspendue ou révoquée</option>
+                                    <option value="no_current_license_confirmed">Aucune licence en cours confirmée</option>
+                                @else
+                                    <option value="">Choisir un motif</option>
+                                    <option value="ambiguous">Information ambiguë</option>
+                                    <option value="other_title_to_review">Autre titre ou catégorie à examiner</option>
+                                    <option value="not_found">Licence introuvable</option>
+                                    <option value="identity_uncertain">Identité incertaine</option>
+                                    <option value="number_uncertain">Numéro incertain</option>
+                                    <option value="source_unavailable">Portail indisponible</option>
+                                    <option value="document_only">Document seul</option>
+                                    <option value="other">Autre motif à préciser</option>
+                                @endif
+                            </select>
+                        </label>
+                    @endif
+                    <label class="block text-sm font-medium text-carbon-100">Note pour le suivi administratif
+                        <textarea wire:model="licenseNote" rows="2" maxlength="500" placeholder="Précisez le constat utile à la décision humaine."
+                                  class="mt-1 block w-full rounded-lg border border-carbon-600 bg-carbon-800 text-white placeholder-carbon-500 focus:border-checkered-yellow-500 focus:ring-checkered-yellow-500"></textarea>
+                    </label>
+                    @if($errors->has('licenseResult') || $errors->has('licenseYearObserved') || $errors->has('licenseValidUntil') || $errors->has('licenseTypeObserved') || $errors->has('licenseNote') || $errors->has('licenseReasonCode'))
+                        <div role="alert" class="rounded-lg border border-status-danger/40 bg-status-danger/10 p-3 text-sm text-status-danger">
+                            @foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach
+                        </div>
+                    @endif
+                </div>
+                <div class="flex flex-wrap justify-end gap-3 border-t border-carbon-700 p-5 sm:p-6">
+                    <button type="button" wire:click="closeLicenseModal" class="rounded-lg border border-carbon-600 px-4 py-2.5 text-sm font-semibold text-carbon-100 hover:bg-carbon-700">Annuler</button>
+                    <button type="button" wire:click="confirmLicenseCheck" wire:loading.attr="disabled" wire:target="confirmLicenseCheck"
+                            @disabled(($licenseResult === 'valid' && ! $this->canConfirmValidLicense) || ($licenseResult === 'invalid' && ! $this->canConfirmInvalidLicense))
+                            class="rounded-lg bg-racing-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-racing-red-600 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-checkered-yellow-500">
+                        <span wire:loading.remove wire:target="confirmLicenseCheck">Enregistrer le contrôle</span>
+                        <span wire:loading wire:target="confirmLicenseCheck">Enregistrement…</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 
     {{-- Modal Validation --}}
     @if($showValidationModal && $selectedRegistration)

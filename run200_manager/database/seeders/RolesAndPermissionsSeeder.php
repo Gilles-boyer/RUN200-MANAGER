@@ -40,6 +40,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'race_registration.assign_paddock',
             'race_registration.cancel_own',
             'registration.manage', // Walk-in registration permission
+            'license.verify',
 
             // Checkpoint permissions
             'checkpoint.scan.admin_check',
@@ -114,6 +115,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'payment.view',
             'payment.manage',
             'registration.manage', // Walk-in registration
+            'license.verify',
         ]);
 
         // 3. CONTROLEUR_TECHNIQUE - Technical inspection
