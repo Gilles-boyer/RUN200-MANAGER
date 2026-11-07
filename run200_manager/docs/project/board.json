@@ -485,7 +485,7 @@
       "title": "Permettre au staff de refuser la participation avant l'entree dans la course",
       "owner": "it_backend",
       "priority": 1,
-      "state": "doing",
+      "state": "review",
       "acceptance": [
         "Un agent autorise refuse avec motif une inscription eligible depuis la liste staff bureau et mobile ; refus audite, sans modifier paiements ou autres inscriptions du pilote",
         "Le refus retire l'inscription des participants et du paddock, bloque les nouveaux acces et conserve les passages VA/VT historiques ; un paiement Stripe peut encore aboutir sans changer REFUSED",
@@ -509,10 +509,12 @@
         "docs/project/BACKEND-SCHEMA.md"
       ],
       "author": "refusal_backend",
-      "reviewer": "",
-      "evidence": [],
-      "revision": "",
-      "review_evidence": "",
+      "reviewer": "refusal_code_qa",
+      "evidence": [
+        "07/11: 41 tests cibles et 150 assertions en worktree, Pint, Blade, git diff check; revue QA locale favorable"
+      ],
+      "revision": "0e94eb9",
+      "review_evidence": "refusal_code_qa: 41 tests/150 assertions, 4 defauts corriges, aucun bloqueur code local; CI, navigateur et production non verifies",
       "blocked": ""
     }
   ]
