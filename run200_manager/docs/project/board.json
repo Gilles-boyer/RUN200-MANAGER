@@ -431,7 +431,7 @@
       "title": "Contrôler et signaler la licence RCCR 2026 aux VA/VT",
       "owner": "it_backend",
       "priority": 1,
-      "state": "review",
+      "state": "deliver",
       "acceptance": [
         "La liste des inscriptions affiche sans faux positif un etat de licence par inscription, en bureau et mobile, avec alerte si RCCR 2026 non confirmee",
         "Un agent VA autorise enregistre le resultat d'un controle FFSA avec source, date, motif et audit ; autre licence et service indisponible restent a examiner, sans blocage automatique de checkpoint"
@@ -448,11 +448,14 @@
       "evidence": [
         "07/11 : verification.ffsa.org donne numero, identite, annee et suspension mais pas le type ; licence.ffsa.org redirige apres connexion vers recherche ligue.ffsa.org ; detail Licences affiche code RCCR, 2026, etat Active et date de fin",
         "07/11 production cPanel lecture seule : Git ebdb319, races.id=5 = Epreuve D'acceleration Run 200 - Novembre, race_date=2026-11-08",
-        "07/11 QA independante : 40 tests LIC / 108 assertions ; garde vert et rouge, permissions, concurrence, filtres et alerte VA non bloquante ; build Vite de la branche isolee reussi"
+        "07/11 QA independante : 40 tests LIC / 108 assertions ; garde vert et rouge, permissions, concurrence, filtres et alerte VA non bloquante ; build Vite de la branche isolee reussi",
+        "07/11 PR #29 fusionnee sur main 7cdbc1f ; CI style, PHP 8.2/8.3/8.4 et Vite reussie ; o2switch avance de ebdb319 a 7cdbc1f, trois migrations et cache des vues reussis",
+        "07/11 sauvegarde SQL privee mode 600 et branche rollback pre-lic-rccr-20261107 ; course #5 du 08/11/2026 configuree RCCR, autres courses RCCR=0, zero controle enregistre, permission license.verify pour ADMIN et STAFF_ADMINISTRATIF",
+        "07/11 production : CSS Vite initialement 404 car mode 600, corrige en 644 puis HTTP 200 text/css ; site / HTTP 200 ; Chrome admin tableau novembre style, 76 inscriptions, filtre et modal FFSA verifies sans enregistrer un verdict reel"
       ],
-      "revision": "LIC-local-2026-11-07",
-      "review_evidence": "QA locale favorable, publication non verifiee ; voir DOCUMENT-VALIDATION.md",
-      "blocked": "CI, audit de publication, migration, configuration de la course et parcours staff en production restent a verifier"
+      "revision": "7cdbc1fd9cb466dd4c95d00b2d3bb7b541b3d983",
+      "review_evidence": "QA locale favorable et CI exacte reussie ; production verifiee pour migration, droits, configuration, affichage et ouverture du formulaire ; enregistrement d'un controle reel et resultat visible apres soumission non testes en production",
+      "blocked": "Parcours de soumission et persistance d'un verdict FFSA reel non testes en production ; aucun dossier reel ne doit servir de test arbitraire"
     },
     {
       "id": "LIC-2026-02",
@@ -468,10 +471,14 @@
       "files": [],
       "author": "",
       "reviewer": "it_qa",
-      "evidence": ["07/11 : aucun fichier export fourni par l'utilisateur ; portail ligue.ffsa.org propose Extractions et Statistiques > Licences actives par saison, filtres 2026/RCCR/club et export CSV ; aucun CSV telecharge, colonnes non verifiees"],
+      "evidence": [
+        "07/11 : aucun fichier export fourni par l'utilisateur ; portail ligue.ffsa.org propose Extractions et Statistiques > Licences actives par saison",
+        "07/11 compte Gestionnaire Club ASA CFG : filtres Saison 2026, Niveau Club (seule option), structure ASA CFG, toutes licences ; 121 resultats visibles, Export CSV/XLSX ; colonnes numero licencie, nom, prenom, type/code/choix licence, etat, date de validation et donnees personnelles etendues ; pas de date de fin visible",
+        "Export club potentiellement incomplet pour pilotes licencies ailleurs ; absence de ligne ne prouve pas invalidite ; aucun export telecharge ni import realise"
+      ],
       "revision": "",
       "review_evidence": "",
-      "blocked": "Colonnes, perimetre, conditions d'usage et fraicheur de l'export CSV a verifier avant contrat d'import"
+      "blocked": "Colonnes reelles et droit d'usage de l'export, minimisation des donnees, date de fin et couverture des pilotes licencies hors club a verifier avant contrat d'import"
     }
   ]
 }
