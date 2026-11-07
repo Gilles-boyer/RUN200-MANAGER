@@ -578,7 +578,7 @@
                     </div>
 
                     {{-- Actions --}}
-                    <div class="p-4 bg-carbon-800/50 border-t border-carbon-700 flex flex-wrap gap-2">
+                    <div class="p-4 bg-carbon-800/50 border-t border-carbon-700 grid grid-cols-2 gap-2">
                         @if($registration->licenseCheckState() !== 'not_applicable' && auth()->user()->can('license.verify'))
                             <button id="license-check-mobile-{{ $registration->id }}" type="button" wire:click="openLicenseModal({{ $registration->id }}, 'mobile')"
                                     wire:loading.attr="disabled" wire:target="openLicenseModal"
@@ -613,7 +613,7 @@
                         @endif
                         @if(in_array($registration->status, ['PENDING_VALIDATION', 'PENDING_PAYMENT', 'ACCEPTED', 'ADMIN_CHECKED', 'TECH_CHECKED_OK', 'TECH_CHECKED_FAIL'], true) && auth()->user()->can('race_registration.validate'))
                             <button id="registration-refuse-mobile-{{ $registration->id }}" type="button" wire:click="openValidationModal({{ $registration->id }}, 'refuse', 'mobile')"
-                                    class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-status-danger/20 text-status-danger text-sm font-medium hover:bg-status-danger/30 transition-colors tap-target focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-danger">
+                                    class="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-status-danger/20 text-status-danger text-sm font-medium hover:bg-status-danger/30 transition-colors tap-target focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-danger">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
                                 </svg>
@@ -622,7 +622,7 @@
                         @endif
                         @if($registration->status === 'REFUSED' && auth()->user()->can('race_registration.validate'))
                             <button id="registration-reopen-mobile-{{ $registration->id }}" type="button" wire:click="openReopenModal({{ $registration->id }}, 'mobile')"
-                                    class="flex-1 flex items-center justify-center px-4 py-2.5 rounded-lg bg-status-info/20 text-status-info text-sm font-medium hover:bg-status-info/30 transition-colors tap-target focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-info">
+                                    class="col-span-2 flex items-center justify-center px-4 py-2.5 rounded-lg bg-status-info/20 text-status-info text-sm font-medium hover:bg-status-info/30 transition-colors tap-target focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-info">
                                 Réouvrir l'inscription
                             </button>
                         @endif
