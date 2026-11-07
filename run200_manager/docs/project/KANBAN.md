@@ -16,7 +16,7 @@ Vue dérivée de board.json. Modifier la source avec le coordinateur.
 ## À préciser
 
 - **LIC-2026-02** · P1 · Etudier une liaison officielle FFSA pour precontroler les licences · `it_backend`
-  Blocage : Colonnes, perimetre, conditions d'usage et fraicheur de l'export CSV a verifier avant contrat d'import
+  Blocage : Colonnes reelles et droit d'usage de l'export, minimisation des donnees, date de fin et couverture des pilotes licencies hors club a verifier avant contrat d'import
 
 ## Prêt
 
@@ -29,8 +29,6 @@ Aucune carte.
 ## En revue
 
 - **REC-03** · P1 · Vérifier les adresses et envoyer les reçus Stripe historiques · `it_backend`
-- **LIC-2026-01** · P1 · Contrôler et signaler la licence RCCR 2026 aux VA/VT · `it_backend`
-  Blocage : CI, audit de publication, migration, configuration de la course et parcours staff en production restent a verifier
 
 ## À livrer
 
@@ -45,6 +43,8 @@ Aucune carte.
 - **PAY-04** · P1 · Rendre le téléchargement de reçu strictement en lecture · `it_backend`
 - **REC-04** · P1 · Borner le pilote de reçu historique à un seul paiement · `it_backend`
 - **WEB-01** · P2 · Corriger les pages publiques et la page 404 · `it_frontend`
+- **LIC-2026-01** · P1 · Contrôler et signaler la licence RCCR 2026 aux VA/VT · `it_backend`
+  Blocage : Parcours de soumission et persistance d'un verdict FFSA reel non testes en production ; aucun dossier reel ne doit servir de test arbitraire
 
 ## Terminé
 
