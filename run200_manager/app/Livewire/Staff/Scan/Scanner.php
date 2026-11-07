@@ -114,7 +114,7 @@ class Scanner extends Component
                         ->orWhereHas('car', fn ($car) => $car->where('race_number', 'like', "%{$search}%"));
                 });
             })
-            ->with(['pilot', 'car.category'])
+            ->with(['pilot', 'car.category', 'race', 'licenseCheck'])
             ->orderBy('created_at')
             ->paginate(12);
     }
@@ -263,6 +263,9 @@ class Scanner extends Component
             return;
         }
 
+        $this->registrationInfo['registration']->load('licenseCheck');
+        $this->registrationInfo['license_check_state'] = $this->registrationInfo['registration']->licenseCheckState();
+
         // Check if this checkpoint was already scanned
         $passedCheckpoints = $this->registrationInfo['passed_checkpoints'] ?? [];
         if (in_array($this->checkpointCode, $passedCheckpoints)) {
@@ -290,6 +293,10 @@ class Scanner extends Component
             $this->showSuccess = true;
             $this->scanResult = 'Scan effectué avec succès !';
             $this->registrationInfo = $scanUseCase->getRegistrationFromToken($this->token);
+            if ($this->registrationInfo) {
+                $this->registrationInfo['registration']->load('licenseCheck');
+                $this->registrationInfo['license_check_state'] = $this->registrationInfo['registration']->licenseCheckState();
+            }
 
             if ($this->checkpointCode === 'TECH_CHECK') {
                 $this->computeRaceStats();
@@ -338,7 +345,7 @@ class Scanner extends Component
         if (preg_match('/^([A-Z]{2,5})-([0-9]+)-([0-9]+)$/', $code, $matches)) {
             $registrationId = (int) $matches[3];
 
-            $registration = RaceRegistration::with(['pilot', 'car.category', 'race', 'passages.checkpoint'])
+            $registration = RaceRegistration::with(['pilot', 'car.category', 'race', 'licenseCheck', 'passages.checkpoint'])
                 ->find($registrationId);
 
             if ($registration) {
@@ -365,6 +372,7 @@ class Scanner extends Component
                         'paddock' => $registration->paddock,
                         'passed_checkpoints' => $passedCheckpoints,
                         'is_paid' => $registration->isPaid(),
+                        'license_check_state' => $registration->licenseCheckState(),
                     ];
 
                     // Check if this checkpoint was already scanned

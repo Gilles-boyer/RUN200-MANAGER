@@ -49,6 +49,7 @@ class CheckpointsManager extends Component
             'pilot',
             'car.category',
             'race',
+            'licenseCheck',
             'passages.checkpoint',
             'passages.scanner',
             'techInspection',

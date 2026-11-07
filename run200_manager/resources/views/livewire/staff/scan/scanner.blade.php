@@ -136,6 +136,7 @@
                                 <p class="font-semibold text-white">{{ $registration->pilot->last_name }} {{ $registration->pilot->first_name }}</p>
                                 <p class="text-sm text-gray-400">Voiture #{{ $registration->car->race_number }} · {{ $registration->car->make }} {{ $registration->car->model }}</p>
                                 <p class="text-xs text-gray-500">Licence {{ $registration->pilot->license_number }} · {{ $registration->car->category?->name ?? 'Sans catégorie' }}</p>
+                                <div class="mt-2"><x-racing.license-check-badge :registration="$registration" /></div>
                             </div>
                             <button type="button" wire:click="validateTechnicalCheck({{ $registration->id }})"
                                     wire:loading.attr="disabled" wire:target="validateTechnicalCheck({{ $registration->id }})"
@@ -379,6 +380,15 @@
                             Licence: <span class="text-checkered-yellow-500 font-mono">{{ $registrationInfo['pilot']->license_number }}</span>
                         </p>
                     </div>
+                </div>
+
+                <!-- License check -->
+                <div class="rounded-xl border border-carbon-600/50 bg-carbon-700/30 p-4">
+                    <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-carbon-400">Contrôle licence</p>
+                    <x-racing.license-check-badge :state="$registrationInfo['license_check_state'] ?? 'not_checked'" />
+                    @if(($registrationInfo['license_check_state'] ?? 'not_checked') !== 'not_applicable' && ($registrationInfo['license_check_state'] ?? 'not_checked') !== 'valid')
+                        <p class="mt-2 text-sm text-status-warning">Vérifiez la licence requise ; la décision de poursuivre reste humaine.</p>
+                    @endif
                 </div>
 
                 <!-- Car Info -->
