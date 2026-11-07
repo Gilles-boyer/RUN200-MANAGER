@@ -485,7 +485,7 @@
       "title": "Permettre au staff de refuser la participation avant l'entree dans la course",
       "owner": "it_backend",
       "priority": 1,
-      "state": "review",
+      "state": "deliver",
       "acceptance": [
         "Un agent autorise refuse avec motif une inscription eligible depuis la liste staff bureau et mobile ; refus audite, sans modifier paiements ou autres inscriptions du pilote",
         "Le refus retire l'inscription des participants et du paddock, bloque les nouveaux acces et conserve les passages VA/VT historiques ; un paiement Stripe peut encore aboutir sans changer REFUSED",
@@ -511,11 +511,12 @@
       "author": "refusal_backend",
       "reviewer": "refusal_code_qa",
       "evidence": [
-        "07/11: 41 tests cibles et 150 assertions en worktree, Pint, Blade, git diff check; revue QA locale favorable"
+        "07/11 : 41 tests cibles et 150 assertions ; quatre defauts corriges ; grille mobile revue apres PR #33",
+        "Production bb9398b : 15 boutons de refus, colonne FFSA, dialogue ouvert puis ferme ; grille 390 px sans debordement ; aucun refus reel soumis"
       ],
-      "revision": "0e94eb9",
-      "review_evidence": "refusal_code_qa: 41 tests/150 assertions, 4 defauts corriges, aucun bloqueur code local; CI, navigateur et production non verifies",
-      "blocked": ""
+      "revision": "bb9398b6f60afb887aeb3a87418ac0e8f2110071",
+      "review_evidence": "QA code independante favorable ; CI PHP 8.2/8.3/8.4, style et Vite verte ; grille mobile revue",
+      "blocked": "Mutation de refus, courriel et absence de changement du paiement non observes sur un dossier reel en production ; attendre une decision de refus legitime"
     }
   ]
 }

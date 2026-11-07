@@ -1,5 +1,13 @@
 # Reprise du projet RUN200 Manager — 16 octobre 2026
 
+## Refus sportif d'une inscription — livraison du 7 novembre 2026
+
+- Contrat REG-REFUSE-01 v0.6 : le staff peut indiquer qu'un pilote ne participera pas, avec un motif et une trace, avant l'entrée en course. Les paiements, reçus et opérations Stripe restent indépendants ; aucun remboursement n'est déclenché. La colonne de contrôle FFSA reste visible.
+- Les PR [#31](https://github.com/Gilles-boyer/RUN200-MANAGER/pull/31), [#32](https://github.com/Gilles-boyer/RUN200-MANAGER/pull/32) et [#33](https://github.com/Gilles-boyer/RUN200-MANAGER/pull/33) sont fusionnées. CI verte (PHP 8.2/8.3/8.4, style, Vite). QA indépendante : 41 tests ciblés, 150 assertions, quatre défauts corrigés ; le correctif mobile a été relu séparément. Le SHA serveur o2switch constaté est `bb9398b6f60afb887aeb3a87418ac0e8f2110071` ; caches de vues reconstruits, accueil et CSS haché HTTP 200. Pas de migration dans cette livraison.
+- En production, la liste staff de novembre montre les actions et la colonne FFSA. La fenêtre de refus a été ouverte puis fermée, sans enregistrer de décision. À 390 px, la grille mobile a deux colonnes, le bouton de refus occupe la largeur, et le document ne déborde pas. L'essai n'a pas vérifié l'écriture réelle, l'e-mail au pilote ou les effets de bord d'un refus de production. Ne pas modifier un dossier réel uniquement pour prouver la livraison.
+- Le serveur conserve ses fichiers préexistants modifiés/non suivis (`.env.production.example`, `public/storage/.gitignore`, `error_log`, `public/build/assets/app-cOj-1CU7.js`, `public/storage`). Branche de retour `pre-refusal-20261107-1127` au SHA `7cdbc1f`. L'audit ciblé de 20 points et ses limites se trouvent dans `REG_REFUSE_AUDIT_2026-11-07.md` ; aucun verdict global « prêt ».
+- Prochaine vérification : lors du premier refus décidé par un responsable, contrôler le statut REFUSED, le motif/audit, le paddock et les accès, l'e-mail, ainsi que l'absence de modification du paiement ou de Stripe. Si une réouverture est décidée, contrôler manuellement les paiements avant l'action. Restent aussi ouverts la purge 3/5/10 ans et la révocation du secret Mailtrap historique.
+
 ## Source de vérité
 
 `docs/project/board.json` est le Kanban source ; `KANBAN.md` est sa vue générée. La campagne de reçus est détaillée dans `RECORDED_RECEIPTS_RELEASE_2026-10-16.md`, son audit de 20 points dans `AUDIT_RECEIPTS_2026-10-16.md` et son prévol dans `RECORDED_RECEIPTS_CAMPAIGN_2026-10-16.md`. Les deux documents utilisateur non suivis dans `docs/` restent hors Git et doivent être préservés.
