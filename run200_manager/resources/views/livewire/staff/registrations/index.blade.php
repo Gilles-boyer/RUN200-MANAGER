@@ -1,4 +1,5 @@
-<div class="space-y-6" x-on:license-modal-closed.window="requestAnimationFrame(() => (document.getElementById($event.detail.id) || document.getElementById('registration-page-title'))?.focus())">
+<div class="space-y-6" x-on:license-modal-closed.window="requestAnimationFrame(() => (document.getElementById($event.detail.id) || document.getElementById('registration-page-title'))?.focus())"
+     x-on:registration-modal-closed.window="requestAnimationFrame(() => (document.getElementById($event.detail.id) || document.getElementById('registration-page-title'))?.focus())">
     {{-- Header avec style Racing --}}
     <div class="relative overflow-hidden rounded-xl bg-racing-gradient-subtle p-6 border border-carbon-700">
         <div class="absolute top-0 right-0 w-64 h-64 bg-racing-red-500/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
@@ -203,6 +204,9 @@
                             </td>
                             <td class="px-4 py-4">
                                 <x-racing.badge-status :status="$registration->status" />
+                                @if($registration->status === 'REFUSED')
+                                    <p class="mt-1 text-xs font-medium text-status-danger">Ne participe pas</p>
+                                @endif
                                 @if($registration->reason)
                                     <p class="mt-1 text-xs text-carbon-400 max-w-xs truncate" title="{{ $registration->reason }}">
                                         {{ $registration->reason }}
@@ -385,15 +389,23 @@
                                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                             </svg>
                                         </button>
-                                        @if($registration->isPending())
-                                        <button wire:click="openValidationModal({{ $registration->id }}, 'refuse')"
-                                                class="p-2 rounded-lg text-status-danger hover:bg-status-danger/20 transition-colors"
-                                                title="Refuser">
+                                    @endif
+                                    @if(in_array($registration->status, ['PENDING_VALIDATION', 'PENDING_PAYMENT', 'ACCEPTED', 'ADMIN_CHECKED', 'TECH_CHECKED_OK', 'TECH_CHECKED_FAIL'], true) && auth()->user()->can('race_registration.validate'))
+                                        <button id="registration-refuse-desktop-{{ $registration->id }}" type="button" wire:click="openValidationModal({{ $registration->id }}, 'refuse', 'desktop')"
+                                                class="p-2 rounded-lg text-status-danger hover:bg-status-danger/20 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-danger"
+                                                title="Refuser la participation"
+                                                aria-label="Refuser la participation de {{ $registration->pilot->first_name }} {{ $registration->pilot->last_name }}">
                                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
                                             </svg>
                                         </button>
-                                        @endif
+                                    @endif
+                                    @if($registration->status === 'REFUSED' && auth()->user()->can('race_registration.validate'))
+                                        <button id="registration-reopen-desktop-{{ $registration->id }}" type="button" wire:click="openReopenModal({{ $registration->id }}, 'desktop')"
+                                                class="px-3 py-2 rounded-lg text-status-info hover:bg-status-info/20 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-info"
+                                                aria-label="Réouvrir l'inscription de {{ $registration->pilot->first_name }} {{ $registration->pilot->last_name }}">
+                                            Réouvrir
+                                        </button>
                                     @endif
 
                                     @if($registration->isAccepted() && auth()->user()->can('race_registration.assign_paddock'))
@@ -443,7 +455,12 @@
                                 </div>
                             </div>
                         </div>
-                        <x-racing.badge-status :status="$registration->status" />
+                        <div class="text-right">
+                            <x-racing.badge-status :status="$registration->status" />
+                            @if($registration->status === 'REFUSED')
+                                <p class="mt-1 text-xs font-medium text-status-danger">Ne participe pas</p>
+                            @endif
+                        </div>
                     </div>
 
                     {{-- Contenu --}}
@@ -593,15 +610,21 @@
                                 </svg>
                                 {{ $registration->isPendingPayment() ? 'Accepter avant paiement' : 'Accepter' }}
                             </button>
-                            @if($registration->isPending())
-                            <button wire:click="openValidationModal({{ $registration->id }}, 'refuse')"
-                                    class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-status-danger/20 text-status-danger text-sm font-medium hover:bg-status-danger/30 transition-colors tap-target">
+                        @endif
+                        @if(in_array($registration->status, ['PENDING_VALIDATION', 'PENDING_PAYMENT', 'ACCEPTED', 'ADMIN_CHECKED', 'TECH_CHECKED_OK', 'TECH_CHECKED_FAIL'], true) && auth()->user()->can('race_registration.validate'))
+                            <button id="registration-refuse-mobile-{{ $registration->id }}" type="button" wire:click="openValidationModal({{ $registration->id }}, 'refuse', 'mobile')"
+                                    class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-status-danger/20 text-status-danger text-sm font-medium hover:bg-status-danger/30 transition-colors tap-target focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-danger">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
                                 </svg>
-                                Refuser
+                                Refuser la participation
                             </button>
-                            @endif
+                        @endif
+                        @if($registration->status === 'REFUSED' && auth()->user()->can('race_registration.validate'))
+                            <button id="registration-reopen-mobile-{{ $registration->id }}" type="button" wire:click="openReopenModal({{ $registration->id }}, 'mobile')"
+                                    class="flex-1 flex items-center justify-center px-4 py-2.5 rounded-lg bg-status-info/20 text-status-info text-sm font-medium hover:bg-status-info/30 transition-colors tap-target focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-info">
+                                Réouvrir l'inscription
+                            </button>
                         @endif
                         @if($registration->isAccepted() && auth()->user()->can('race_registration.assign_paddock'))
                             <button wire:click="openPaddockModal({{ $registration->id }})"
@@ -783,11 +806,14 @@
 
     {{-- Modal Validation --}}
     @if($showValidationModal && $selectedRegistration)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="validation-modal-title" role="dialog" aria-modal="true"
+             x-data x-init="$nextTick(() => $el.querySelector('#validation-modal-title')?.focus())"
+             x-on:keydown.escape="@this.closeValidationModal()"
+             x-on:keydown.tab="const controls = [...$el.querySelectorAll('button:not([disabled]), input:not([disabled]), textarea:not([disabled])')].filter(control => control.getClientRects().length); if (controls.length && $event.shiftKey && document.activeElement === controls[0]) { $event.preventDefault(); controls[controls.length - 1].focus(); } else if (controls.length && !$event.shiftKey && document.activeElement === controls[controls.length - 1]) { $event.preventDefault(); controls[0].focus(); }">
             <div class="flex items-center justify-center min-h-screen p-4">
                 <div class="fixed inset-0 bg-carbon-950/80 backdrop-blur-sm transition-opacity" wire:click="closeValidationModal"></div>
 
-                <div class="relative bg-carbon-800 rounded-xl border border-carbon-700 shadow-2xl transform transition-all sm:max-w-lg w-full">
+                <div class="relative bg-carbon-800 rounded-xl border border-carbon-700 shadow-2xl transform transition-all sm:max-w-lg w-full max-h-[calc(100vh-2rem)] overflow-y-auto">
                     <div class="p-6">
                         <div class="flex items-center gap-3 mb-6">
                             <div class="w-10 h-10 rounded-lg {{ $validationAction === 'accept' ? 'bg-status-success/20' : 'bg-status-danger/20' }} flex items-center justify-center">
@@ -801,8 +827,8 @@
                                     </svg>
                                 @endif
                             </div>
-                            <h3 class="text-lg font-semibold text-white">
-                                {{ $validationAction === 'accept' ? ($selectedRegistration->isPendingPayment() ? 'Accepter avant paiement' : 'Accepter l\'inscription') : 'Refuser l\'inscription' }}
+                            <h3 id="validation-modal-title" tabindex="-1" class="text-lg font-semibold text-white focus:outline-none">
+                                {{ $validationAction === 'accept' ? ($selectedRegistration->isPendingPayment() ? 'Accepter avant paiement' : 'Accepter l\'inscription') : 'Refuser la participation' }}
                             </h3>
                         </div>
 
@@ -820,6 +846,10 @@
                                     <span class="text-carbon-400">Voiture:</span>
                                     <span class="text-white">#{{ $selectedRegistration->car->race_number }} - {{ $selectedRegistration->car->make }} {{ $selectedRegistration->car->model }}</span>
                                 </p>
+                                <p class="text-sm text-carbon-300">
+                                    <span class="text-carbon-400">Statut actuel :</span>
+                                    <span class="text-white">{{ \App\Domain\Registration\Enums\RegistrationStatus::tryFrom($selectedRegistration->status)?->label() ?? $selectedRegistration->status }}</span>
+                                </p>
                             </div>
                         </div>
 
@@ -830,19 +860,34 @@
                         @endif
 
                         @if($validationAction === 'refuse')
+                            @php
+                                $refusalPaidCents = $selectedRegistration->getPaidAmountCents();
+                                $refusalDueCents = max(0, (int) $selectedRegistration->race->entry_fee_cents - $refusalPaidCents);
+                            @endphp
+                            <div class="mb-4 rounded-xl border border-status-warning/40 bg-status-warning/10 p-4 text-sm text-carbon-100" role="note">
+                                <p class="font-semibold text-status-warning">Le pilote ne participera pas à cette course.</p>
+                                <p class="mt-2">Paiement encaissé : {{ number_format($refusalPaidCents / 100, 2, ',', ' ') }} € · Restant dû : {{ number_format($refusalDueCents / 100, 2, ',', ' ') }} €</p>
+                                <p class="mt-2">Cette décision n'annule ni ne rembourse un paiement. Un paiement en ligne déjà ouvert peut encore aboutir ; il faudra le rapprocher séparément.</p>
+                            </div>
                             <x-racing.form.textarea
                                 wire:model="refusalReason"
-                                label="Raison du refus"
+                                name="refusalReason"
+                                id="refusalReason"
+                                label="Motif du refus"
                                 required
                                 rows="3"
-                                placeholder="Indiquez la raison du refus..."
+                                hint="Au moins 10 caractères. Ce motif sera communiqué au pilote."
+                                placeholder="Expliquez pourquoi ce pilote ne participera pas à cette course."
                             />
+                        @endif
+                        @if($validationError)
+                            <p class="mt-4 rounded-lg border border-status-danger/40 bg-status-danger/10 p-3 text-sm text-status-danger" role="alert" aria-live="assertive">{{ $validationError }}</p>
                         @endif
                     </div>
 
                     <div class="flex items-center justify-end gap-3 px-6 py-4 bg-carbon-900/50 border-t border-carbon-700 rounded-b-xl">
-                        <x-racing.button variant="outline" wire:click="closeValidationModal">
-                            Annuler
+                        <x-racing.button variant="outline" wire:click="closeValidationModal" wire:loading.attr="disabled" wire:target="confirmValidation">
+                            Retour
                         </x-racing.button>
                         <x-racing.button
                             wire:click="confirmValidation"
@@ -850,8 +895,64 @@
                             wire:target="confirmValidation"
                             variant="{{ $validationAction === 'accept' ? 'primary' : 'danger' }}"
                         >
-                            {{ $validationAction === 'accept' ? ($selectedRegistration->isPendingPayment() ? 'Accepter avant paiement' : 'Accepter') : 'Refuser' }}
+                            <span wire:loading.remove wire:target="confirmValidation">{{ $validationAction === 'accept' ? ($selectedRegistration->isPendingPayment() ? 'Accepter avant paiement' : 'Accepter') : 'Confirmer le refus' }}</span>
+                            <span wire:loading wire:target="confirmValidation">{{ $validationAction === 'accept' ? 'Validation en cours…' : 'Refus en cours…' }}</span>
                         </x-racing.button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Réouverture contrôlée d'une inscription refusée --}}
+    @if($showReopenModal && $selectedRegistration)
+        <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="reopen-modal-title"
+             x-data x-init="$nextTick(() => $el.querySelector('#reopen-modal-title')?.focus())"
+             x-on:keydown.escape="@this.closeReopenModal()"
+             x-on:keydown.tab="const controls = [...$el.querySelectorAll('button:not([disabled]), input:not([disabled]), textarea:not([disabled])')].filter(control => control.getClientRects().length); if (controls.length && $event.shiftKey && document.activeElement === controls[0]) { $event.preventDefault(); controls[controls.length - 1].focus(); } else if (controls.length && !$event.shiftKey && document.activeElement === controls[controls.length - 1]) { $event.preventDefault(); controls[0].focus(); }">
+            <div class="flex min-h-screen items-center justify-center p-4">
+                <div class="fixed inset-0 bg-carbon-950/80 backdrop-blur-sm" wire:click="closeReopenModal"></div>
+                <div class="relative w-full max-w-lg max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl border border-carbon-700 bg-carbon-800 shadow-2xl">
+                    <div class="p-5 sm:p-6 space-y-4">
+                        <h3 id="reopen-modal-title" tabindex="-1" class="text-lg font-semibold text-white focus:outline-none">Réouvrir l'inscription refusée</h3>
+                        <p class="text-sm text-carbon-300">{{ $selectedRegistration->pilot->first_name }} {{ $selectedRegistration->pilot->last_name }} · #{{ $selectedRegistration->car->race_number }} {{ $selectedRegistration->car->make }} {{ $selectedRegistration->car->model }} · {{ $selectedRegistration->race->name }}</p>
+                        <div class="rounded-lg border border-carbon-600 bg-carbon-700/50 p-4 text-sm text-carbon-200">
+                            <p class="font-semibold text-white">Contrôles déjà enregistrés</p>
+                            @forelse($selectedRegistration->passages->sortBy('scanned_at') as $passage)
+                                <p class="mt-1">{{ $passage->checkpoint?->name ?? 'Étape inconnue' }} · {{ $passage->scanned_at?->format('d/m/Y H:i') }}</p>
+                            @empty
+                                <p class="mt-1">Aucun passage VA/VT.</p>
+                            @endforelse
+                        </div>
+                        @if($reopenProposedStatus)
+                            <p class="rounded-lg border border-status-info/40 bg-status-info/10 p-3 text-sm text-carbon-100" role="status">
+                                Statut proposé : <strong>{{ \App\Domain\Registration\Enums\RegistrationStatus::tryFrom($reopenProposedStatus)?->label() ?? $reopenProposedStatus }}</strong>. La confirmation vérifiera de nouveau les passages et les paiements.
+                            </p>
+                        @else
+                            <p class="rounded-lg border border-status-danger/40 bg-status-danger/10 p-3 text-sm text-status-danger" role="alert">
+                                Les contrôles du dossier sont incohérents. Un administrateur doit les examiner et corriger le dossier avant la réouverture.
+                            </p>
+                        @endif
+                        <x-racing.form.textarea wire:model="reopenReason" name="reopenReason" id="reopenReason" label="Motif de la réouverture" required rows="3"
+                            hint="Au moins 10 caractères. La décision sera journalisée."
+                            placeholder="Précisez la correction apportée au dossier." />
+                        <label class="flex min-h-11 items-start gap-3 text-sm text-carbon-100">
+                            <input type="checkbox" wire:model="reopenPaymentsReviewed" class="mt-1 rounded border-carbon-500 bg-carbon-900 text-status-info focus:ring-status-info" />
+                            <span>J'ai vérifié les paiements et les sessions de paiement de ce dossier. Cette réouverture ne modifie aucun paiement.</span>
+                        </label>
+                        @error('reopenPaymentsReviewed') <p class="text-sm text-status-danger" role="alert">{{ $message }}</p> @enderror
+                        @if($reopenError)
+                            <p class="rounded-lg border border-status-danger/40 bg-status-danger/10 p-3 text-sm text-status-danger" role="alert" aria-live="assertive">{{ $reopenError }}</p>
+                        @endif
+                    </div>
+                    <div class="flex flex-wrap justify-end gap-3 border-t border-carbon-700 bg-carbon-900/50 px-5 py-4 sm:px-6">
+                        <button type="button" wire:click="closeReopenModal" wire:loading.attr="disabled" wire:target="confirmReopen"
+                                class="min-h-11 rounded-lg border border-carbon-600 px-4 text-sm font-semibold text-carbon-100 hover:bg-carbon-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-info">Retour</button>
+                        <button type="button" wire:click="confirmReopen" wire:loading.attr="disabled" wire:target="confirmReopen" @disabled($reopenProposedStatus === null)
+                                class="min-h-11 rounded-lg bg-status-info px-4 text-sm font-semibold text-carbon-950 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-info">
+                            <span wire:loading.remove wire:target="confirmReopen">Confirmer la réouverture</span>
+                            <span wire:loading wire:target="confirmReopen">Réouverture en cours…</span>
+                        </button>
                     </div>
                 </div>
             </div>

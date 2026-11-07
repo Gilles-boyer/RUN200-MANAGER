@@ -62,24 +62,16 @@ class ScanCheckpoint
             throw new InvalidArgumentException("Vous n'avez pas la permission de scanner ce checkpoint");
         }
 
-        // Get passed checkpoints
-        $passedCheckpoints = $registration->passages()
-            ->with('checkpoint')
-            ->get()
-            ->pluck('checkpoint.code')
-            ->toArray();
-
-        // Check if transition is allowed
-        if (! CheckpointTransitions::canScan($checkpointCode, $registration->status, $passedCheckpoints)) {
-            $errorMessage = CheckpointTransitions::getErrorMessage(
-                $checkpointCode,
-                $registration->status,
-                $passedCheckpoints
-            );
-            throw new InvalidArgumentException($errorMessage);
-        }
-
         return DB::transaction(function () use ($registration, $checkpoint, $scanner, $checkpointCode, $source) {
+            $registration = RaceRegistration::query()->lockForUpdate()->findOrFail($registration->id);
+            $passedCheckpoints = $registration->passages()->with('checkpoint')->get()
+                ->pluck('checkpoint.code')->toArray();
+            if (! CheckpointTransitions::canScan($checkpointCode, $registration->status, $passedCheckpoints)) {
+                throw new InvalidArgumentException(CheckpointTransitions::getErrorMessage(
+                    $checkpointCode, $registration->status, $passedCheckpoints
+                ));
+            }
+
             // Create passage
             $passage = CheckpointPassage::create([
                 'race_registration_id' => $registration->id,

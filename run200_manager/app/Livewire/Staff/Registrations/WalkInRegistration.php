@@ -324,7 +324,15 @@ class WalkInRegistration extends Component
                 $carId = $this->selectedCarId;
                 if ($carId && RaceRegistration::where('race_id', $this->selectedRaceId)
                     ->where('car_id', $carId)
-                    ->whereNotIn('status', ['REFUSED', 'CANCELLED'])
+                    ->where('status', 'REFUSED')
+                    ->exists()) {
+                    $this->errorMessage = 'Cette inscription est refusée. Utilisez l’action de réouverture après vérification des paiements.';
+
+                    return false;
+                }
+                if ($carId && RaceRegistration::where('race_id', $this->selectedRaceId)
+                    ->where('car_id', $carId)
+                    ->where('status', '!=', 'CANCELLED')
                     ->exists()) {
                     $this->errorMessage = 'Cette voiture est déjà inscrite à cette course.';
 
@@ -455,7 +463,10 @@ class WalkInRegistration extends Component
         $existing = RaceRegistration::where('race_id', $this->selectedRaceId)
             ->where('car_id', $car->id)->lockForUpdate()->first();
         if ($existing) {
-            if ($existing->pilot_id !== $pilot->id || ! in_array($existing->status, ['REFUSED', 'CANCELLED'], true)) {
+            if ($existing->status === 'REFUSED') {
+                throw new \InvalidArgumentException('Cette inscription a été refusée. Utilisez l’action de réouverture après vérification des paiements.');
+            }
+            if ($existing->pilot_id !== $pilot->id || $existing->status !== 'CANCELLED') {
                 throw new \InvalidArgumentException('Cette voiture est déjà inscrite à cette course.');
             }
 

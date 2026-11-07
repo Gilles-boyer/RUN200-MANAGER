@@ -176,6 +176,22 @@ class CheckpointsManager extends Component
 
         try {
             DB::beginTransaction();
+            $this->registration = RaceRegistration::query()->lockForUpdate()->findOrFail($this->registration->id);
+            if ($this->registration->status === 'REFUSED'
+                && (! $this->editingPassageId || ! auth()->user()?->hasRole('ADMIN'))) {
+                throw ValidationException::withMessages([
+                    'selectedCheckpointId' => 'Cette inscription est refusée. Seul un administrateur peut corriger un passage historique avant sa réouverture.',
+                ]);
+            }
+            if (! $this->editingPassageId) {
+                $currentCodes = $this->registration->passages()->with('checkpoint')->get()
+                    ->pluck('checkpoint.code')->toArray();
+                if (! $checkpoint->is_active || ! CheckpointTransitions::canScan($checkpoint->code, $this->registration->status, $currentCodes)) {
+                    throw ValidationException::withMessages([
+                        'selectedCheckpointId' => 'Le dossier a changé. Actualisez les étapes avant de continuer.',
+                    ]);
+                }
+            }
 
             if ($this->editingPassageId) {
                 // Update existing passage
@@ -326,6 +342,9 @@ class CheckpointsManager extends Component
             ]);
 
             $this->closePassageModal();
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            session()->flash('error', $e->validator->errors()->first());
         } catch (\Exception $e) {
             DB::rollBack();
             session()->flash('error', UserFacingError::message($e, 'Impossible d’enregistrer ce passage.'));
@@ -376,6 +395,24 @@ class CheckpointsManager extends Component
 
         try {
             DB::beginTransaction();
+            $this->registration = RaceRegistration::query()->lockForUpdate()->findOrFail($this->registration->id);
+            $refused = $this->registration->status === 'REFUSED';
+            if ($refused && ! auth()->user()?->hasRole('ADMIN')) {
+                throw ValidationException::withMessages([
+                    'passageToDelete' => 'Cette inscription est refusée. Seul un administrateur peut corriger ce passage historique.',
+                ]);
+            }
+
+            $this->passageToDelete = CheckpointPassage::query()
+                ->where('race_registration_id', $this->registration->id)
+                ->with('checkpoint')->findOrFail($this->passageToDelete->id);
+            if (in_array($this->registration->status, ['RESULTS_IMPORTED', 'PUBLISHED'], true)
+                || ($dependentCodes !== [] && $this->registration->passages()
+                    ->whereHas('checkpoint', fn ($query) => $query->whereIn('code', $dependentCodes))->exists())) {
+                throw ValidationException::withMessages([
+                    'passageToDelete' => 'Les étapes du dossier ont changé. Actualisez-les avant de corriger ce passage.',
+                ]);
+            }
 
             $checkpointName = $this->passageToDelete->checkpoint->name;
 
@@ -409,7 +446,7 @@ class CheckpointsManager extends Component
                 'BRACELET' => 'ENTRY_SCANNED',
                 default => null,
             };
-            if ($previousStatus !== null) {
+            if ($previousStatus !== null && ! $refused) {
                 $this->registration->update(['status' => $previousStatus]);
             }
 
@@ -431,6 +468,9 @@ class CheckpointsManager extends Component
 
             session()->flash('success', "Passage au checkpoint \"{$checkpointName}\" supprimé.");
             $this->closeDeleteModal();
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            session()->flash('error', $e->validator->errors()->first());
         } catch (\Exception $e) {
             DB::rollBack();
             session()->flash('error', UserFacingError::message($e, 'Impossible de supprimer ce passage.'));

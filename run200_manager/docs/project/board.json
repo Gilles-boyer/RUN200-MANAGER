@@ -438,8 +438,6 @@
       ],
       "depends_on": [],
       "files": [
-        "app/Livewire/Staff/Registrations/Index.php",
-        "resources/views/livewire/staff/registrations/index.blade.php",
         "app/Models/RaceRegistration.php",
         "database/migrations"
       ],
@@ -467,7 +465,9 @@
         "Une interface ou un export FFSA autorise est identifie, documente et teste avant integration ; rapprochement strict identite et numero, sans validation abusive",
         "Les licences RCCR 2026 concordantes sont signalees, les autres types et informations manquantes restent en revue humaine"
       ],
-      "depends_on": ["LIC-2026-01"],
+      "depends_on": [
+        "LIC-2026-01"
+      ],
       "files": [],
       "author": "",
       "reviewer": "it_qa",
@@ -478,7 +478,44 @@
       ],
       "revision": "",
       "review_evidence": "",
-      "blocked": "Colonnes reelles et droit d'usage de l'export, minimisation des donnees, date de fin et couverture des pilotes licencies hors club a verifier avant contrat d'import"
+      "blocked": "Developpements FFSA mis en pause par l'utilisateur le 07/11 ; droit d'usage, minimisation, date de fin et pilotes licencies hors club a verifier avant tout import"
+    },
+    {
+      "id": "REG-REFUSE-01",
+      "title": "Permettre au staff de refuser la participation avant l'entree dans la course",
+      "owner": "it_backend",
+      "priority": 1,
+      "state": "review",
+      "acceptance": [
+        "Un agent autorise refuse avec motif une inscription eligible depuis la liste staff bureau et mobile ; refus audite, sans modifier paiements ou autres inscriptions du pilote",
+        "Le refus retire l'inscription des participants et du paddock, bloque les nouveaux acces et conserve les passages VA/VT historiques ; un paiement Stripe peut encore aboutir sans changer REFUSED",
+        "Le pilote ne reactive pas lui-meme un REFUSED ; le staff peut rouvrir la meme inscription apres controle manuel des paiements ; e-mail sans promesse de remboursement",
+        "Tests cibles, revue independante, audit-sites des points critiques et verification de la version deployee"
+      ],
+      "depends_on": [],
+      "files": [
+        "app/Application/Registrations/UseCases/ValidateRegistration.php",
+        "app/Application/Registrations/UseCases/SubmitRegistration.php",
+        "app/Livewire/Staff/Registrations/Index.php",
+        "app/Livewire/Staff/Registrations/CheckpointsManager.php",
+        "resources/views/livewire/staff/registrations/index.blade.php",
+        "resources/views/livewire/pilot/registrations/index.blade.php",
+        "resources/views/emails/registrations/refused.blade.php",
+        "docs/project/PRD.md",
+        "docs/project/TRD.md",
+        "docs/project/APPFLOW.md",
+        "docs/project/UI-UX-BRIEF.md",
+        "docs/project/IMPLEMENTATION-PLAN.md",
+        "docs/project/BACKEND-SCHEMA.md"
+      ],
+      "author": "refusal_backend",
+      "reviewer": "refusal_code_qa",
+      "evidence": [
+        "07/11: 41 tests cibles et 150 assertions en worktree, Pint, Blade, git diff check; revue QA locale favorable"
+      ],
+      "revision": "0e94eb9",
+      "review_evidence": "refusal_code_qa: 41 tests/150 assertions, 4 defauts corriges, aucun bloqueur code local; CI, navigateur et production non verifies",
+      "blocked": ""
     }
   ]
 }

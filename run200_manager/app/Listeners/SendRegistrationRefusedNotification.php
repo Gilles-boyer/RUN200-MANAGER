@@ -11,7 +11,15 @@ class SendRegistrationRefusedNotification implements ShouldQueue
 {
     public function handle(RegistrationRefused $event): void
     {
-        $registration = $event->registration;
+        $registration = $event->registration->fresh();
+        if (! $registration || $registration->status !== 'REFUSED') {
+            return;
+        }
+        if ($event->refusalActivityId !== null
+            && (int) $registration->activities()->where('description', 'registration.refused')
+                ->orderByDesc('id')->value('id') !== $event->refusalActivityId) {
+            return;
+        }
 
         if ($registration->pilot && $registration->pilot->user) {
             Mail::to($registration->pilot->user->email)

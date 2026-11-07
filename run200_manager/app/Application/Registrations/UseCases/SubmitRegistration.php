@@ -44,8 +44,12 @@ class SubmitRegistration
                 ->first();
 
             if ($existing) {
+                if ($existing->status === RegistrationStatus::REFUSED->value) {
+                    throw new InvalidArgumentException('Cette inscription a été refusée. Contactez l’organisation pour demander sa réouverture.');
+                }
+
                 if ($existing->pilot_id !== $pilot->id
-                    || ! in_array($existing->status, [RegistrationStatus::REFUSED->value, RegistrationStatus::CANCELLED->value], true)) {
+                    || $existing->status !== RegistrationStatus::CANCELLED->value) {
                     throw new InvalidArgumentException('Cette voiture est déjà inscrite à cette course.');
                 }
 

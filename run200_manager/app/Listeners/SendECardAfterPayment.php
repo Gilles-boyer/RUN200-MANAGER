@@ -21,9 +21,10 @@ class SendECardAfterPayment implements ShouldQueue
         }
 
         /** @var RaceRegistration|null $registration */
-        $registration = $payment->registration;
+        $registration = $payment->registration?->fresh();
 
-        if ($registration && $registration->pilot && $registration->pilot->user) {
+        if ($registration && $registration->status !== 'REFUSED'
+            && $registration->pilot && $registration->pilot->user) {
             Mail::to($registration->pilot->user->email)
                 ->send(new ECardMail($payment, $registration));
         }
