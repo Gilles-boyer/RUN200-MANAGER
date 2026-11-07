@@ -3,8 +3,8 @@
 namespace App\Livewire\Staff\Registrations;
 
 use App\Application\Registrations\UseCases\AssignPaddock;
-use App\Application\Registrations\UseCases\ValidateRegistration;
 use App\Application\Registrations\UseCases\RecordLicenseCheck;
+use App\Application\Registrations\UseCases\ValidateRegistration;
 use App\Infrastructure\Qr\QrTokenService;
 use App\Models\Checkpoint;
 use App\Models\Race;
