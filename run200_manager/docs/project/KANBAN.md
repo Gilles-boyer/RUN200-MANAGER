@@ -16,7 +16,7 @@ Vue dérivée de board.json. Modifier la source avec le coordinateur.
 ## À préciser
 
 - **LIC-2026-02** · P1 · Etudier une liaison officielle FFSA pour precontroler les licences · `it_backend`
-  Blocage : Colonnes reelles et droit d'usage de l'export, minimisation des donnees, date de fin et couverture des pilotes licencies hors club a verifier avant contrat d'import
+  Blocage : Developpements FFSA mis en pause par l'utilisateur le 07/11 ; droit d'usage, minimisation, date de fin et pilotes licencies hors club a verifier avant tout import
 
 ## Prêt
 
@@ -24,7 +24,7 @@ Aucune carte.
 
 ## En cours
 
-Aucune carte.
+- **REG-REFUSE-01** · P1 · Permettre au staff de refuser la participation avant l'entree dans la course · `it_backend`
 
 ## En revue
 

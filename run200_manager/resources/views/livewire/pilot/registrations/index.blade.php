@@ -78,7 +78,9 @@
                                     <x-racing.badge-status :status="$registration->status" />
                                 </div>
                                 <p class="text-sm text-carbon-400 mb-3">
-                                    @if(in_array($registration->status, ['REFUSED', 'CANCELLED'], true) && !$registration->race?->isOpen())
+                                    @if($registration->status === 'REFUSED')
+                                        Votre participation à cette course est refusée. Pour faire réexaminer le dossier après vérification des paiements, contactez l'organisation à <a href="mailto:contact@cfg.re" class="underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-racing-red-500">contact@cfg.re</a>.
+                                    @elseif($registration->status === 'CANCELLED' && !$registration->race?->isOpen())
                                         Contactez le staff si vous souhaitez réactiver cette inscription ; les inscriptions à cette course sont fermées.
                                     @else
                                         {{ \App\Domain\Registration\Enums\RegistrationStatus::tryFrom($registration->status)?->nextStep() }}
@@ -126,6 +128,8 @@
                                                 Paiement effectué
                                             @elseif($pendingPayment)
                                                 Paiement en attente
+                                            @elseif($registration->status === 'REFUSED')
+                                                Aucun paiement encaissé
                                             @else
                                                 Paiement requis
                                             @endif
@@ -217,11 +221,15 @@
                                         @endif
                                     @else
                                         <p class="text-sm text-carbon-400">
-                                            Aucun paiement enregistré.
-                                            @if($registration->race && $registration->race->entry_fee)
+                                            {{ $registration->status === 'REFUSED' ? 'Aucun paiement encaissé pour cette inscription.' : 'Aucun paiement enregistré.' }}
+                                            @if($registration->status !== 'REFUSED' && $registration->race && $registration->race->entry_fee)
                                                 Montant dû : <span class="font-bold text-checkered-yellow-500">{{ number_format($registration->race->entry_fee, 2) }} €</span>
                                             @endif
                                         </p>
+                                    @endif
+
+                                    @if($registration->status === 'REFUSED' && $pendingPayment)
+                                        <p class="mt-3 text-sm text-status-warning">Une tentative de paiement ouverte avant le refus peut encore aboutir. Contactez l'organisation si un règlement est prélevé.</p>
                                     @endif
 
                                     @foreach($registration->payments->filter(fn ($payment) => $payment->canHaveReceipt() && $payment->receipt !== null) as $receiptPayment)
@@ -252,7 +260,7 @@
 
                             {{-- Actions --}}
                             <div class="flex flex-wrap lg:flex-col gap-2 lg:items-end">
-                                @if(in_array($registration->status, ['REFUSED', 'CANCELLED'], true) && $registration->race?->isOpen())
+                                @if($registration->status === 'CANCELLED' && $registration->race?->isOpen())
                                     <x-racing.button href="{{ route('pilot.registrations.create', $registration->race) }}" size="sm" variant="secondary">
                                         Réactiver l’inscription
                                     </x-racing.button>

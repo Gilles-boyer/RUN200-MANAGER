@@ -5,7 +5,7 @@
 
 <p>Bonjour <strong>{{ $registration->pilot->user->name }}</strong>,</p>
 
-<p>Nous sommes désolés de vous informer que votre inscription à la course <strong>{{ $registration->race->name }}</strong> n'a pas pu être <span class="status-badge status-danger">acceptée</span>.</p>
+<p>Votre inscription à la course <strong>{{ $registration->race->name }}</strong> est <span class="status-badge status-danger">refusée</span>. Vous ne participerez pas à cette course avec ce dossier.</p>
 
 <div class="danger-box">
     <h3>Raison du refus</h3>
@@ -17,9 +17,9 @@
 </div>
 
 <div class="info-box">
-    <h3>💰 Remboursement</h3>
+    <h3>Paiement</h3>
     <p style="margin-bottom: 0;">
-        Si vous avez effectué un paiement, celui-ci vous sera <strong>automatiquement remboursé</strong> sous 5 à 10 jours ouvrés.
+        Le refus ne modifie pas un paiement déjà effectué et ne déclenche pas de remboursement automatique. Si vous avez une question sur votre règlement, contactez l'organisation.
     </p>
 </div>
 

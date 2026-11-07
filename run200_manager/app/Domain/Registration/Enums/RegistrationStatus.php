@@ -69,7 +69,7 @@ enum RegistrationStatus: string
             self::SUBMITTED, self::PENDING_VALIDATION => 'Le staff vérifie votre inscription.',
             self::PENDING_PAYMENT => 'Réglez votre inscription pour qu’elle soit examinée.',
             self::ACCEPTED => 'Consultez votre E-Card et préparez le contrôle administratif.',
-            self::REFUSED => 'Consultez le motif du refus ; vous pouvez réactiver l’inscription si la course est ouverte.',
+            self::REFUSED => 'Cette inscription est refusée pour cette course. Contactez l’organisation pour toute question.',
             self::CANCELLED => 'Vous pouvez réactiver l’inscription si la course est ouverte.',
             self::ADMIN_CHECKED => 'Présentez-vous au contrôle technique.',
             self::TECH_CHECKED_OK => 'Votre voiture est validée ; présentez votre E-Card à l’entrée.',

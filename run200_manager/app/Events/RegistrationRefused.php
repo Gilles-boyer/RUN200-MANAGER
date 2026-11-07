@@ -12,6 +12,7 @@ class RegistrationRefused
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(
-        public RaceRegistration $registration
+        public RaceRegistration $registration,
+        public readonly ?int $refusalActivityId = null
     ) {}
 }

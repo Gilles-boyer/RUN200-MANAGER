@@ -4,6 +4,7 @@ namespace App\Livewire\Staff\Registrations;
 
 use App\Application\Registrations\UseCases\AssignPaddock;
 use App\Application\Registrations\UseCases\RecordLicenseCheck;
+use App\Application\Registrations\UseCases\ReopenRefusedRegistration;
 use App\Application\Registrations\UseCases\ValidateRegistration;
 use App\Infrastructure\Qr\QrTokenService;
 use App\Models\Checkpoint;
@@ -41,6 +42,26 @@ class Index extends Component
     public string $validationAction = '';
 
     public string $refusalReason = '';
+
+    public array $validationSnapshot = [];
+
+    public string $validationError = '';
+
+    public string $validationReturnFocusId = '';
+
+    public bool $showReopenModal = false;
+
+    public string $reopenReason = '';
+
+    public bool $reopenPaymentsReviewed = false;
+
+    public string $reopenError = '';
+
+    public string $reopenReturnFocusId = '';
+
+    public ?string $reopenProposedStatus = null;
+
+    public array $reopenSnapshot = [];
 
     // Modal paddock
     public bool $showPaddockModal = false;
@@ -355,7 +376,7 @@ class Index extends Component
         $this->registrationCode = null;
     }
 
-    public function openValidationModal(int $registrationId, string $action)
+    public function openValidationModal(int $registrationId, string $action, string $source = 'desktop')
     {
         Gate::authorize('race_registration.validate');
 
@@ -364,24 +385,41 @@ class Index extends Component
         }
 
         $registration = RaceRegistration::with(['pilot', 'car', 'race'])->findOrFail($registrationId);
-        if (! $registration->isPending() && ! ($action === 'accept' && $registration->isPendingPayment())) {
+        $refusableStatuses = ['PENDING_VALIDATION', 'PENDING_PAYMENT', 'ACCEPTED', 'ADMIN_CHECKED', 'TECH_CHECKED_OK', 'TECH_CHECKED_FAIL'];
+        $canOpen = $action === 'refuse'
+            ? in_array($registration->status, $refusableStatuses, true)
+            : ($registration->isPending() || $registration->isPendingPayment());
+        if (! $canOpen) {
             session()->flash('error', 'Le statut de cette inscription a changé. Actualisez la liste avant de continuer.');
 
             return;
         }
 
         $this->selectedRegistration = $registration;
+        $this->validationSnapshot = [
+            'status' => $registration->status,
+            'pilot_id' => $registration->pilot_id,
+            'race_id' => $registration->race_id,
+            'car_id' => $registration->car_id,
+        ];
         $this->validationAction = $action;
+        $this->validationReturnFocusId = "registration-{$action}-{$source}-{$registrationId}";
         $this->refusalReason = '';
+        $this->validationError = '';
         $this->showValidationModal = true;
     }
 
     public function closeValidationModal()
     {
+        $returnFocusId = $this->validationReturnFocusId;
         $this->showValidationModal = false;
         $this->selectedRegistration = null;
         $this->validationAction = '';
         $this->refusalReason = '';
+        $this->validationSnapshot = [];
+        $this->validationError = '';
+        $this->validationReturnFocusId = '';
+        $this->dispatch('registration-modal-closed', id: $returnFocusId);
     }
 
     public function confirmValidation()
@@ -393,6 +431,8 @@ class Index extends Component
         }
 
         $this->validate(['validationAction' => ['required', 'in:accept,refuse']]);
+
+        $this->validationError = '';
 
         try {
             $useCase = new ValidateRegistration;
@@ -414,20 +454,95 @@ class Index extends Component
                     'refusalReason.min' => 'La raison doit contenir au moins 10 caractères.',
                 ]);
 
-                $useCase->refuse($registration, $this->refusalReason);
-                session()->flash('success', 'Inscription refusée.');
+                $useCase->refuse($registration, $this->refusalReason, auth()->user(), $this->validationSnapshot);
+                session()->flash('success', 'Participation refusée pour cette course. Les paiements restent inchangés.');
             }
         } catch (ValidationException $e) {
             throw $e;
         } catch (\InvalidArgumentException $e) {
-            session()->flash('error', $e->getMessage() === 'Seules les inscriptions en attente peuvent être validées'
+            $this->validationError = $e->getMessage() === 'Seules les inscriptions en attente peuvent être validées'
                 ? 'Le statut de cette inscription a changé. Actualisez la liste avant de continuer.'
-                : $e->getMessage());
+                : $e->getMessage();
+
+            return;
         } catch (\Exception $e) {
-            session()->flash('error', UserFacingError::message($e, 'Impossible de valider cette inscription.'));
+            $this->validationError = UserFacingError::message($e, 'Impossible de valider cette inscription.');
+
+            return;
         }
 
         $this->closeValidationModal();
+    }
+
+    public function openReopenModal(int $registrationId, string $source = 'desktop'): void
+    {
+        Gate::authorize('race_registration.validate');
+
+        $registration = RaceRegistration::with(['pilot', 'car', 'race', 'passages.checkpoint', 'techInspection'])->findOrFail($registrationId);
+        if ($registration->status !== 'REFUSED') {
+            session()->flash('error', 'Le dossier a changé. Rechargez la liste avant de continuer.');
+
+            return;
+        }
+
+        $this->selectedRegistration = $registration;
+        $this->reopenSnapshot = [
+            'status' => $registration->status,
+            'pilot_id' => $registration->pilot_id,
+            'race_id' => $registration->race_id,
+            'car_id' => $registration->car_id,
+        ];
+        $this->reopenReturnFocusId = "registration-reopen-{$source}-{$registrationId}";
+        $this->reopenReason = '';
+        $this->reopenPaymentsReviewed = false;
+        $this->reopenError = '';
+        $this->reopenProposedStatus = (new ReopenRefusedRegistration)->previewStatus($registration);
+        $this->showReopenModal = true;
+    }
+
+    public function closeReopenModal(): void
+    {
+        $returnFocusId = $this->reopenReturnFocusId;
+        $this->showReopenModal = false;
+        $this->selectedRegistration = null;
+        $this->reopenReason = '';
+        $this->reopenPaymentsReviewed = false;
+        $this->reopenProposedStatus = null;
+        $this->reopenSnapshot = [];
+        $this->reopenError = '';
+        $this->reopenReturnFocusId = '';
+        $this->dispatch('registration-modal-closed', id: $returnFocusId);
+    }
+
+    public function confirmReopen(): void
+    {
+        Gate::authorize('race_registration.validate');
+
+        if (! $this->selectedRegistration) {
+            return;
+        }
+
+        $this->validate([
+            'reopenReason' => ['required', 'string', 'min:10'],
+            'reopenPaymentsReviewed' => ['accepted'],
+        ], [
+            'reopenReason.required' => 'Indiquez la raison de la réouverture.',
+            'reopenReason.min' => 'La raison doit contenir au moins 10 caractères.',
+            'reopenPaymentsReviewed.accepted' => 'Confirmez avoir vérifié les paiements.',
+        ]);
+
+        $this->reopenError = '';
+
+        try {
+            $registration = RaceRegistration::findOrFail($this->selectedRegistration->id);
+            (new ReopenRefusedRegistration)->execute($registration, $this->reopenReason, auth()->user(), $this->reopenPaymentsReviewed, $this->reopenSnapshot, $this->reopenProposedStatus);
+            session()->flash('success', 'Inscription réouverte après vérification. Les paiements restent inchangés.');
+            $this->closeReopenModal();
+        } catch (\InvalidArgumentException $e) {
+            $this->reopenError = $e->getMessage();
+        } catch (\Exception $e) {
+            $this->reopenError = UserFacingError::message($e, 'Impossible de réouvrir cette inscription.');
+        }
     }
 
     public function openPaddockModal(int $registrationId)
