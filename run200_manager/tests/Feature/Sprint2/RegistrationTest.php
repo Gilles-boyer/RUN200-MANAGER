@@ -183,7 +183,7 @@ test('registration status methods work correctly', function () {
     expect($registration->isRefused())->toBeTrue();
 });
 
-test('a refused registration is reactivated on the same row and preserves its paid payment', function () {
+test('a pilot cannot reactivate a refused registration and its paid payment is preserved', function () {
     $pilot = Pilot::factory()->create();
     $category = CarCategory::first();
     $car = Car::factory()->for($pilot)->for($category, 'category')->create();
@@ -201,12 +201,11 @@ test('a refused registration is reactivated on the same row and preserves its pa
         'status' => 'paid',
     ]);
 
-    $reactivated = (new SubmitRegistration)->execute($race, $pilot, $car);
+    expect(fn () => (new SubmitRegistration)->execute($race, $pilot, $car))
+        ->toThrow(InvalidArgumentException::class, 'Cette inscription a été refusée');
 
-    expect($reactivated->id)->toBe($registration->id)
-        ->and($reactivated->status)->toBe('PENDING_VALIDATION')
-        ->and($reactivated->reason)->toBeNull()
-        ->and($reactivated->car_category_id)->toBe($category->id)
+    expect($registration->fresh()->status)->toBe('REFUSED')
+        ->and($registration->fresh()->reason)->toBe('Document manquant')
         ->and($payment->fresh()->status->value)->toBe('paid')
         ->and(RaceRegistration::where('race_id', $race->id)->where('car_id', $car->id)->count())->toBe(1);
 });

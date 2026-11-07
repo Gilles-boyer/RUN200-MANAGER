@@ -7,19 +7,17 @@ namespace Tests\Feature\Sprint3;
 use App\Application\Registrations\UseCases\ValidateRegistration;
 use App\Models\RaceRegistration;
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $roles = ['ADMIN', 'PILOTE', 'STAFF_ADMINISTRATIF', 'CONTROLEUR_TECHNIQUE', 'STAFF_ENTREE', 'STAFF_SONO'];
-    foreach ($roles as $role) {
-        Role::findOrCreate($role, 'web');
-    }
+    $this->seed(RolesAndPermissionsSeeder::class);
 
     $this->staffUser = User::factory()->create();
     $this->staffUser->assignRole('STAFF_ADMINISTRATIF');
+    $this->actingAs($this->staffUser);
 });
 
 // ============================================================================
@@ -57,7 +55,7 @@ test('refusing a registration without reason throws exception', function () {
     $useCase = new ValidateRegistration;
 
     expect(fn () => $useCase->execute($registration, 'REFUSED', null, $this->staffUser))
-        ->toThrow(\InvalidArgumentException::class, 'Une raison est obligatoire pour un refus');
+        ->toThrow(\InvalidArgumentException::class, 'Indiquez un motif de refus d’au moins 10 caractères.');
 });
 
 test('refusing a registration with empty reason throws exception', function () {
@@ -66,7 +64,7 @@ test('refusing a registration with empty reason throws exception', function () {
     $useCase = new ValidateRegistration;
 
     expect(fn () => $useCase->execute($registration, 'REFUSED', '', $this->staffUser))
-        ->toThrow(\InvalidArgumentException::class, 'Une raison est obligatoire pour un refus');
+        ->toThrow(\InvalidArgumentException::class, 'Indiquez un motif de refus d’au moins 10 caractères.');
 });
 
 test('cannot validate already accepted registration', function () {
@@ -84,7 +82,7 @@ test('cannot validate already refused registration', function () {
     $useCase = new ValidateRegistration;
 
     expect(fn () => $useCase->execute($registration, 'REFUSED', 'New reason', $this->staffUser))
-        ->toThrow(\InvalidArgumentException::class, 'Seules les inscriptions en attente peuvent être validées');
+        ->toThrow(\InvalidArgumentException::class, 'Cette inscription ne peut plus être refusée à cette étape.');
 });
 
 test('validation records validated_at timestamp', function () {
